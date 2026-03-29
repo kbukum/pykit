@@ -1,3 +1,7 @@
-"""pykit-di — TODO: implement."""
+"""pykit_di — Dependency injection container with eager, lazy, and singleton modes."""
 
-__version__ = "0.1.0"
+from __future__ import annotations
+
+from pykit_di.container import Container, RegistrationMode
+
+__all__ = ["Container", "RegistrationMode"]

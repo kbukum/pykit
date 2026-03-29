@@ -2,6 +2,36 @@
 name = "pykit-workspace"
 version = "0.1.0"
 requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pykit",
+    "pykit-errors",
+    "pykit-config",
+    "pykit-logging",
+    "pykit-provider",
+    "pykit-pipeline",
+    "pykit-server",
+    "pykit-metrics",
+    "pykit-testutil",
+    "pykit-triton",
+    "pykit-dataset",
+    "pykit-bench",
+    "pykit-validation",
+    "pykit-encryption",
+    "pykit-util",
+    "pykit-version",
+    "pykit-component",
+    "pykit-resilience",
+    "pykit-di",
+    "pykit-bootstrap",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+]
 
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -85,6 +115,14 @@ source_pkgs = [
     "pykit_triton",
     "pykit_dataset",
     "pykit_bench",
+    "pykit_validation",
+    "pykit_encryption",
+    "pykit_util",
+    "pykit_version",
+    "pykit_component",
+    "pykit_resilience",
+    "pykit_di",
+    "pykit_bootstrap",
 ]
 branch = true
 
