@@ -4,8 +4,12 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "sqlalchemy[asyncio]",
-    "asyncpg",
+    "pykit-errors",
+    "pykit-component",
 ]
+
+[project.optional-dependencies]
+test = ["aiosqlite"]
 
 [build-system]
 requires = ["hatchling"]

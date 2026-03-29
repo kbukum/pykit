@@ -2,7 +2,14 @@
 name = "pykit-storage"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "aiofiles",
+    "pykit-errors",
+    "pykit-component",
+]
+
+[project.optional-dependencies]
+s3 = ["aioboto3"]
 
 [build-system]
 requires = ["hatchling"]

@@ -4,7 +4,9 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "httpx",
+    "pykit-errors",
     "pykit-resilience",
+    "pykit-component",
 ]
 
 [build-system]

@@ -26,6 +26,13 @@ dev = [
     "pykit-resilience",
     "pykit-di",
     "pykit-bootstrap",
+    "pykit-kafka",
+    "pykit-httpclient",
+    "pykit-storage",
+    "pykit-redis",
+    "pykit-database",
+    "aiosqlite",
+    "fakeredis",
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
@@ -123,6 +130,11 @@ source_pkgs = [
     "pykit_resilience",
     "pykit_di",
     "pykit_bootstrap",
+    "pykit_database",
+    "pykit_redis",
+    "pykit_storage",
+    "pykit_kafka",
+    "pykit_httpclient",
 ]
 branch = true
 
