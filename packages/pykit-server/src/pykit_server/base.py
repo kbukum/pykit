@@ -108,8 +108,6 @@ class BaseServer:
         if self._health_servicer is None:
             return
         status = (
-            health_pb2.HealthCheckResponse.SERVING
-            if serving
-            else health_pb2.HealthCheckResponse.NOT_SERVING
+            health_pb2.HealthCheckResponse.SERVING if serving else health_pb2.HealthCheckResponse.NOT_SERVING
         )
         self._health_servicer.set(service_name, status)

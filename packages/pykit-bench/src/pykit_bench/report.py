@@ -87,9 +87,7 @@ class MarkdownReporter:
 
         # Misclassified
         misclassified = [
-            s
-            for s in run_result.sample_results
-            if (s.overall_score >= m.threshold) != s.is_positive
+            s for s in run_result.sample_results if (s.overall_score >= m.threshold) != s.is_positive
         ]
         if misclassified:
             lines.append(f"MISCLASSIFIED SAMPLES ({len(misclassified)})")

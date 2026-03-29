@@ -23,6 +23,7 @@ import io
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+
 from pykit_dataset.model import DataItem, Label, MediaType
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,11 @@ class HuggingFaceSource:
 
         try:
             ds = await asyncio.to_thread(
-                _load_and_shuffle, cfg.repo, cfg.split, cfg.token, cfg.shuffle_buffer,
+                _load_and_shuffle,
+                cfg.repo,
+                cfg.split,
+                cfg.token,
+                cfg.shuffle_buffer,
             )
         except Exception as exc:
             logger.warning("Failed to load %s: %s", cfg.repo, exc)

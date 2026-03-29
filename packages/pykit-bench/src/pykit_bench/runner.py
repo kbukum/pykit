@@ -87,9 +87,7 @@ class BenchRunner:
         self._branches: list[BranchSpec] = list(branches) if branches else []
         self._storage = storage
 
-    def register_branch(
-        self, name: str, func: Callable[..., Awaitable[float]], tier: int = 1
-    ) -> None:
+    def register_branch(self, name: str, func: Callable[..., Awaitable[float]], tier: int = 1) -> None:
         """Register an analysis branch for benchmarking."""
         self._branches.append(BranchSpec(name=name, func=func, tier=tier))
 

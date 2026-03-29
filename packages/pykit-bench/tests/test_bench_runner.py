@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from pykit_bench.dataset import DatasetLoader
-from pykit_bench.runner import BenchRunner, RunResult
+from pykit_bench.runner import BenchRunner
 
 
 @pytest.fixture
@@ -137,9 +137,7 @@ class TestBenchRunner:
         results_dir = tmp_path / "results"
         storage = RunStorage(results_dir)
         loader = DatasetLoader(dataset_dir)
-        runner = BenchRunner(
-            dataset_loader=loader, positive_label="positive", storage=storage
-        )
+        runner = BenchRunner(dataset_loader=loader, positive_label="positive", storage=storage)
         runner.register_branch("b", branch)
         result = await runner.run(tag="persist-test")
 

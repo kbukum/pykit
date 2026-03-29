@@ -26,9 +26,7 @@ class BaseSettings(PydanticBaseSettings):
 
     # Common settings for all services
     service_name: str = "pykit-service"
-    environment: str = Field(
-        default="development", description="development | staging | production"
-    )
+    environment: str = Field(default="development", description="development | staging | production")
     host: str = "0.0.0.0"
     port: int = 50051
     log_level: str = "INFO"

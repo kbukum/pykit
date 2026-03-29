@@ -49,9 +49,7 @@ def compute_metrics(
         raise ValueError(msg)
 
     if not scores:
-        return ThresholdMetrics(
-            threshold=threshold, precision=0.0, recall=0.0, f1=0.0, accuracy=0.0, fpr=0.0
-        )
+        return ThresholdMetrics(threshold=threshold, precision=0.0, recall=0.0, f1=0.0, accuracy=0.0, fpr=0.0)
 
     cm = ConfusionMatrix()
     for score, label in zip(scores, labels, strict=True):
@@ -99,6 +97,4 @@ def per_branch_metrics(
     threshold: float = 0.5,
 ) -> dict[str, ThresholdMetrics]:
     """Compute metrics per analysis branch."""
-    return {
-        name: compute_metrics(scores, labels, threshold) for name, scores in branch_scores.items()
-    }
+    return {name: compute_metrics(scores, labels, threshold) for name, scores in branch_scores.items()}

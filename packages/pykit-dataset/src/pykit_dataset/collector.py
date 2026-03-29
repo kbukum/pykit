@@ -66,39 +66,35 @@ def _save_manifest(output_dir: Path, manifest: dict[str, Any]) -> None:
 class ProgressCallback(Protocol):
     """Callback protocol for reporting collection progress."""
 
-    def on_source_start(self, source_name: str, source_index: int, total_sources: int, max_items: int | None) -> None:
-        ...
+    def on_source_start(
+        self, source_name: str, source_index: int, total_sources: int, max_items: int | None
+    ) -> None: ...
 
-    def on_item_saved(self, source_name: str, label: Label, source_count: int, total_count: int) -> None:
-        ...
+    def on_item_saved(self, source_name: str, label: Label, source_count: int, total_count: int) -> None: ...
 
-    def on_item_skipped(self, source_name: str, reason: str) -> None:
-        ...
+    def on_item_skipped(self, source_name: str, reason: str) -> None: ...
 
-    def on_source_done(self, source_name: str, stats: dict[str, int]) -> None:
-        ...
+    def on_source_done(self, source_name: str, stats: dict[str, int]) -> None: ...
 
     def on_source_cached(self, source_name: str, stats: dict[str, int]) -> None:
         """Called when a source is skipped because it was already cached."""
         ...
 
-    def on_source_error(self, source_name: str, error: Exception) -> None:
-        ...
+    def on_source_error(self, source_name: str, error: Exception) -> None: ...
 
-    def on_publish_start(self, target_name: str) -> None:
-        ...
+    def on_publish_start(self, target_name: str) -> None: ...
 
-    def on_publish_done(self, target_name: str, result: PublishResult) -> None:
-        ...
+    def on_publish_done(self, target_name: str, result: PublishResult) -> None: ...
 
-    def on_publish_error(self, target_name: str, error: Exception) -> None:
-        ...
+    def on_publish_error(self, target_name: str, error: Exception) -> None: ...
 
 
 class _NullProgress:
     """No-op progress callback."""
 
-    def on_source_start(self, source_name: str, source_index: int, total_sources: int, max_items: int | None) -> None:
+    def on_source_start(
+        self, source_name: str, source_index: int, total_sources: int, max_items: int | None
+    ) -> None:
         pass
 
     def on_item_saved(self, source_name: str, label: Label, source_count: int, total_count: int) -> None:
@@ -340,8 +336,15 @@ class Collector:
                 if self._cancelled:
                     break
                 await self._fetch_one(
-                    source, idx, total_sources, real_dir, ai_dir,
-                    result, result_lock, manifest, manifest_lock,
+                    source,
+                    idx,
+                    total_sources,
+                    real_dir,
+                    ai_dir,
+                    result,
+                    result_lock,
+                    manifest,
+                    manifest_lock,
                 )
 
         # Publish to targets

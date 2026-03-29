@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import pytest
+
 from pykit_bench.bench_cli import BenchCliRunner
 from pykit_bench.curves import (
     CalibrationCurve,

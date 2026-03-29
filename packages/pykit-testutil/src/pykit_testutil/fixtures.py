@@ -15,7 +15,7 @@ async def grpc_server_fixture(
     servicer: Any,
     *,
     port: int = 0,
-) -> AsyncGenerator[tuple[aio.Server, int], None]:
+) -> AsyncGenerator[tuple[aio.Server, int]]:
     """Pytest fixture that starts a gRPC server with the given servicer.
 
     Usage:
@@ -39,7 +39,7 @@ async def grpc_server_fixture(
 
 async def grpc_channel_fixture(
     port: int,
-) -> AsyncGenerator[aio.Channel, None]:
+) -> AsyncGenerator[aio.Channel]:
     """Pytest fixture that provides an insecure gRPC channel."""
     async with aio.insecure_channel(f"localhost:{port}") as channel:
         yield channel

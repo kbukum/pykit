@@ -47,9 +47,7 @@ class ComparisonResult:
         lines: list[str] = []
         direction = "📈 IMPROVED" if self.improved else "📉 REGRESSED"
         lines.append(f"COMPARISON: {self.run_a_id} → {self.run_b_id}  {direction}")
-        lines.append(
-            f"  Overall F1:  {self.f1_before:.3f} → {self.f1_after:.3f} ({self.f1_delta:+.3f})"
-        )
+        lines.append(f"  Overall F1:  {self.f1_before:.3f} → {self.f1_after:.3f} ({self.f1_delta:+.3f})")
         lines.append(
             f"  Accuracy:    {self.accuracy_before:.3f} → {self.accuracy_after:.3f}"
             f" ({self.accuracy_delta:+.3f})"

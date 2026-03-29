@@ -5,6 +5,7 @@ from __future__ import annotations
 import grpc
 import pytest
 from grpc_health.v1 import health_pb2, health_pb2_grpc
+
 from pykit_server import BaseServer
 
 

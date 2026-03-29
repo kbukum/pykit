@@ -37,9 +37,7 @@ class RunDiff:
         for c in self.changes:
             icon = "✅" if c.improved else "⚠️"
             sign = "+" if c.delta >= 0 else ""
-            lines.append(
-                f"  {icon} {c.name}: {c.old_value:.4f} → {c.new_value:.4f} ({sign}{c.delta:.4f})"
-            )
+            lines.append(f"  {icon} {c.name}: {c.old_value:.4f} → {c.new_value:.4f} ({sign}{c.delta:.4f})")
         if self.fixed:
             lines.append(f"  Fixed: {len(self.fixed)} samples")
         if self.regressed:

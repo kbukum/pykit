@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
 
-from pykit_bench.dataset import DatasetLoader, DatasetManifest, Sample
+from pykit_bench.dataset import DatasetLoader
 
 
 @pytest.fixture

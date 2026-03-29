@@ -35,9 +35,7 @@ class LoggingInterceptor(aio.ServerInterceptor):
         if handler.unary_unary:
             original = handler.unary_unary
 
-            async def wrapped_unary_unary(
-                request: Any, context: grpc.aio.ServicerContext[Any, Any]
-            ) -> Any:
+            async def wrapped_unary_unary(request: Any, context: grpc.aio.ServicerContext[Any, Any]) -> Any:
                 try:
                     response = await original(request, context)
                     elapsed = time.perf_counter() - start

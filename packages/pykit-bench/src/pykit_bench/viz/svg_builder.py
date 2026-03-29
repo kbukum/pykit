@@ -68,15 +68,12 @@ class SvgBuilder:
 
     def rect(self, x: int, y: int, w: int, h: int, fill: str, attrs: str = "") -> None:
         """Append a ``<rect>`` with integer coordinates."""
-        self._elements.append(
-            f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" {attrs}/>'
-        )
+        self._elements.append(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{fill}" {attrs}/>')
 
     def rect_f(self, x: float, y: float, w: float, h: float, fill: str, attrs: str = "") -> None:
         """Append a ``<rect>`` with float coordinates (2 d.p.)."""
         self._elements.append(
-            f'<rect x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" '
-            f'height="{h:.2f}" fill="{fill}" {attrs}/>'
+            f'<rect x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" height="{h:.2f}" fill="{fill}" {attrs}/>'
         )
 
     def line(
@@ -112,9 +109,7 @@ class SvgBuilder:
 
     def circle(self, cx: float, cy: float, r: float, fill: str, attrs: str = "") -> None:
         """Append a ``<circle>`` element."""
-        self._elements.append(
-            f'<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="{fill}" {attrs}/>'
-        )
+        self._elements.append(f'<circle cx="{cx:.2f}" cy="{cy:.2f}" r="{r:.2f}" fill="{fill}" {attrs}/>')
 
     def polyline(
         self,

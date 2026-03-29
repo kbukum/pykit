@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from pykit_bench.metrics import (
-    ConfusionMatrix,
     compute_metrics,
     per_branch_metrics,
     threshold_sweep,

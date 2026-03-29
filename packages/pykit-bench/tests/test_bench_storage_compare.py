@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -23,12 +22,17 @@ def _make_run(
     """Helper to create a minimal RunResult."""
     return RunResult(
         run_id=run_id,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
         tag="test",
         dataset_name="test-ds",
         sample_results=samples or [],
         metrics=ThresholdMetrics(
-            threshold=0.5, precision=f1, recall=f1, f1=f1, accuracy=f1, fpr=0.0,
+            threshold=0.5,
+            precision=f1,
+            recall=f1,
+            f1=f1,
+            accuracy=f1,
+            fpr=0.0,
             confusion=ConfusionMatrix(tp=1, fp=0, tn=1, fn=0),
         ),
         per_branch=per_branch or {},

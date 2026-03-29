@@ -15,9 +15,7 @@ _PAD_RIGHT = 20
 _PAD_BOTTOM = 70
 
 
-def render_comparison(
-    branches: dict[str, BranchResult], width: int = 600, height: int = 400
-) -> str:
+def render_comparison(branches: dict[str, BranchResult], width: int = 600, height: int = 400) -> str:
     """Generate an SVG grouped bar chart comparing branches."""
     s = SvgBuilder(width, height)
 

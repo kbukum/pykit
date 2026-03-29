@@ -280,9 +280,7 @@ def _score_distribution_spec(r: BenchRunResult) -> dict[str, Any] | None:
             }
 
     # Fall back to building from samples
-    data = [
-        {"score": s.score, "correct": "correct" if s.correct else "incorrect"} for s in r.samples
-    ]
+    data = [{"score": s.score, "correct": "correct" if s.correct else "incorrect"} for s in r.samples]
     return {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "title": "Score Distribution",

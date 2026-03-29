@@ -6,7 +6,7 @@ designed for cross-language compatibility with gokit and ruskit.
 
 from __future__ import annotations
 
-from datetime import datetime  # noqa: TC003 — Pydantic needs this at runtime
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field

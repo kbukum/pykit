@@ -20,11 +20,11 @@ Example::
 
 from __future__ import annotations
 
+from pykit_dataset.collector import Collector, CollectorConfig, CollectorResult, ProgressCallback
 from pykit_dataset.model import DataItem, Label, MediaType
 from pykit_dataset.source import Source
 from pykit_dataset.target import Target
 from pykit_dataset.transform import Transform
-from pykit_dataset.collector import Collector, CollectorConfig, CollectorResult, ProgressCallback
 
 __all__ = [
     "Collector",
