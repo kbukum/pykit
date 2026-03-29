@@ -1,0 +1,73 @@
+[project]
+name = "pykit-workspace"
+version = "0.1.0"
+requires-python = ">=3.13"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv]
+constraint-dependencies = [
+    "pydantic>=2.12.0,<3.0",
+    "pydantic-settings>=2.7",
+    "structlog>=25.1.0",
+    "grpcio>=1.70",
+    "grpcio-health-checking>=1.70",
+    "grpcio-reflection>=1.70",
+    "prometheus-client>=0.22",
+    "httpx>=0.28",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "redis>=5.2",
+    "aiokafka>=0.12",
+    "opentelemetry-api>=1.30",
+    "opentelemetry-sdk>=1.30",
+    "pyjwt>=2.10",
+    "cryptography>=44.0",
+    "tritonclient[grpc]>=2.50",
+]
+
+[tool.uv.sources]
+pykit                = { workspace = true }
+pykit-auth           = { workspace = true }
+pykit-authz          = { workspace = true }
+pykit-bench          = { workspace = true }
+pykit-bootstrap      = { workspace = true }
+pykit-component      = { workspace = true }
+pykit-config         = { workspace = true }
+pykit-dag            = { workspace = true }
+pykit-database       = { workspace = true }
+pykit-dataset        = { workspace = true }
+pykit-di             = { workspace = true }
+pykit-discovery      = { workspace = true }
+pykit-encryption     = { workspace = true }
+pykit-errors         = { workspace = true }
+pykit-grpc           = { workspace = true }
+pykit-httpclient     = { workspace = true }
+pykit-kafka          = { workspace = true }
+pykit-llm            = { workspace = true }
+pykit-logging        = { workspace = true }
+pykit-media          = { workspace = true }
+pykit-metrics        = { workspace = true }
+pykit-observability  = { workspace = true }
+pykit-pipeline       = { workspace = true }
+pykit-process        = { workspace = true }
+pykit-provider       = { workspace = true }
+pykit-redis          = { workspace = true }
+pykit-resilience     = { workspace = true }
+pykit-security       = { workspace = true }
+pykit-server         = { workspace = true }
+pykit-sse            = { workspace = true }
+pykit-stateful       = { workspace = true }
+pykit-storage        = { workspace = true }
+pykit-testutil       = { workspace = true }
+pykit-triton         = { workspace = true }
+pykit-util           = { workspace = true }
+pykit-validation     = { workspace = true }
+pykit-version        = { workspace = true }
+pykit-worker         = { workspace = true }
+pykit-workload       = { workspace = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["packages"]
