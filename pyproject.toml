@@ -53,6 +53,7 @@ dev = [
     "pytest-cov",
     "ruff",
     "mypy",
+    "import-linter",
 ]
 
 [tool.uv.workspace]
@@ -244,3 +245,33 @@ module = [
     "kagglehub.*",
 ]
 ignore_missing_imports = true
+
+[tool.importlinter]
+root_packages = [
+    "pykit_errors", "pykit_config", "pykit_logging",
+    "pykit_validation", "pykit_encryption", "pykit_util", "pykit_version", "pykit_media",
+    "pykit_provider", "pykit_component", "pykit_resilience",
+    "pykit_di", "pykit_bootstrap", "pykit_observability", "pykit_security",
+    "pykit_pipeline", "pykit_dag", "pykit_worker", "pykit_sse", "pykit_stateful",
+    "pykit_auth", "pykit_authz",
+    "pykit_database", "pykit_redis", "pykit_storage", "pykit_kafka", "pykit_httpclient",
+    "pykit_server", "pykit_grpc",
+    "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
+    "pykit_discovery", "pykit_workload", "pykit_process", "pykit_testutil", "pykit_metrics",
+]
+
+[[tool.importlinter.contracts]]
+name = "Layer architecture"
+type = "layers"
+layers = [
+    "pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics",
+    "pykit_llm | pykit_triton | pykit_bench | pykit_dataset",
+    "pykit_server | pykit_grpc",
+    "pykit_database | pykit_redis | pykit_storage | pykit_kafka | pykit_httpclient",
+    "pykit_auth | pykit_authz | pykit_security",
+    "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
+    "pykit_di | pykit_bootstrap | pykit_observability",
+    "pykit_provider | pykit_component | pykit_resilience",
+    "pykit_validation | pykit_encryption | pykit_util | pykit_version | pykit_media",
+    "pykit_errors | pykit_config | pykit_logging",
+]
