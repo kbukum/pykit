@@ -41,7 +41,11 @@ dev = [
     "pykit-process",
     "pykit-sse",
     "pykit-worker",
+    "pykit-workload",
     "pykit-discovery",
+    "pykit-media",
+    "pykit-security",
+    "pykit-workload",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -157,6 +161,9 @@ source_pkgs = [
     "pykit_llm",
     "pykit_discovery",
     "pykit_process",
+    "pykit_media",
+    "pykit_security",
+    "pykit_workload",
 ]
 branch = true
 

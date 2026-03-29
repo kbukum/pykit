@@ -3,17 +3,54 @@ name = "pykit"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
+    # Layer 0 — zero internal deps
     "pykit-errors",
     "pykit-config",
     "pykit-logging",
+    # Layer 1 — foundational
+    "pykit-validation",
+    "pykit-encryption",
+    "pykit-util",
+    "pykit-version",
+    "pykit-media",
+    # Layer 2 — patterns
     "pykit-provider",
-    "pykit-pipeline",
+    "pykit-component",
+    "pykit-resilience",
+    # Layer 3 — frameworks
+    "pykit-di",
+    "pykit-bootstrap",
+    "pykit-observability",
+    "pykit-security",
+    # Layer 4 — infrastructure
+    "pykit-database",
+    "pykit-redis",
+    "pykit-storage",
+    "pykit-kafka",
+    "pykit-httpclient",
+    # Layer 5 — protocols
     "pykit-server",
-    "pykit-metrics",
-    "pykit-testutil",
+    "pykit-grpc",
+    # Layer 6 — security
+    "pykit-auth",
+    "pykit-authz",
+    # Layer 7 — advanced
+    "pykit-pipeline",
+    "pykit-dag",
+    "pykit-worker",
+    "pykit-sse",
+    "pykit-stateful",
+    "pykit-process",
+    "pykit-workload",
+    # Layer 8 — AI/ML
+    "pykit-llm",
     "pykit-triton",
     "pykit-dataset",
+    # Layer 9 — tools
+    "pykit-metrics",
     "pykit-bench",
+    "pykit-testutil",
+    "pykit-discovery",
 ]
 
 [build-system]
