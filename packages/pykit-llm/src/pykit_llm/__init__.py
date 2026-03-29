@@ -1,3 +1,23 @@
-"""pykit-llm — TODO: implement."""
+"""pykit-llm — LLM provider abstractions mirroring gokit/llm."""
 
-__version__ = "0.1.0"
+from pykit_llm.config import LLMConfig
+from pykit_llm.provider import LLMProvider
+from pykit_llm.types import (
+    CompletionRequest,
+    CompletionResponse,
+    Message,
+    Role,
+    StreamChunk,
+    Usage,
+)
+
+__all__ = [
+    "CompletionRequest",
+    "CompletionResponse",
+    "LLMConfig",
+    "LLMProvider",
+    "Message",
+    "Role",
+    "StreamChunk",
+    "Usage",
+]

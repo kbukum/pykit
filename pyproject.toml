@@ -7,6 +7,7 @@ dependencies = []
 [dependency-groups]
 dev = [
     "pykit",
+    "pykit-auth",
     "pykit-errors",
     "pykit-config",
     "pykit-logging",
@@ -28,9 +29,19 @@ dev = [
     "pykit-bootstrap",
     "pykit-kafka",
     "pykit-httpclient",
+    "pykit-llm",
     "pykit-storage",
     "pykit-redis",
     "pykit-database",
+    "pykit-dag",
+    "pykit-authz",
+    "pykit-grpc",
+    "pykit-observability",
+    "pykit-stateful",
+    "pykit-process",
+    "pykit-sse",
+    "pykit-worker",
+    "pykit-discovery",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -135,6 +146,17 @@ source_pkgs = [
     "pykit_storage",
     "pykit_kafka",
     "pykit_httpclient",
+    "pykit_grpc",
+    "pykit_auth",
+    "pykit_authz",
+    "pykit_observability",
+    "pykit_dag",
+    "pykit_worker",
+    "pykit_sse",
+    "pykit_stateful",
+    "pykit_llm",
+    "pykit_discovery",
+    "pykit_process",
 ]
 branch = true
 
@@ -171,6 +193,9 @@ ignore = [
     "TC002",
     "TC003",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*.py" = ["E402"]
 
 [tool.ruff.lint.isort]
 known-first-party = [

@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
-from pykit_errors.base import AppError, InvalidInputError, NotFoundError, ServiceUnavailableError
+from pykit_errors.base import (
+    AppError,
+    InvalidInputError,
+    NotFoundError,
+    ServiceUnavailableError,
+    TimeoutError,
+)
 
-__all__ = ["AppError", "InvalidInputError", "NotFoundError", "ServiceUnavailableError"]
+__all__ = ["AppError", "InvalidInputError", "NotFoundError", "ServiceUnavailableError", "TimeoutError"]

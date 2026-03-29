@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+PIL = pytest.importorskip("PIL", reason="Pillow not installed")
+
 from pykit_dataset.model import Label, MediaType
 
 # ---------------------------------------------------------------------------

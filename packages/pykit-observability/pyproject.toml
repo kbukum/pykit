@@ -5,6 +5,8 @@ requires-python = ">=3.13"
 dependencies = [
     "opentelemetry-api",
     "opentelemetry-sdk",
+    "pykit-errors",
+    "pykit-component",
 ]
 
 [build-system]

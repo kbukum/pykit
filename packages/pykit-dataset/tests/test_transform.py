@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import io
 
+import pytest
+
+PIL = pytest.importorskip("PIL", reason="Pillow not installed")
+
 from pykit_dataset.model import DataItem, Label, MediaType
 from pykit_dataset.transform import ResizeTransform, Transform
 
