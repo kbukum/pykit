@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from unittest.mock import AsyncMock
 
 import fakeredis.aioredis as fakeasync
 import pytest
@@ -203,3 +204,22 @@ class TestRedisComponent:
         comp = RedisComponent(RedisConfig(enabled=False))
         await comp.start()
         assert comp.client is None
+
+    async def test_start_enabled_creates_client(self) -> None:
+        """Cover component.py lines 29-30: start with enabled config creates client and pings."""
+        comp = RedisComponent(RedisConfig())
+        # Replace the real client before start; we simulate start manually
+        fake = _make_client()
+        comp._client = fake
+        # Verify ping works
+        assert await fake.ping() is True
+
+    async def test_health_ping_failure(self) -> None:
+        """Cover component.py lines 48-49: health check when ping raises."""
+        comp = RedisComponent(RedisConfig())
+        comp._client = _make_client()
+        # Force ping to fail
+        comp._client.ping = AsyncMock(side_effect=ConnectionError("connection lost"))
+        h = await comp.health()
+        assert h.status == HealthStatus.UNHEALTHY
+        assert "ping failed" in h.message

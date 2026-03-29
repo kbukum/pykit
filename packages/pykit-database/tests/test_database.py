@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock
+
 import pytest
 from sqlalchemy import Column, Integer, MetaData, String, Table
 from sqlalchemy.exc import IntegrityError, NoResultFound, OperationalError
@@ -120,6 +122,56 @@ class TestDatabase:
         await database.close()
         # After dispose, the pool is invalidated; for in-memory SQLite a new
         # connection is transparently created, so we just verify close() doesn't raise.
+
+    async def test_session_rollback_on_error(self):
+        """Cover database.py lines 48-50: session rollback on exception."""
+        config = DatabaseConfig(dsn=IN_MEMORY_DSN)
+        database = Database(config)
+        await database.run_migrations(Base.metadata)
+
+        with pytest.raises(RuntimeError, match="forced"):
+            async with database.session() as sess:
+                sess.add(User(name="Ghost", email="ghost@x.com"))
+                raise RuntimeError("forced")
+
+        # The insert should have been rolled back
+        from sqlalchemy import select
+
+        async with database.session() as sess:
+            result = await sess.execute(select(User).where(User.email == "ghost@x.com"))
+            assert result.scalars().first() is None
+        await database.close()
+
+    async def test_ping_returns_false_on_failure(self):
+        """Cover database.py lines 65-66: ping returns False when exception occurs."""
+        config = DatabaseConfig(dsn=IN_MEMORY_DSN)
+        database = Database(config)
+        # Dispose engine so pool connections are gone, then replace engine
+        await database.close()
+
+        # Create a new engine that will always fail to connect
+        from unittest.mock import patch as _patch
+
+        with _patch("pykit_database.database.create_async_engine") as mock_create:
+            bad_engine = mock_create.return_value
+            bad_engine.connect.side_effect = Exception("dead")
+            bad_db = Database(config)
+            bad_db._engine = bad_engine
+            result = await bad_db.ping()
+        assert result is False
+
+    async def test_non_sqlite_config_uses_pool_args(self):
+        """Cover database.py line 26: non-SQLite DSN includes pool kwargs."""
+        from unittest.mock import patch as _patch
+
+        with _patch("pykit_database.database.create_async_engine") as mock_create:
+            config = DatabaseConfig(dsn="postgresql+asyncpg://user:pass@localhost/testdb")
+            Database(config)  # constructor is all we need to exercise
+            call_kwargs = mock_create.call_args[1]
+            assert "pool_size" in call_kwargs
+            assert "max_overflow" in call_kwargs
+            assert "pool_timeout" in call_kwargs
+            assert "pool_recycle" in call_kwargs
 
     async def test_run_migrations_creates_tables(self):
         config = DatabaseConfig(dsn=IN_MEMORY_DSN)
@@ -329,3 +381,26 @@ class TestDatabaseComponent:
         await comp.start()
         await comp.stop()
         await comp.stop()  # should not raise
+
+    async def test_health_ping_fails(self):
+        """Cover component.py line 40: ping returns False → UNHEALTHY."""
+        comp = DatabaseComponent(DatabaseConfig(dsn=IN_MEMORY_DSN))
+        await comp.start()
+        # Monkey-patch ping to return False
+        comp._database.ping = AsyncMock(return_value=False)
+        h = await comp.health()
+        assert h.status == HealthStatus.UNHEALTHY
+        assert "ping failed" in h.message
+        await comp.stop()
+
+    async def test_start_unreachable_raises(self):
+        """Cover component.py line 26: start raises when ping returns False."""
+        from unittest.mock import patch as _patch
+
+        cfg = DatabaseConfig(dsn=IN_MEMORY_DSN, name="unreachable")
+        comp = DatabaseComponent(cfg)
+        with (
+            _patch.object(Database, "ping", return_value=False),
+            pytest.raises(RuntimeError, match="not reachable"),
+        ):
+            await comp.start()

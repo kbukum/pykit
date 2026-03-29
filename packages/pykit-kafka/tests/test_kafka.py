@@ -249,6 +249,27 @@ class TestConsumer:
         with pytest.raises(RuntimeError, match="not started"):
             await consumer.consume(AsyncMock())
 
+    async def test_sasl_config(self):
+        """Cover consumer.py lines 32-34: SASL kwargs are passed."""
+        cfg = KafkaConfig(
+            topics=["t1"],
+            sasl_mechanism="PLAIN",
+            sasl_username="user",
+            sasl_password="pass",
+            security_protocol="SASL_SSL",
+        )
+        with patch("pykit_kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+            mock_instance = AsyncMock()
+            MockConsumer.return_value = mock_instance
+
+            consumer = KafkaConsumer(cfg)
+            await consumer.start()
+            call_kwargs = MockConsumer.call_args[1]
+            assert call_kwargs["sasl_mechanism"] == "PLAIN"
+            assert call_kwargs["sasl_plain_username"] == "user"
+            assert call_kwargs["sasl_plain_password"] == "pass"
+            await consumer.stop()
+
     async def test_consume_events(self):
         evt = Event(type="x", source="s", data={"a": 1})
         with patch("pykit_kafka.consumer.AIOKafkaConsumer") as MockConsumer:

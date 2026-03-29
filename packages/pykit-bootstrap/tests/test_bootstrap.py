@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -229,6 +231,60 @@ class TestAppProperties:
     def test_lifecycle_property(self) -> None:
         app = App(AppConfig(name="svc"))
         assert isinstance(app.lifecycle, Lifecycle)
+
+
+# ---------------------------------------------------------------------------
+# App — signal handling & shutdown
+# ---------------------------------------------------------------------------
+
+
+class TestSignalHandling:
+    async def test_wait_for_signal_registers_and_removes_handlers(self) -> None:
+        """Cover lines 108-119: _wait_for_signal sets/removes signal handlers."""
+        import signal
+
+        app = App(AppConfig(name="sig-test"))
+
+        async def fire_signal_soon() -> None:
+            await asyncio.sleep(0.01)
+            loop = asyncio.get_running_loop()
+            # Simulate SIGINT being delivered
+            loop.call_soon(lambda: os.kill(os.getpid(), signal.SIGINT))
+
+        task = asyncio.create_task(fire_signal_soon())
+        await app._wait_for_signal()
+        await task
+
+    async def test_run_registers_signal_and_completes(self) -> None:
+        """Full run() with a real signal delivery — covers the signal path."""
+        import signal
+
+        order: list[str] = []
+        app = App(AppConfig(name="full-sig"))
+        app.on_start(_make_hook(order, "start"))
+        app.on_ready(_make_hook(order, "ready"))
+        app.on_stop(_make_hook(order, "stop"))
+
+        async def send_sigint() -> None:
+            await asyncio.sleep(0.02)
+            os.kill(os.getpid(), signal.SIGINT)
+
+        task = asyncio.create_task(send_sigint())
+        await app.run()
+        await task
+        assert order == ["start", "ready", "stop"]
+
+    async def test_shutdown_timeout(self) -> None:
+        """Cover lines 128-129: graceful shutdown timeout path."""
+        app = App(AppConfig(name="timeout-test", graceful_timeout=0.01))
+
+        async def slow_stop() -> None:
+            await asyncio.sleep(10)
+
+        app.on_stop(slow_stop)
+
+        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
+            await app.run()
 
 
 # ---------------------------------------------------------------------------

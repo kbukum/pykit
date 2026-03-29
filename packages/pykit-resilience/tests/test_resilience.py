@@ -190,6 +190,43 @@ class TestCircuitBreakerState:
         cb._to_state(State.OPEN)
         assert transitions == [("cb", State.CLOSED, State.OPEN)]
 
+    @pytest.mark.asyncio
+    async def test_half_open_max_calls_exceeded_returns_false(self) -> None:
+        """Cover circuit_breaker.py line 110: _allow_request returns False
+        when half_open_calls >= half_open_max_calls and state is HALF_OPEN,
+        falling through to the final return False."""
+        cfg = CircuitBreakerConfig(name="test", max_failures=1, timeout=0.01, half_open_max_calls=1)
+        cb = CircuitBreaker(cfg)
+
+        async def fail() -> None:
+            raise RuntimeError("boom")
+
+        # Trip the breaker
+        with pytest.raises(RuntimeError):
+            await cb.execute(fail)
+        assert cb.state == State.OPEN
+
+        await asyncio.sleep(0.02)
+        assert cb.state == State.HALF_OPEN
+
+        # Consume the single allowed half-open call
+        cb._half_open_calls = cb._config.half_open_max_calls
+        # Now the next call should be rejected (hits line 109 → False, then line 110)
+        with pytest.raises(CircuitOpenError):
+            await cb.execute(lambda: asyncio.sleep(0, result=1))
+
+    def test_to_state_noop_when_already_in_state(self) -> None:
+        """Cover circuit_breaker.py line 141: _to_state is a no-op when from==to."""
+        transitions: list[tuple[str, State, State]] = []
+        cfg = CircuitBreakerConfig(
+            name="noop",
+            on_state_change=lambda n, f, t: transitions.append((n, f, t)),
+        )
+        cb = CircuitBreaker(cfg)
+        assert cb._state == State.CLOSED
+        cb._to_state(State.CLOSED)  # no-op
+        assert transitions == []  # callback should NOT fire
+
 
 # ---------------------------------------------------------------------------
 # Retry

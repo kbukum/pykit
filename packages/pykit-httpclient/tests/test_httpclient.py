@@ -455,6 +455,71 @@ class TestHttpClient:
         finally:
             await client.close()
 
+    async def test_body_bytes(self):
+        """Cover client.py line 46: body is bytes."""
+
+        def handler(request: httpx.Request):
+            assert request.content == b"raw-bytes"
+            return httpx.Response(200)
+
+        client = HttpClient(HttpConfig(base_url="https://api.test"), transport=_make_transport(handler))
+        try:
+            resp = await client.post("/upload", body=b"raw-bytes")
+            assert resp.status_code == 200
+        finally:
+            await client.close()
+
+    async def test_body_string(self):
+        """Cover client.py lines 48-49: body is str → content-type set."""
+
+        def handler(request: httpx.Request):
+            assert request.headers.get("content-type") == "text/plain"
+            return httpx.Response(200)
+
+        client = HttpClient(HttpConfig(base_url="https://api.test"), transport=_make_transport(handler))
+        try:
+            resp = await client.post("/text", body="hello text")
+            assert resp.status_code == 200
+        finally:
+            await client.close()
+
+    async def test_timeout_raises(self):
+        """Cover client.py lines 62-63: timeout exception path."""
+
+        def handler(request: httpx.Request):
+            raise httpx.ReadTimeout("timed out")
+
+        client = HttpClient(HttpConfig(base_url="https://api.test"), transport=_make_transport(handler))
+        try:
+            with pytest.raises(HttpError) as exc_info:
+                await client.get("/slow")
+            assert exc_info.value.code == ErrorCode.TIMEOUT
+        finally:
+            await client.close()
+
+    async def test_connect_error_raises(self):
+        """Cover client.py lines 64-65: connect error path."""
+
+        def handler(request: httpx.Request):
+            raise httpx.ConnectError("refused")
+
+        client = HttpClient(HttpConfig(base_url="https://api.test"), transport=_make_transport(handler))
+        try:
+            with pytest.raises(HttpError) as exc_info:
+                await client.get("/down")
+            assert exc_info.value.code == ErrorCode.CONNECTION
+        finally:
+            await client.close()
+
+    async def test_config_property(self):
+        """Cover client.py line 32: config property."""
+        cfg = HttpConfig(base_url="https://api.test")
+        client = HttpClient(cfg, transport=_make_transport(lambda r: httpx.Response(200)))
+        try:
+            assert client.config is cfg
+        finally:
+            await client.close()
+
 
 # ---------------------------------------------------------------------------
 # HttpComponent lifecycle
@@ -490,6 +555,62 @@ class TestHttpComponent:
         try:
             health = await comp.health()
             assert health.status.value == "healthy"
+        finally:
+            await comp.stop()
+
+    async def test_health_with_base_url_success(self):
+        """Cover component.py lines 45-48: HEAD returns < 500."""
+
+        def handler(request: httpx.Request):
+            return httpx.Response(200)
+
+        cfg = HttpConfig(name="url-check", base_url="https://api.test")
+        comp = HttpComponent(cfg)
+        await comp.start()
+        # Replace the inner httpx client's transport
+        comp._client._client = httpx.AsyncClient(
+            base_url="https://api.test", transport=_make_transport(handler)
+        )
+        try:
+            health = await comp.health()
+            assert health.status.value == "healthy"
+        finally:
+            await comp.stop()
+
+    async def test_health_with_base_url_degraded(self):
+        """Cover component.py lines 49-53: HEAD returns >= 500."""
+
+        def handler(request: httpx.Request):
+            return httpx.Response(503)
+
+        cfg = HttpConfig(name="degraded", base_url="https://api.test")
+        comp = HttpComponent(cfg)
+        await comp.start()
+        comp._client._client = httpx.AsyncClient(
+            base_url="https://api.test", transport=_make_transport(handler)
+        )
+        try:
+            health = await comp.health()
+            assert health.status.value == "degraded"
+            assert "503" in health.message
+        finally:
+            await comp.stop()
+
+    async def test_health_with_base_url_http_error(self):
+        """Cover component.py lines 54-55: httpx.HTTPError during health check."""
+
+        def handler(request: httpx.Request):
+            raise httpx.ConnectError("refused")
+
+        cfg = HttpConfig(name="error", base_url="https://api.test")
+        comp = HttpComponent(cfg)
+        await comp.start()
+        comp._client._client = httpx.AsyncClient(
+            base_url="https://api.test", transport=_make_transport(handler)
+        )
+        try:
+            health = await comp.health()
+            assert health.status.value == "unhealthy"
         finally:
             await comp.stop()
 
