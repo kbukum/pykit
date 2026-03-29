@@ -24,7 +24,6 @@ constraint-dependencies = [
     "opentelemetry-sdk>=1.30",
     "pyjwt>=2.10",
     "cryptography>=44.0",
-    "tritonclient[grpc]>=2.50",
 ]
 
 [tool.uv.sources]
