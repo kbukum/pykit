@@ -13,6 +13,28 @@ Receive = Callable[[], Awaitable[MutableMapping[str, Any]]]
 Send = Callable[[MutableMapping[str, Any]], Awaitable[None]]
 ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
+# Module-level metrics — created once, shared across all middleware instances.
+_requests_total = Counter(
+    "http_requests_total",
+    "Total number of HTTP requests",
+    ["method", "path", "status_code"],
+)
+_request_duration = Histogram(
+    "http_request_duration_seconds",
+    "Duration of HTTP requests in seconds",
+    ["method", "path", "status_code"],
+)
+_request_size = Histogram(
+    "http_request_size_bytes",
+    "Size of HTTP request bodies in bytes",
+    ["method", "path"],
+)
+_response_size = Histogram(
+    "http_response_size_bytes",
+    "Size of HTTP response bodies in bytes",
+    ["method", "path"],
+)
+
 
 class PrometheusMiddleware:
     """ASGI middleware that records HTTP metrics with Prometheus.
@@ -36,26 +58,6 @@ class PrometheusMiddleware:
     ) -> None:
         self._app = app
         self._metrics_path = metrics_path
-        self._requests_total = Counter(
-            "http_requests_total",
-            "Total number of HTTP requests",
-            ["method", "path", "status_code"],
-        )
-        self._request_duration = Histogram(
-            "http_request_duration_seconds",
-            "Duration of HTTP requests in seconds",
-            ["method", "path", "status_code"],
-        )
-        self._request_size = Histogram(
-            "http_request_size_bytes",
-            "Size of HTTP request bodies in bytes",
-            ["method", "path"],
-        )
-        self._response_size = Histogram(
-            "http_response_size_bytes",
-            "Size of HTTP response bodies in bytes",
-            ["method", "path"],
-        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -82,7 +84,7 @@ class PrometheusMiddleware:
                 break
 
         if request_size > 0:
-            self._request_size.labels(method=method, path=path).observe(request_size)
+            _request_size.labels(method=method, path=path).observe(request_size)
 
         status_code = 200
         response_bytes = 0
@@ -101,9 +103,9 @@ class PrometheusMiddleware:
         finally:
             duration = time.monotonic() - start
             labels = {"method": method, "path": path, "status_code": str(status_code)}
-            self._requests_total.labels(**labels).inc()
-            self._request_duration.labels(**labels).observe(duration)
-            self._response_size.labels(method=method, path=path).observe(response_bytes)
+            _requests_total.labels(**labels).inc()
+            _request_duration.labels(**labels).observe(duration)
+            _response_size.labels(method=method, path=path).observe(response_bytes)
 
     async def _serve_metrics(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Serve the /metrics endpoint with Prometheus text output."""

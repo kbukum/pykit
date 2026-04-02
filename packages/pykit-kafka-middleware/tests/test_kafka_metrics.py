@@ -36,7 +36,7 @@ class TestInstrumentHandler:
 
         assert calls == 1
         val = _get_sample_value(
-            "kafka_consumer_messages_total_total",
+            "kafka_consumer_messages_total",
             {"topic": topic, "group": group},
         )
         assert val is not None and val >= 1.0
@@ -52,7 +52,7 @@ class TestInstrumentHandler:
             await wrapped(_make_msg())
 
         val = _get_sample_value(
-            "kafka_consumer_errors_total_total",
+            "kafka_consumer_errors_total",
             {"topic": topic, "group": group},
         )
         assert val is not None and val >= 1.0

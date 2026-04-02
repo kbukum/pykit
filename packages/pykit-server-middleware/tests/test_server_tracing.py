@@ -6,8 +6,8 @@ import pytest
 
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export.in_memory import InMemorySpanExporter
-from opentelemetry.sdk.trace import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from pykit_server_middleware.tracing import TracingMiddleware
 
@@ -18,9 +18,15 @@ def setup_tracer():
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
+
+    # Reset the global tracer provider for test isolation.
+    trace._TRACER_PROVIDER = None  # noqa: SLF001
+    trace._TRACER_PROVIDER_SET_ONCE._done = False  # noqa: SLF001
     trace.set_tracer_provider(provider)
+
     yield exporter
-    exporter.shutdown()
+
+    provider.shutdown()
 
 
 def _make_scope(

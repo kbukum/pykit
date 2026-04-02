@@ -8,6 +8,23 @@ from prometheus_client import Counter, Histogram
 
 from pykit_kafka.types import Message, MessageHandler
 
+# Module-level metrics — created once, shared across all InstrumentHandler calls.
+_messages_total = Counter(
+    "kafka_consumer_messages_total",
+    "Total number of consumed Kafka messages",
+    ["topic", "group"],
+)
+_errors_total = Counter(
+    "kafka_consumer_errors_total",
+    "Total number of Kafka consumer errors",
+    ["topic", "group"],
+)
+_processing_duration = Histogram(
+    "kafka_consumer_processing_duration_seconds",
+    "Duration of Kafka message processing in seconds",
+    ["topic", "group"],
+)
+
 
 def InstrumentHandler(
     topic: str,
@@ -22,32 +39,17 @@ def InstrumentHandler(
     - ``kafka_consumer_errors_total``    — counter of processing errors
     - ``kafka_consumer_processing_duration_seconds`` — processing latency histogram
     """
-    messages_total = Counter(
-        "kafka_consumer_messages_total",
-        "Total number of consumed Kafka messages",
-        ["topic", "group"],
-    )
-    errors_total = Counter(
-        "kafka_consumer_errors_total",
-        "Total number of Kafka consumer errors",
-        ["topic", "group"],
-    )
-    processing_duration = Histogram(
-        "kafka_consumer_processing_duration_seconds",
-        "Duration of Kafka message processing in seconds",
-        ["topic", "group"],
-    )
 
     async def wrapper(msg: Message) -> None:
         start = time.monotonic()
         try:
             await handler(msg)
         except Exception:
-            errors_total.labels(topic=topic, group=group).inc()
+            _errors_total.labels(topic=topic, group=group).inc()
             raise
         finally:
             duration = time.monotonic() - start
-            messages_total.labels(topic=topic, group=group).inc()
-            processing_duration.labels(topic=topic, group=group).observe(duration)
+            _messages_total.labels(topic=topic, group=group).inc()
+            _processing_duration.labels(topic=topic, group=group).observe(duration)
 
     return wrapper

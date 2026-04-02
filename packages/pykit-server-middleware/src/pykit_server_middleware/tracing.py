@@ -19,12 +19,12 @@ class _ASGIHeaderCarrier:
     def _headers(self) -> list[tuple[bytes, bytes]]:
         return self._scope.get("headers", [])
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str, default: str | None = None) -> str | None:
         key_lower = key.lower().encode("latin-1")
         for k, v in self._headers():
             if k == key_lower:
                 return v.decode("latin-1")
-        return None
+        return default
 
     def set(self, key: str, value: str) -> None:
         headers = list(self._headers())
@@ -44,15 +44,21 @@ class _ResponseHeaderCarrier:
     def __init__(self) -> None:
         self.headers: list[tuple[bytes, bytes]] = []
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str, default: str | None = None) -> str | None:
         key_lower = key.lower().encode("latin-1")
         for k, v in self.headers:
             if k == key_lower:
                 return v.decode("latin-1")
-        return None
+        return default
 
     def set(self, key: str, value: str) -> None:
         self.headers.append((key.lower().encode("latin-1"), value.encode("latin-1")))
+
+    def __setitem__(self, key: str, value: str) -> None:
+        self.set(key, value)
+
+    def __getitem__(self, key: str) -> str | None:
+        return self.get(key)
 
     def keys(self) -> list[str]:
         return [k.decode("latin-1") for k, _ in self.headers]
@@ -74,7 +80,7 @@ class TracingMiddleware:
 
     def __init__(self, app: ASGIApp, *, service_name: str = "http.server") -> None:
         self._app = app
-        self._tracer = trace.get_tracer(service_name)
+        self._service_name = service_name
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -87,8 +93,9 @@ class TracingMiddleware:
 
         ctx = extract(carrier=_ASGIHeaderCarrier(scope))
         span_name = f"{method} {path}"
+        tracer = trace.get_tracer(self._service_name)
 
-        with self._tracer.start_as_current_span(
+        with tracer.start_as_current_span(
             span_name,
             context=ctx,
             kind=trace.SpanKind.SERVER,

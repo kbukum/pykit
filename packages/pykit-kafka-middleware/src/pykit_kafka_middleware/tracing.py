@@ -18,8 +18,8 @@ class _KafkaHeaderCarrier:
     def __init__(self, headers: dict[str, str]) -> None:
         self._headers = headers
 
-    def get(self, key: str) -> str | None:
-        return self._headers.get(key)
+    def get(self, key: str, default: str | None = None) -> str | None:
+        return self._headers.get(key, default)
 
     def set(self, key: str, value: str) -> None:
         self._headers[key] = value
@@ -49,7 +49,6 @@ def TracingHandler(
     Extracts W3C TraceContext from message headers, creates a consumer span,
     and annotates it with messaging-specific attributes.
     """
-    tracer = trace.get_tracer(tracer_name)
 
     def _default_span_name(msg: Message) -> str:
         return f"{msg.topic} consume"
@@ -57,6 +56,7 @@ def TracingHandler(
     name_func = span_name_func or _default_span_name
 
     async def wrapper(msg: Message) -> None:
+        tracer = trace.get_tracer(tracer_name)
         ctx = extract_trace_context(msg.headers)
         span_name = name_func(msg)
 

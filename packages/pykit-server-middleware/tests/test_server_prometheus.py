@@ -55,7 +55,7 @@ class TestPrometheusMiddleware:
         await app(_make_scope(method="GET", path="/prom-test"), _receive, send)
 
         val = _get_sample_value(
-            "http_requests_total_total",
+            "http_requests_total",
             {"method": "GET", "path": "/prom-test", "status_code": "200"},
         )
         assert val is not None and val >= 1.0
