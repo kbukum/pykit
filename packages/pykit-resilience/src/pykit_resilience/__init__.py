@@ -9,6 +9,11 @@ from pykit_resilience.circuit_breaker import (
     CircuitOpenError,
     State,
 )
+from pykit_resilience.degradation import (
+    DegradationManager,
+    ServiceHealth,
+    ServiceStatus,
+)
 from pykit_resilience.rate_limiter import (
     RateLimitedError,
     RateLimiter,
@@ -23,11 +28,14 @@ __all__ = [
     "CircuitBreaker",
     "CircuitBreakerConfig",
     "CircuitOpenError",
+    "DegradationManager",
     "RateLimitedError",
     "RateLimiter",
     "RateLimiterConfig",
     "RetryConfig",
     "RetryExhaustedError",
+    "ServiceHealth",
+    "ServiceStatus",
     "State",
     "retry",
 ]

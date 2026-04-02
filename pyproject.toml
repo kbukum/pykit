@@ -46,6 +46,11 @@ dev = [
     "pykit-media",
     "pykit-security",
     "pykit-workload",
+    "pykit-kafka-middleware",
+    "pykit-server-middleware",
+    "pykit-auth-oidc",
+    "pykit-embedding",
+    "pykit-vector-store",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -82,6 +87,7 @@ constraint-dependencies = [
 [tool.uv.sources]
 pykit                = { workspace = true }
 pykit-auth           = { workspace = true }
+pykit-auth-oidc      = { workspace = true }
 pykit-authz          = { workspace = true }
 pykit-bench          = { workspace = true }
 pykit-bootstrap      = { workspace = true }
@@ -92,11 +98,13 @@ pykit-database       = { workspace = true }
 pykit-dataset        = { workspace = true }
 pykit-di             = { workspace = true }
 pykit-discovery      = { workspace = true }
+pykit-embedding      = { workspace = true }
 pykit-encryption     = { workspace = true }
 pykit-errors         = { workspace = true }
 pykit-grpc           = { workspace = true }
 pykit-httpclient     = { workspace = true }
 pykit-kafka          = { workspace = true }
+pykit-kafka-middleware = { workspace = true }
 pykit-llm            = { workspace = true }
 pykit-logging        = { workspace = true }
 pykit-media          = { workspace = true }
@@ -109,6 +117,7 @@ pykit-redis          = { workspace = true }
 pykit-resilience     = { workspace = true }
 pykit-security       = { workspace = true }
 pykit-server         = { workspace = true }
+pykit-server-middleware = { workspace = true }
 pykit-sse            = { workspace = true }
 pykit-stateful       = { workspace = true }
 pykit-storage        = { workspace = true }
@@ -116,6 +125,7 @@ pykit-testutil       = { workspace = true }
 pykit-triton         = { workspace = true }
 pykit-util           = { workspace = true }
 pykit-validation     = { workspace = true }
+pykit-vector-store   = { workspace = true }
 pykit-version        = { workspace = true }
 pykit-worker         = { workspace = true }
 pykit-workload       = { workspace = true }
