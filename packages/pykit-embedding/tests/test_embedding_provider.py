@@ -18,10 +18,7 @@ def _mock_transport(handler):
 def _embedding_response(vectors: list[list[float]]) -> dict:
     return {
         "object": "list",
-        "data": [
-            {"object": "embedding", "index": i, "embedding": v}
-            for i, v in enumerate(vectors)
-        ],
+        "data": [{"object": "embedding", "index": i, "embedding": v} for i, v in enumerate(vectors)],
         "model": "text-embedding-3-small",
         "usage": {"prompt_tokens": 10, "total_tokens": 10},
     }
@@ -70,9 +67,9 @@ class TestOpenAIEmbeddingProvider:
             await provider.close()
 
     async def test_embed_empty(self, config: OpenAIEmbeddingConfig) -> None:
-        provider = OpenAIEmbeddingProvider(config, transport=_mock_transport(
-            lambda r: httpx.Response(200, json=_embedding_response([]))
-        ))
+        provider = OpenAIEmbeddingProvider(
+            config, transport=_mock_transport(lambda r: httpx.Response(200, json=_embedding_response([])))
+        )
         try:
             result = await provider.embed([])
             assert result == []

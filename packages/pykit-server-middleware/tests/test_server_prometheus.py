@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from prometheus_client import REGISTRY
 
 from pykit_server_middleware.prometheus import PrometheusMiddleware
@@ -11,9 +10,7 @@ from pykit_server_middleware.prometheus import PrometheusMiddleware
 def _get_sample_value(name: str, labels: dict[str, str]) -> float | None:
     for metric in REGISTRY.collect():
         for sample in metric.samples:
-            if sample.name == name and all(
-                sample.labels.get(k) == v for k, v in labels.items()
-            ):
+            if sample.name == name and all(sample.labels.get(k) == v for k, v in labels.items()):
                 return sample.value
     return None
 
@@ -29,15 +26,19 @@ def _make_scope(method: str = "GET", path: str = "/test") -> dict:
 
 
 async def _simple_app(scope, receive, send):
-    await send({
-        "type": "http.response.start",
-        "status": 200,
-        "headers": [],
-    })
-    await send({
-        "type": "http.response.body",
-        "body": b"hello",
-    })
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [],
+        }
+    )
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"hello",
+        }
+    )
 
 
 async def _receive():

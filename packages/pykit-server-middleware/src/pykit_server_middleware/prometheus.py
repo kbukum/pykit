@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Any
@@ -77,10 +78,8 @@ class PrometheusMiddleware:
         request_size = 0
         for k, v in scope.get("headers", []):
             if k == b"content-length":
-                try:
+                with contextlib.suppress(ValueError):
                     request_size = int(v)
-                except ValueError:
-                    pass
                 break
 
         if request_size > 0:
@@ -110,15 +109,19 @@ class PrometheusMiddleware:
     async def _serve_metrics(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Serve the /metrics endpoint with Prometheus text output."""
         body = generate_latest()
-        await send({
-            "type": "http.response.start",
-            "status": 200,
-            "headers": [
-                (b"content-type", b"text/plain; charset=utf-8"),
-                (b"content-length", str(len(body)).encode()),
-            ],
-        })
-        await send({
-            "type": "http.response.body",
-            "body": body,
-        })
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [
+                    (b"content-type", b"text/plain; charset=utf-8"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            }
+        )
+        await send(
+            {
+                "type": "http.response.body",
+                "body": body,
+            }
+        )

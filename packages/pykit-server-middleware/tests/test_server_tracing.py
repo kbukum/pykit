@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -20,8 +19,8 @@ def setup_tracer():
     provider.add_span_processor(SimpleSpanProcessor(exporter))
 
     # Reset the global tracer provider for test isolation.
-    trace._TRACER_PROVIDER = None  # noqa: SLF001
-    trace._TRACER_PROVIDER_SET_ONCE._done = False  # noqa: SLF001
+    trace._TRACER_PROVIDER = None
+    trace._TRACER_PROVIDER_SET_ONCE._done = False
     trace.set_tracer_provider(provider)
 
     yield exporter
@@ -45,24 +44,30 @@ def _make_scope(
 
 async def _simple_app(scope, receive, send):
     """Minimal ASGI app that returns 200."""
-    await send({
-        "type": "http.response.start",
-        "status": 200,
-        "headers": [(b"content-type", b"text/plain")],
-    })
-    await send({
-        "type": "http.response.body",
-        "body": b"OK",
-    })
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-type", b"text/plain")],
+        }
+    )
+    await send(
+        {
+            "type": "http.response.body",
+            "body": b"OK",
+        }
+    )
 
 
 async def _error_app(scope, receive, send):
     """ASGI app that returns 500."""
-    await send({
-        "type": "http.response.start",
-        "status": 500,
-        "headers": [],
-    })
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 500,
+            "headers": [],
+        }
+    )
     await send({"type": "http.response.body", "body": b"Error"})
 
 

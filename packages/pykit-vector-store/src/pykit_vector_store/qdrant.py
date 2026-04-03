@@ -100,8 +100,7 @@ class QdrantVectorStore:
         query_filter = None
         if filter is not None and filter.must:
             conditions = [
-                FieldCondition(key=field, match=MatchValue(value=value))
-                for field, value in filter.must
+                FieldCondition(key=field, match=MatchValue(value=value)) for field, value in filter.must
             ]
             query_filter = Filter(must=conditions)
 

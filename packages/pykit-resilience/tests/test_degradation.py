@@ -6,7 +6,6 @@ from pykit_resilience.circuit_breaker import State
 from pykit_resilience.degradation import (
     DegradationManager,
     ServiceHealth,
-    ServiceStatus,
 )
 
 

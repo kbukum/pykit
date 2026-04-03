@@ -52,13 +52,15 @@ class DeadLetterProducer:
         dlq_topic = msg.topic + self._suffix
         key = msg.key or "dlq"
 
-        payload = json.dumps({
-            "original_topic": envelope.original_topic,
-            "error": envelope.error,
-            "retry_count": envelope.retry_count,
-            "timestamp": envelope.timestamp,
-            "headers": envelope.headers,
-            "payload": envelope.payload,
-        }).encode()
+        payload = json.dumps(
+            {
+                "original_topic": envelope.original_topic,
+                "error": envelope.error,
+                "retry_count": envelope.retry_count,
+                "timestamp": envelope.timestamp,
+                "headers": envelope.headers,
+                "payload": envelope.payload,
+            }
+        ).encode()
 
         await self._producer.send(dlq_topic, value=payload, key=key)

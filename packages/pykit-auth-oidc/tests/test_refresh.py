@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from urllib.parse import urlencode
 
 import httpx
 import pytest
 
 from pykit_auth_oidc.refresh import RefreshError, refresh_token
-from pykit_auth_oidc.types import RefreshConfig, TokenResult
+from pykit_auth_oidc.types import RefreshConfig
 
 
 def _mock_transport(handler):
@@ -60,11 +59,13 @@ class TestRefreshToken:
 
     async def test_form_encoded_response(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
-            body = urlencode({
-                "access_token": "form-access",
-                "token_type": "bearer",
-                "expires_in": "7200",
-            })
+            body = urlencode(
+                {
+                    "access_token": "form-access",
+                    "token_type": "bearer",
+                    "expires_in": "7200",
+                }
+            )
             return httpx.Response(200, content=body.encode())
 
         config = RefreshConfig(
