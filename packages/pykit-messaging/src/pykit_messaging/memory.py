@@ -14,9 +14,7 @@ class InMemoryBroker:
     """Channel-based message broker for testing."""
 
     def __init__(self, capacity: int = 256) -> None:
-        self._queues: dict[str, asyncio.Queue[Message]] = defaultdict(
-            lambda: asyncio.Queue(maxsize=capacity)
-        )
+        self._queues: dict[str, asyncio.Queue[Message]] = defaultdict(lambda: asyncio.Queue(maxsize=capacity))
         self._capacity = capacity
 
     def producer(self) -> InMemoryProducer:
@@ -71,9 +69,7 @@ class InMemoryProducer:
 class InMemoryConsumer:
     """Implements MessageConsumer protocol using in-memory queues."""
 
-    def __init__(
-        self, queues: dict[str, asyncio.Queue[Message]], topics: list[str]
-    ) -> None:
+    def __init__(self, queues: dict[str, asyncio.Queue[Message]], topics: list[str]) -> None:
         self._queues = queues
         self._topics = list(topics)
         self._running = False
