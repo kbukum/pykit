@@ -105,7 +105,7 @@ class TestEvent:
     def test_to_json_format(self):
         evt = Event(type="t", source="s")
         d = json.loads(evt.to_json())
-        assert set(d.keys()) == {"id", "type", "source", "timestamp", "subject", "data"}
+        assert set(d.keys()) == {"id", "type", "source", "subject", "content_type", "version", "timestamp", "data"}
 
 
 # ---------------------------------------------------------------------------

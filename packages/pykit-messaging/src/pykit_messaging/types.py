@@ -30,6 +30,8 @@ class Event:
     type: str
     source: str
     subject: str = ""
+    content_type: str = "application/json"
+    version: str = "1.0"
     data: Any = None
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
@@ -40,8 +42,10 @@ class Event:
             "id": self.id,
             "type": self.type,
             "source": self.source,
-            "timestamp": self.timestamp.isoformat(),
             "subject": self.subject,
+            "content_type": self.content_type,
+            "version": self.version,
+            "timestamp": self.timestamp.isoformat(),
             "data": self.data,
         }
         return json.dumps(payload).encode()
@@ -56,6 +60,8 @@ class Event:
             source=d["source"],
             timestamp=datetime.fromisoformat(d["timestamp"]),
             subject=d.get("subject", ""),
+            content_type=d.get("content_type", "application/json"),
+            version=d.get("version", "1.0"),
             data=d.get("data"),
         )
 
