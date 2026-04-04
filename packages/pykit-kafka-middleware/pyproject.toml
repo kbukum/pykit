@@ -3,7 +3,7 @@ name = "pykit-kafka-middleware"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "pykit-kafka",
+    "pykit-messaging[kafka]",
     "pykit-resilience",
     "opentelemetry-api",
     "prometheus-client",

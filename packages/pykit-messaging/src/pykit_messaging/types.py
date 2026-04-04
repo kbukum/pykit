@@ -12,7 +12,7 @@ from typing import Any
 
 @dataclass
 class Message:
-    """A Kafka message."""
+    """A message envelope."""
 
     key: str | None
     value: bytes
@@ -25,7 +25,7 @@ class Message:
 
 @dataclass
 class Event:
-    """A structured event envelope for Kafka messages."""
+    """A structured event envelope for messages."""
 
     type: str
     source: str

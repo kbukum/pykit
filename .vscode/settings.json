@@ -17,7 +17,7 @@
         "packages/pykit-errors/src",
         "packages/pykit-grpc/src",
         "packages/pykit-httpclient/src",
-        "packages/pykit-kafka/src",
+        "packages/pykit-messaging/src",
         "packages/pykit-llm/src",
         "packages/pykit-logging/src",
         "packages/pykit-media/src",

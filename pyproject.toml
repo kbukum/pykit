@@ -27,7 +27,7 @@ dev = [
     "pykit-resilience",
     "pykit-di",
     "pykit-bootstrap",
-    "pykit-kafka",
+    "pykit-messaging",
     "pykit-httpclient",
     "pykit-llm",
     "pykit-storage",
@@ -103,7 +103,7 @@ pykit-encryption     = { workspace = true }
 pykit-errors         = { workspace = true }
 pykit-grpc           = { workspace = true }
 pykit-httpclient     = { workspace = true }
-pykit-kafka          = { workspace = true }
+pykit-messaging     = { workspace = true }
 pykit-kafka-middleware = { workspace = true }
 pykit-llm            = { workspace = true }
 pykit-logging        = { workspace = true }
@@ -159,7 +159,7 @@ source_pkgs = [
     "pykit_database",
     "pykit_redis",
     "pykit_storage",
-    "pykit_kafka",
+    "pykit_messaging",
     "pykit_httpclient",
     "pykit_grpc",
     "pykit_auth",
@@ -224,7 +224,7 @@ known-first-party = [
     "pykit_component", "pykit_di", "pykit_bootstrap", "pykit_resilience",
     "pykit_observability", "pykit_security", "pykit_dag", "pykit_worker",
     "pykit_sse", "pykit_stateful", "pykit_database", "pykit_redis",
-    "pykit_storage", "pykit_kafka", "pykit_httpclient", "pykit_grpc",
+    "pykit_storage", "pykit_messaging", "pykit_httpclient", "pykit_grpc",
     "pykit_auth", "pykit_authz", "pykit_llm", "pykit_discovery",
     "pykit_process", "pykit_workload",
 ]
@@ -264,7 +264,7 @@ root_packages = [
     "pykit_di", "pykit_bootstrap", "pykit_observability", "pykit_security",
     "pykit_pipeline", "pykit_dag", "pykit_worker", "pykit_sse", "pykit_stateful",
     "pykit_auth", "pykit_authz",
-    "pykit_database", "pykit_redis", "pykit_storage", "pykit_kafka", "pykit_httpclient",
+    "pykit_database", "pykit_redis", "pykit_storage", "pykit_messaging", "pykit_httpclient",
     "pykit_server", "pykit_grpc",
     "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
     "pykit_discovery", "pykit_workload", "pykit_process", "pykit_testutil", "pykit_metrics",
@@ -277,7 +277,7 @@ layers = [
     "pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics",
     "pykit_llm | pykit_triton | pykit_bench | pykit_dataset",
     "pykit_server | pykit_grpc",
-    "pykit_database | pykit_redis | pykit_storage | pykit_kafka | pykit_httpclient",
+    "pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
     "pykit_auth | pykit_authz | pykit_security",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
     "pykit_di | pykit_bootstrap | pykit_observability",

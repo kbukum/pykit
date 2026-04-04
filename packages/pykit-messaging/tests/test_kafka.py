@@ -1,4 +1,4 @@
-"""Tests for pykit-kafka — all aiokafka interactions are mocked."""
+"""Tests for pykit-messaging kafka provider — all aiokafka interactions are mocked."""
 
 from __future__ import annotations
 
@@ -8,16 +8,15 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from pykit_kafka import (
-    Event,
+from pykit_messaging.kafka import (
     KafkaComponent,
     KafkaConfig,
     KafkaConsumer,
     KafkaProducer,
-    Message,
     is_connection_error,
     is_retryable_error,
 )
+from pykit_messaging.types import Event, Message
 
 # ---------------------------------------------------------------------------
 # Config
@@ -116,7 +115,7 @@ class TestEvent:
 
 class TestProducer:
     async def test_start_stop(self):
-        with patch("pykit_kafka.producer.AIOKafkaProducer") as MockProducer:
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
 
@@ -128,7 +127,7 @@ class TestProducer:
             mock_instance.stop.assert_awaited_once()
 
     async def test_send(self):
-        with patch("pykit_kafka.producer.AIOKafkaProducer") as MockProducer:
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
 
@@ -149,7 +148,7 @@ class TestProducer:
             await producer.send("t", b"v")
 
     async def test_send_event(self):
-        with patch("pykit_kafka.producer.AIOKafkaProducer") as MockProducer:
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
 
@@ -164,7 +163,7 @@ class TestProducer:
             assert b"test.event" in call_kwargs[1]["value"]
 
     async def test_send_json(self):
-        with patch("pykit_kafka.producer.AIOKafkaProducer") as MockProducer:
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
 
@@ -175,6 +174,41 @@ class TestProducer:
             call_kwargs = mock_instance.send_and_wait.call_args
             assert json.loads(call_kwargs[1]["value"]) == {"foo": "bar"}
 
+    async def test_send_batch(self):
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
+            mock_instance = AsyncMock()
+            MockProducer.return_value = mock_instance
+
+            producer = KafkaProducer(KafkaConfig())
+            await producer.start()
+
+            msgs = [
+                Message(key="k1", value=b"a", topic="t1", partition=0, offset=0),
+                Message(key="k2", value=b"b", topic="t2", partition=0, offset=1),
+            ]
+            await producer.send_batch(msgs)
+            assert mock_instance.send_and_wait.await_count == 2
+
+    async def test_flush(self):
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
+            mock_instance = AsyncMock()
+            MockProducer.return_value = mock_instance
+
+            producer = KafkaProducer(KafkaConfig())
+            await producer.start()
+            await producer.flush()
+            mock_instance.flush.assert_awaited_once()
+
+    async def test_close(self):
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
+            mock_instance = AsyncMock()
+            MockProducer.return_value = mock_instance
+
+            producer = KafkaProducer(KafkaConfig())
+            await producer.start()
+            await producer.close()
+            mock_instance.stop.assert_awaited_once()
+
     async def test_sasl_config(self):
         cfg = KafkaConfig(
             sasl_mechanism="PLAIN",
@@ -182,7 +216,7 @@ class TestProducer:
             sasl_password="pass",
             security_protocol="SASL_SSL",
         )
-        with patch("pykit_kafka.producer.AIOKafkaProducer") as MockProducer:
+        with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
 
@@ -201,7 +235,7 @@ class TestProducer:
 
 class TestConsumer:
     async def test_start_stop(self):
-        with patch("pykit_kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+        with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             mock_instance = AsyncMock()
             MockConsumer.return_value = mock_instance
 
@@ -213,7 +247,7 @@ class TestConsumer:
             mock_instance.stop.assert_awaited_once()
 
     async def test_consume(self):
-        with patch("pykit_kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+        with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             record = MagicMock()
             record.key = b"k"
             record.value = b"v"
@@ -249,8 +283,22 @@ class TestConsumer:
         with pytest.raises(RuntimeError, match="not started"):
             await consumer.consume(AsyncMock())
 
+    async def test_subscribe(self):
+        with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+            mock_instance = AsyncMock()
+            MockConsumer.return_value = mock_instance
+
+            consumer = KafkaConsumer(KafkaConfig(topics=["t1"]))
+            await consumer.start()
+            await consumer.subscribe(["t2", "t3"])
+            mock_instance.subscribe.assert_called_once_with(["t2", "t3"])
+
+    async def test_subscribe_not_started_raises(self):
+        consumer = KafkaConsumer(KafkaConfig())
+        with pytest.raises(RuntimeError, match="not started"):
+            await consumer.subscribe(["t1"])
+
     async def test_sasl_config(self):
-        """Cover consumer.py lines 32-34: SASL kwargs are passed."""
         cfg = KafkaConfig(
             topics=["t1"],
             sasl_mechanism="PLAIN",
@@ -258,7 +306,7 @@ class TestConsumer:
             sasl_password="pass",
             security_protocol="SASL_SSL",
         )
-        with patch("pykit_kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+        with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             mock_instance = AsyncMock()
             MockConsumer.return_value = mock_instance
 
@@ -272,7 +320,7 @@ class TestConsumer:
 
     async def test_consume_events(self):
         evt = Event(type="x", source="s", data={"a": 1})
-        with patch("pykit_kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+        with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             record = MagicMock()
             record.key = None
             record.value = evt.to_json()
@@ -301,6 +349,16 @@ class TestConsumer:
             assert len(received) == 1
             assert received[0].type == "x"
             assert received[0].data == {"a": 1}
+
+    async def test_close(self):
+        with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
+            mock_instance = AsyncMock()
+            MockConsumer.return_value = mock_instance
+
+            consumer = KafkaConsumer(KafkaConfig(topics=["t1"]))
+            await consumer.start()
+            await consumer.close()
+            mock_instance.stop.assert_awaited_once()
 
 
 # ---------------------------------------------------------------------------
@@ -351,8 +409,8 @@ class TestErrors:
 class TestComponent:
     async def test_lifecycle(self):
         with (
-            patch("pykit_kafka.component.KafkaProducer") as MockProducer,
-            patch("pykit_kafka.component.KafkaConsumer") as MockConsumer,
+            patch("pykit_messaging.kafka.component.KafkaProducer") as MockProducer,
+            patch("pykit_messaging.kafka.component.KafkaConsumer") as MockConsumer,
         ):
             mock_prod = AsyncMock()
             mock_cons = AsyncMock()
@@ -380,8 +438,8 @@ class TestComponent:
 
     async def test_properties(self):
         with (
-            patch("pykit_kafka.component.KafkaProducer") as MockProducer,
-            patch("pykit_kafka.component.KafkaConsumer") as MockConsumer,
+            patch("pykit_messaging.kafka.component.KafkaProducer") as MockProducer,
+            patch("pykit_messaging.kafka.component.KafkaConsumer") as MockConsumer,
         ):
             MockProducer.return_value = AsyncMock()
             MockConsumer.return_value = AsyncMock()

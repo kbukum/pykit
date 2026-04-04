@@ -8,7 +8,7 @@ import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-from pykit_kafka.types import Message, MessageHandler
+from pykit_messaging.types import Message, MessageHandler
 
 
 @dataclass

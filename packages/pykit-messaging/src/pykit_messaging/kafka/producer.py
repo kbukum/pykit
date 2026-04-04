@@ -7,8 +7,8 @@ from typing import Any
 
 from aiokafka import AIOKafkaProducer
 
-from pykit_kafka.config import KafkaConfig
-from pykit_kafka.types import Event
+from pykit_messaging.kafka.config import KafkaConfig
+from pykit_messaging.types import Event, Message
 
 
 class KafkaProducer:
@@ -78,3 +78,22 @@ class KafkaProducer:
         """Serialize *data* as JSON and send it."""
         value = json.dumps(data).encode()
         await self.send(topic, value=value, key=key)
+
+    async def send_batch(self, messages: list[Message]) -> None:
+        """Send a batch of messages sequentially."""
+        for msg in messages:
+            await self.send(
+                msg.topic,
+                value=msg.value,
+                key=msg.key,
+                headers=dict(msg.headers) if msg.headers else None,
+            )
+
+    async def flush(self) -> None:
+        """Flush pending messages."""
+        if self._producer is not None:
+            await self._producer.flush()
+
+    async def close(self) -> None:
+        """Close the producer (alias for stop)."""
+        await self.stop()

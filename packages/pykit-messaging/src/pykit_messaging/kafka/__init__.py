@@ -1,0 +1,18 @@
+"""Kafka provider for pykit-messaging."""
+
+from __future__ import annotations
+
+from pykit_messaging.kafka.component import KafkaComponent
+from pykit_messaging.kafka.config import KafkaConfig
+from pykit_messaging.kafka.consumer import KafkaConsumer
+from pykit_messaging.kafka.errors import is_connection_error, is_retryable_error
+from pykit_messaging.kafka.producer import KafkaProducer
+
+__all__ = [
+    "KafkaComponent",
+    "KafkaConfig",
+    "KafkaConsumer",
+    "KafkaProducer",
+    "is_connection_error",
+    "is_retryable_error",
+]

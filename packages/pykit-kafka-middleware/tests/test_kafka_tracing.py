@@ -8,8 +8,8 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from pykit_kafka.types import Message
 from pykit_kafka_middleware.tracing import TracingHandler, extract_trace_context, inject_trace_context
+from pykit_messaging.types import Message
 
 
 @pytest.fixture(autouse=True)

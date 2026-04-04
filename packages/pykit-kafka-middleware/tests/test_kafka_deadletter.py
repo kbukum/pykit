@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock
 
-from pykit_kafka.types import Message
 from pykit_kafka_middleware.deadletter import DeadLetterProducer
+from pykit_messaging.types import Message
 
 
 def _make_msg(

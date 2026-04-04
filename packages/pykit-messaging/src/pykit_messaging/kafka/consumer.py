@@ -6,8 +6,8 @@ from typing import Any
 
 from aiokafka import AIOKafkaConsumer
 
-from pykit_kafka.config import KafkaConfig
-from pykit_kafka.types import Event, EventHandler, Message, MessageHandler
+from pykit_messaging.kafka.config import KafkaConfig
+from pykit_messaging.types import Event, EventHandler, Message, MessageHandler
 
 
 class KafkaConsumer:
@@ -42,6 +42,12 @@ class KafkaConsumer:
             await self._consumer.stop()
             self._consumer = None
 
+    async def subscribe(self, topics: list[str]) -> None:
+        """Update topic subscription."""
+        if self._consumer is None:
+            raise RuntimeError("Consumer is not started")
+        self._consumer.subscribe(topics)
+
     async def consume(self, handler: MessageHandler) -> None:
         """Read messages and dispatch to *handler* until stopped."""
         if self._consumer is None:
@@ -71,3 +77,7 @@ class KafkaConsumer:
             await handler(event)
 
         await self.consume(_wrapper)
+
+    async def close(self) -> None:
+        """Close the consumer (alias for stop)."""
+        await self.stop()

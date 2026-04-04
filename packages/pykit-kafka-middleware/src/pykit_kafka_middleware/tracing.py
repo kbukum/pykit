@@ -9,7 +9,7 @@ from opentelemetry import trace
 from opentelemetry.propagate import extract, inject
 from opentelemetry.trace import StatusCode
 
-from pykit_kafka.types import Message, MessageHandler
+from pykit_messaging.types import Message, MessageHandler
 
 
 class _KafkaHeaderCarrier:

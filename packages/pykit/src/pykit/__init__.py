@@ -37,7 +37,7 @@ _SUBPACKAGES: dict[str, str] = {
     "database": "pykit_database",
     "redis": "pykit_redis",
     "storage": "pykit_storage",
-    "kafka": "pykit_kafka",
+    "kafka": "pykit_messaging",
     "httpclient": "pykit_httpclient",
     "server": "pykit_server",
     "grpc": "pykit_grpc",

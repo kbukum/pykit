@@ -6,7 +6,7 @@ import time
 
 from prometheus_client import Counter, Histogram
 
-from pykit_kafka.types import Message, MessageHandler
+from pykit_messaging.types import Message, MessageHandler
 
 # Module-level metrics — created once, shared across all InstrumentHandler calls.
 _messages_total = Counter(

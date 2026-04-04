@@ -6,8 +6,8 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from pykit_kafka.producer import KafkaProducer
-from pykit_kafka.types import Message
+from pykit_messaging.kafka.producer import KafkaProducer
+from pykit_messaging.types import Message
 
 
 @dataclass
