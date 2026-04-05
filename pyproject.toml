@@ -175,6 +175,11 @@ source_pkgs = [
     "pykit_media",
     "pykit_security",
     "pykit_workload",
+    "pykit_kafka_middleware",
+    "pykit_server_middleware",
+    "pykit_auth_oidc",
+    "pykit_embedding",
+    "pykit_vector_store",
 ]
 branch = true
 

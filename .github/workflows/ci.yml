@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Format check (fast gate)
+  # ---------------------------------------------------------------------------
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run ruff format --check packages/
+
+  # ---------------------------------------------------------------------------
+  # Lint — code quality
+  # ---------------------------------------------------------------------------
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run ruff check packages/
+
+  # ---------------------------------------------------------------------------
+  # Type check — strict mypy on opted-in packages
+  # ---------------------------------------------------------------------------
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run mypy
+
+  # ---------------------------------------------------------------------------
+  # Test — pytest with coverage (fail_under = 60 configured in pyproject.toml)
+  # ---------------------------------------------------------------------------
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run pytest --cov --cov-report=xml --cov-report=term-missing
+
+  # ---------------------------------------------------------------------------
+  # Architecture — layer dependency compliance via import-linter
+  # ---------------------------------------------------------------------------
+  architecture:
+    name: Architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run import-linter
+
+  # ---------------------------------------------------------------------------
+  # Gate: Aggregate status for branch protection
+  # ---------------------------------------------------------------------------
+  ci-status:
+    name: CI Status
+    if: always()
+    needs: [format, lint, typecheck, test, architecture]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate results
+        run: |
+          results=(
+            "${{ needs.format.result }}"
+            "${{ needs.lint.result }}"
+            "${{ needs.typecheck.result }}"
+            "${{ needs.test.result }}"
+            "${{ needs.architecture.result }}"
+          )
+          for r in "${results[@]}"; do
+            if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
+              echo "::error::CI failed — one or more jobs did not succeed."
+              exit 1
+            fi
+          done
+          echo "All CI checks passed ✓"
