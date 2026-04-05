@@ -10,6 +10,7 @@ dev = [
     "pykit-auth",
     "pykit-errors",
     "pykit-config",
+    "pykit-integration",
     "pykit-logging",
     "pykit-provider",
     "pykit-pipeline",
@@ -89,6 +90,7 @@ pykit                = { workspace = true }
 pykit-auth           = { workspace = true }
 pykit-auth-oidc      = { workspace = true }
 pykit-authz          = { workspace = true }
+pykit-integration    = { workspace = true }
 pykit-bench          = { workspace = true }
 pykit-bootstrap      = { workspace = true }
 pykit-component      = { workspace = true }
@@ -133,7 +135,7 @@ pykit-workload       = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["packages"]
-addopts = "--tb=short -q"
+addopts = "--tb=short -q --import-mode=importlib"
 
 [tool.coverage.run]
 source_pkgs = [
