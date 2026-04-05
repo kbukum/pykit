@@ -10,6 +10,7 @@ dependencies = [
 
 [project.optional-dependencies]
 kafka = ["aiokafka"]
+bridges = ["pykit-provider", "pykit-pipeline", "pykit-dag", "pykit-worker"]
 
 [build-system]
 requires = ["hatchling"]

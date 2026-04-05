@@ -147,3 +147,131 @@ class TestInMemoryBroker:
         assert len(received) == 2
         topics = {m.topic for m in received}
         assert topics == {"t1", "t2"}
+
+
+class TestInMemoryBrokerHistory:
+    """Tests for message history, topic helpers, and test assertions."""
+
+    async def test_messages_returns_topic_history(self) -> None:
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        await producer.send("t1", b"a", key="k1")
+        await producer.send("t1", b"b", key="k2")
+        await producer.send("t2", b"c", key="k3")
+
+        msgs = broker.messages("t1")
+        assert len(msgs) == 2
+        assert msgs[0].value == b"a"
+        assert msgs[1].value == b"b"
+
+    async def test_all_messages(self) -> None:
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        await producer.send("t1", b"a")
+        await producer.send("t2", b"b")
+        await producer.send("t1", b"c")
+
+        assert len(broker.all_messages()) == 3
+
+    async def test_message_count(self) -> None:
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        assert broker.message_count("t1") == 0
+        await producer.send("t1", b"x")
+        assert broker.message_count("t1") == 1
+
+    async def test_reset(self) -> None:
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        await producer.send("t1", b"x")
+        broker.reset()
+        assert broker.message_count("t1") == 0
+
+    def test_create_topic(self) -> None:
+        broker = InMemoryBroker()
+        broker.create_topic("new-topic")
+        assert "new-topic" in broker.topics()
+
+    async def test_topics_sorted(self) -> None:
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        broker.create_topic("z-topic")
+        broker.create_topic("a-topic")
+        await producer.send("m-topic", b"x")
+
+        assert broker.topics() == ["a-topic", "m-topic", "z-topic"]
+
+    async def test_send_batch_records_history(self) -> None:
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        msgs = [
+            Message(key="k1", value=b"a", topic="batch", partition=0, offset=0),
+            Message(key="k2", value=b"b", topic="batch", partition=0, offset=1),
+        ]
+        await producer.send_batch(msgs)
+
+        assert broker.message_count("batch") == 2
+
+
+class TestAssertionHelpers:
+    """Tests for the testing.py assertion helpers."""
+
+    async def test_assert_published(self) -> None:
+        from pykit_messaging.testing import assert_published
+
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        await producer.send("t1", b"hello")
+        await producer.send("t1", b"world")
+
+        assert_published(broker, "t1", lambda m: m.value == b"world")
+
+    async def test_assert_published_n(self) -> None:
+        from pykit_messaging.testing import assert_published_n
+
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        await producer.send("t1", b"a")
+        await producer.send("t1", b"b")
+
+        assert_published_n(broker, "t1", 2)
+
+    async def test_assert_no_messages(self) -> None:
+        from pykit_messaging.testing import assert_no_messages
+
+        broker = InMemoryBroker()
+        assert_no_messages(broker, "empty-topic")
+
+    async def test_wait_for_message(self) -> None:
+        import asyncio
+
+        from pykit_messaging.testing import wait_for_message
+
+        broker = InMemoryBroker()
+        producer = broker.producer()
+
+        async def publish_later() -> None:
+            await asyncio.sleep(0.02)
+            await producer.send("t1", b"delayed")
+
+        task = asyncio.create_task(publish_later())
+        msg = await wait_for_message(broker, "t1", timeout=2.0)
+        assert msg.value == b"delayed"
+        await task
+
+    async def test_wait_for_message_timeout(self) -> None:
+        import pytest
+
+        from pykit_messaging.testing import wait_for_message
+
+        broker = InMemoryBroker()
+        with pytest.raises(TimeoutError):
+            await wait_for_message(broker, "empty", timeout=0.05)
