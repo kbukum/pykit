@@ -55,6 +55,8 @@ class RunSummary(BaseModel):
 class RunResult(BaseModel):
     """Complete result of a bench run."""
 
+    model_config = {"arbitrary_types_allowed": True}
+
     run_id: str
     timestamp: datetime
     tag: str = ""
@@ -67,9 +69,6 @@ class RunResult(BaseModel):
         )
     )
     per_branch: dict[str, ThresholdMetrics] = Field(default_factory=dict)
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class BenchRunner:
