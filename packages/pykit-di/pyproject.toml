@@ -1,5 +1,6 @@
 [project]
 name = "pykit-di"
+description = "Dependency injection container with eager, lazy, and singleton modes"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

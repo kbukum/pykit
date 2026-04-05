@@ -1,5 +1,6 @@
 [project]
 name = "pykit-component"
+description = "Component lifecycle protocol — start, stop, health"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+### Added — Cross-Kit Alignment
+
+- **pykit-errors**: `ErrorCode` enum with 17 standardized codes, fluent error builders, RFC 7807 `ErrorResponse` support
+- **pykit-config**: `AppConfig` Protocol, `ServiceConfig`, `LoggingConfig`, `Environment` enum
+- **pykit-bootstrap**: `on_configure` hooks, `Component` integration for lifecycle management
+- **pykit-discovery**: `ServiceInstance` enrichment, `LeastConnectionsStrategy` for load balancing
+- **pykit-observability**: `ServiceHealth`, `ComponentHealth`, `HealthStatus` types
+- **pykit-server**: `BaseServer` `Component` protocol implementation
+
+### Added — Project Infrastructure
+
+- **LICENSE**: MIT license file
+- **CONTRIBUTING.md**: Development setup, code style, testing, PR process guidelines
+- **All packages**: Added `description` field to all 44 `pyproject.toml` files
+- **README.md**: Added badges, contributing section, code of conduct, updated package descriptions
+
 ### Breaking Changes
 - **pykit-kafka → pykit-messaging**: The `pykit-kafka` package has been replaced by `pykit-messaging`
   - Abstract protocols (`MessageProducer`, `MessageConsumer`, `Message`, `Event`) in `pykit_messaging`

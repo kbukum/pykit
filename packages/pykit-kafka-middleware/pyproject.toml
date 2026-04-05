@@ -1,5 +1,6 @@
 [project]
 name = "pykit-kafka-middleware"
+description = "Messaging middleware — dead-letter, retry, metrics, tracing"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

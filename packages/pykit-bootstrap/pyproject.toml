@@ -1,5 +1,6 @@
 [project]
 name = "pykit-bootstrap"
+description = "Application bootstrap and service wiring with lifecycle management"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

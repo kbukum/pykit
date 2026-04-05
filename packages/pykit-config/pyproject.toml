@@ -1,5 +1,6 @@
 [project]
 name = "pykit-config"
+description = "Configuration framework using Pydantic Settings with environment variable support"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

@@ -1,5 +1,6 @@
 [project]
 name = "pykit-media"
+description = "Media type detection and handling"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = []

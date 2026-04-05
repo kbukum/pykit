@@ -1,5 +1,6 @@
 [project]
 name = "pykit-httpclient"
+description = "Async HTTP client with httpx and resilience patterns"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

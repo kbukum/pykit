@@ -1,5 +1,6 @@
 [project]
 name = "pykit-redis"
+description = "Redis client and caching utilities with component lifecycle"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

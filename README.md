@@ -1,5 +1,9 @@
 # pykit — Python Infrastructure Library
 
+[![CI](https://github.com/kbukum/pykit/actions/workflows/ci.yml/badge.svg)](https://github.com/kbukum/pykit/actions/workflows/ci.yml)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 > Standalone Python infrastructure library mirroring **gokit** (Go) and **rskit** (Rust).
 
 ## Quick Start
@@ -29,12 +33,12 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 
 | Package | Description |
 |---------|-------------|
-| `pykit-errors` | Standard error types with gRPC status mapping |
-| `pykit-config` | Configuration framework (Pydantic Settings) |
-| `pykit-logging` | Structured logging (structlog) |
+| `pykit-errors` | Standard error types with error codes, gRPC status mapping, and RFC 7807 support |
+| `pykit-config` | Configuration framework using Pydantic Settings with environment variable support |
+| `pykit-logging` | Structured logging with structlog integration |
 | `pykit-validation` | Input validation utilities |
 | `pykit-encryption` | Encryption and cryptographic utilities |
-| `pykit-util` | Common utility functions |
+| `pykit-util` | Common utility functions — pure Python, zero dependencies |
 | `pykit-version` | Version information and compatibility |
 | `pykit-media` | Media type detection and handling |
 
@@ -42,12 +46,12 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 
 | Package | Description |
 |---------|-------------|
-| `pykit-provider` | Provider protocols (request/response, stream, sink, duplex) |
-| `pykit-component` | Component lifecycle protocol (start/stop/health) |
-| `pykit-bootstrap` | Application bootstrap and service wiring |
-| `pykit-resilience` | Retry, circuit breaker, timeout patterns |
-| `pykit-di` | Dependency injection container |
-| `pykit-observability` | OpenTelemetry tracing and observability |
+| `pykit-provider` | Provider protocols for request/response, stream, sink, and duplex patterns |
+| `pykit-component` | Component lifecycle protocol — start, stop, health |
+| `pykit-bootstrap` | Application bootstrap and service wiring with lifecycle management |
+| `pykit-resilience` | Retry, circuit breaker, bulkhead, rate limiter, and timeout patterns |
+| `pykit-di` | Dependency injection container with eager, lazy, and singleton modes |
+| `pykit-observability` | OpenTelemetry tracing, metrics, and context propagation |
 | `pykit-security` | Security utilities and policies |
 
 **Data & Flow**
@@ -55,7 +59,7 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 | Package | Description |
 |---------|-------------|
 | `pykit-pipeline` | Composable, pull-based async data pipelines |
-| `pykit-dag` | Directed acyclic graph execution engine |
+| `pykit-dag` | DAG execution engine with parallel task orchestration |
 | `pykit-worker` | Background worker and task processing |
 | `pykit-sse` | Server-Sent Events support |
 | `pykit-stateful` | Stateful processing and state management |
@@ -64,26 +68,26 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 
 | Package | Description |
 |---------|-------------|
-| `pykit-database` | Async database access (SQLAlchemy + asyncpg) |
-| `pykit-redis` | Redis client and caching utilities |
-| `pykit-storage` | Object/file storage abstraction |
-| `pykit-messaging` | Message broker abstraction with Kafka provider and in-memory broker for testing |
-| `pykit-kafka-middleware` | Messaging middleware (dead-letter, retry, metrics, tracing) |
-| `pykit-httpclient` | Async HTTP client (httpx) |
+| `pykit-database` | Async database access with SQLAlchemy and asyncpg |
+| `pykit-redis` | Redis client and caching utilities with component lifecycle |
+| `pykit-storage` | Object/file storage abstraction — local and S3 backends |
+| `pykit-messaging` | Transport-agnostic messaging abstractions with Kafka provider |
+| `pykit-kafka-middleware` | Messaging middleware — dead-letter, retry, metrics, tracing |
+| `pykit-httpclient` | Async HTTP client with httpx and resilience patterns |
 
 **Servers**
 
 | Package | Description |
 |---------|-------------|
-| `pykit-server` | gRPC server bootstrap, health, interceptors |
-| `pykit-server-middleware` | Server middleware (logging, auth, metrics) |
+| `pykit-server` | gRPC server bootstrap, health, and interceptors |
+| `pykit-server-middleware` | Server middleware — logging, auth, metrics |
 | `pykit-grpc` | gRPC client utilities and helpers |
 
 **Security**
 
 | Package | Description |
 |---------|-------------|
-| `pykit-auth` | Authentication (JWT validation, token handling) |
+| `pykit-auth` | JWT authentication and password hashing |
 | `pykit-auth-oidc` | OpenID Connect authentication provider |
 | `pykit-authz` | Authorization policies and RBAC |
 
@@ -93,14 +97,14 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 |---------|-------------|
 | `pykit-llm` | LLM client abstraction and prompt management |
 | `pykit-triton` | Triton Inference Server client |
-| `pykit-embedding` | Text/vector embedding utilities |
+| `pykit-embedding` | Text and vector embedding utilities |
 | `pykit-vector-store` | Vector store abstraction for similarity search |
 
 **Platform**
 
 | Package | Description |
 |---------|-------------|
-| `pykit-discovery` | Service discovery (Consul integration) |
+| `pykit-discovery` | Service discovery with Consul integration and load balancing |
 | `pykit-metrics` | Prometheus metrics helpers |
 | `pykit-process` | Process management utilities |
 | `pykit-workload` | Workload scheduling and management |
@@ -110,7 +114,7 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 | Package | Description |
 |---------|-------------|
 | `pykit-testutil` | Test utilities for gRPC services |
-| `pykit-dataset` | Dataset collection, transformation, publishing |
+| `pykit-dataset` | Dataset collection, transformation, and publishing |
 | `pykit-bench` | Generic accuracy benchmarking framework |
 
 ## Principles
@@ -120,6 +124,15 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 - **Strict layering**: lower layers never import higher layers
 - **Zero unnecessary coupling**: each package declares only its real dependencies
 
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for
+development setup, code style, testing, and pull request guidelines.
+
+This project follows the
+[Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)
+code of conduct.
+
 ## License
 
-MIT
+[MIT](LICENSE)

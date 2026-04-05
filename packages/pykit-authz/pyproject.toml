@@ -1,5 +1,6 @@
 [project]
 name = "pykit-authz"
+description = "Authorization policies and RBAC"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [

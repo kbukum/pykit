@@ -1,5 +1,6 @@
 [project]
 name = "pykit-discovery"
+description = "Service discovery with Consul integration and load balancing"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = ["pykit-errors", "pykit-component", "httpx"]
