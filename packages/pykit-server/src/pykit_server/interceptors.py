@@ -86,7 +86,7 @@ class ErrorHandlingInterceptor(aio.ServerInterceptor):
             try:
                 return await original(request, context)
             except AppError as exc:
-                await context.abort(exc.grpc_status, str(exc))
+                await context.abort(exc.to_grpc_status(), str(exc))
             except Exception as exc:
                 self.logger.exception("Unhandled error in gRPC handler", error=str(exc))
                 await context.abort(grpc.StatusCode.INTERNAL, "Internal server error")

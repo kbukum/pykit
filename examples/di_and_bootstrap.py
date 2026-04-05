@@ -12,7 +12,7 @@ import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from pykit_bootstrap import App, AppConfig
+from pykit_bootstrap import App, DefaultAppConfig, Environment, ServiceConfig
 from pykit_component import Health, HealthStatus, Registry
 from pykit_di import Container
 
@@ -67,7 +67,9 @@ async def demo_bootstrap() -> None:
     """Show App lifecycle: start → task → stop."""
     print("\n=== Bootstrap App ===")
 
-    app = App(AppConfig(name="my-service", version="1.2.0", env="staging"))
+    app = App(DefaultAppConfig(
+        service=ServiceConfig(name="my-service", environment=Environment.STAGING, version="1.2.0"),
+    ))
 
     async def on_start() -> None:
         print(f"  [start] {app.config.name} v{app.config.version} booting…")

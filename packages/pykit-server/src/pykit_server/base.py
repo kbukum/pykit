@@ -10,6 +10,7 @@ from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 from grpc_reflection.v1alpha import reflection
 
 import pykit_logging as log
+from pykit_component import Health, HealthStatus
 
 
 class BaseServer:
@@ -38,6 +39,11 @@ class BaseServer:
         self._health_servicer: health.HealthServicer | None = None
         self._shutdown_event = asyncio.Event()
         self.logger = log.get_logger(__name__)
+
+    @property
+    def name(self) -> str:
+        """Component name for registry identification."""
+        return "grpc-server"
 
     async def start(self) -> None:
         """Create, configure, and start the gRPC server."""
@@ -111,3 +117,9 @@ class BaseServer:
             health_pb2.HealthCheckResponse.SERVING if serving else health_pb2.HealthCheckResponse.NOT_SERVING
         )
         self._health_servicer.set(service_name, status)
+
+    async def health(self) -> Health:
+        """Return component health based on server state."""
+        if self._server is not None and not self._shutdown_event.is_set():
+            return Health(name=self.name, status=HealthStatus.HEALTHY, message="serving")
+        return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="not running")

@@ -8,38 +8,128 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from pykit_bootstrap import App, AppConfig, Hook, Lifecycle
+from pykit_bootstrap import (
+    App,
+    AppConfig,
+    Component,
+    DefaultAppConfig,
+    Environment,
+    Health,
+    HealthStatus,
+    Hook,
+    Lifecycle,
+    LoggingConfig,
+    Registry,
+    ServiceConfig,
+)
 
 # ---------------------------------------------------------------------------
-# AppConfig
+# Helper — shortcut for creating DefaultAppConfig
 # ---------------------------------------------------------------------------
 
 
-class TestAppConfig:
+def _cfg(name: str = "svc", **kwargs: object) -> DefaultAppConfig:
+    """Create a DefaultAppConfig with the given service name and optional overrides."""
+    svc_kwargs: dict[str, object] = {"name": name}
+    top_kwargs: dict[str, object] = {}
+    svc_fields = {"name", "environment", "version", "debug", "logging"}
+    for k, v in kwargs.items():
+        if k in svc_fields:
+            svc_kwargs[k] = v
+        else:
+            top_kwargs[k] = v
+    return DefaultAppConfig(service=ServiceConfig(**svc_kwargs), **top_kwargs)
+
+
+# ---------------------------------------------------------------------------
+# Config types
+# ---------------------------------------------------------------------------
+
+
+class TestEnvironment:
+    def test_values(self) -> None:
+        assert Environment.DEVELOPMENT == "development"
+        assert Environment.STAGING == "staging"
+        assert Environment.PRODUCTION == "production"
+
+    def test_str_enum(self) -> None:
+        assert str(Environment.PRODUCTION) == "production"
+
+
+class TestLoggingConfig:
     def test_defaults(self) -> None:
-        cfg = AppConfig(name="svc")
-        assert cfg.name == "svc"
-        assert cfg.version == "dev"
-        assert cfg.env == "development"
-        assert cfg.debug is False
-        assert cfg.graceful_timeout == 30.0
-        assert cfg.extra == {}
+        lc = LoggingConfig()
+        assert lc.level == "INFO"
+        assert lc.format == "console"
+
+    def test_frozen(self) -> None:
+        lc = LoggingConfig()
+        with pytest.raises(AttributeError):
+            lc.level = "DEBUG"  # type: ignore[misc]
+
+
+class TestServiceConfig:
+    def test_defaults(self) -> None:
+        sc = ServiceConfig()
+        assert sc.name == ""
+        assert sc.environment == Environment.DEVELOPMENT
+        assert sc.version == "0.0.0"
+        assert sc.debug is False
+        assert isinstance(sc.logging, LoggingConfig)
 
     def test_custom_values(self) -> None:
-        cfg = AppConfig(
+        sc = ServiceConfig(
             name="api",
+            environment=Environment.PRODUCTION,
             version="1.2.3",
-            env="production",
             debug=True,
-            graceful_timeout=10.0,
-            extra={"region": "us-east-1"},
+            logging=LoggingConfig(level="DEBUG", format="json"),
         )
-        assert cfg.name == "api"
-        assert cfg.version == "1.2.3"
-        assert cfg.env == "production"
+        assert sc.name == "api"
+        assert sc.environment == Environment.PRODUCTION
+        assert sc.version == "1.2.3"
+        assert sc.debug is True
+        assert sc.logging.level == "DEBUG"
+        assert sc.logging.format == "json"
+
+    def test_frozen(self) -> None:
+        sc = ServiceConfig(name="x")
+        with pytest.raises(AttributeError):
+            sc.name = "y"  # type: ignore[misc]
+
+
+class TestDefaultAppConfig:
+    def test_defaults(self) -> None:
+        cfg = DefaultAppConfig()
+        assert cfg.service.name == ""
+        assert cfg.service.environment == Environment.DEVELOPMENT
+        assert cfg.graceful_timeout == 30.0
+
+    def test_convenience_properties(self) -> None:
+        cfg = _cfg("svc", version="2.0", environment=Environment.STAGING, debug=True)
+        assert cfg.name == "svc"
+        assert cfg.version == "2.0"
+        assert cfg.env == "staging"
         assert cfg.debug is True
-        assert cfg.graceful_timeout == 10.0
-        assert cfg.extra == {"region": "us-east-1"}
+
+    def test_service_config_property(self) -> None:
+        sc = ServiceConfig(name="x")
+        cfg = DefaultAppConfig(service=sc)
+        assert cfg.service_config is sc
+
+    def test_apply_defaults_fills_empty_name(self) -> None:
+        cfg = DefaultAppConfig()
+        cfg.apply_defaults()
+        assert cfg.service.name == "unknown"
+
+    def test_apply_defaults_preserves_existing_name(self) -> None:
+        cfg = _cfg("real-svc")
+        cfg.apply_defaults()
+        assert cfg.service.name == "real-svc"
+
+    def test_satisfies_protocol(self) -> None:
+        cfg = _cfg("proto-test")
+        assert isinstance(cfg, AppConfig)
 
 
 # ---------------------------------------------------------------------------
@@ -74,8 +164,18 @@ class TestLifecycle:
         await lc.run_stop_hooks()
         assert order == [3, 2, 1]
 
+    async def test_configure_hooks_run_in_order(self) -> None:
+        order: list[int] = []
+        lc = Lifecycle()
+        lc.on_configure(self._hook(order, 1))
+        lc.on_configure(self._hook(order, 2))
+        lc.on_configure(self._hook(order, 3))
+        await lc.run_configure_hooks()
+        assert order == [1, 2, 3]
+
     async def test_no_hooks_is_noop(self) -> None:
         lc = Lifecycle()
+        await lc.run_configure_hooks()
         await lc.run_start_hooks()
         await lc.run_ready_hooks()
         await lc.run_stop_hooks()
@@ -106,9 +206,21 @@ class TestLifecycle:
 
 class TestAppChaining:
     def test_convenience_methods_return_self(self) -> None:
-        app = App(AppConfig(name="svc"))
+        app = App(_cfg("svc"))
         sentinel = AsyncMock()
-        result = app.on_start(sentinel).on_ready(sentinel).on_stop(sentinel).set_ready_check(sentinel)
+        result = (
+            app.on_configure(sentinel)
+            .on_start(sentinel)
+            .on_ready(sentinel)
+            .on_stop(sentinel)
+            .set_ready_check(sentinel)
+        )
+        assert result is app
+
+    def test_with_component_returns_self(self) -> None:
+        app = App(_cfg("svc"))
+        comp = _MockComponent("db")
+        result = app.with_component(comp)
         assert result is app
 
 
@@ -120,7 +232,7 @@ class TestAppChaining:
 class TestRunTask:
     async def test_task_runs_between_hooks(self) -> None:
         order: list[str] = []
-        app = App(AppConfig(name="test"))
+        app = App(_cfg("test"))
         app.on_start(_make_hook(order, "start"))
         app.on_stop(_make_hook(order, "stop"))
 
@@ -132,7 +244,7 @@ class TestRunTask:
 
     async def test_stop_hooks_run_even_if_task_fails(self) -> None:
         order: list[str] = []
-        app = App(AppConfig(name="test"))
+        app = App(_cfg("test"))
         app.on_stop(_make_hook(order, "stop"))
 
         async def failing_task() -> None:
@@ -145,7 +257,7 @@ class TestRunTask:
 
     async def test_stop_hooks_run_even_if_start_hook_fails(self) -> None:
         order: list[str] = []
-        app = App(AppConfig(name="test"))
+        app = App(_cfg("test"))
 
         async def bad_start() -> None:
             raise RuntimeError("start failed")
@@ -167,7 +279,7 @@ class TestRunTask:
 class TestRun:
     async def test_full_lifecycle_order(self) -> None:
         order: list[str] = []
-        app = App(AppConfig(name="test"))
+        app = App(_cfg("test"))
         app.on_start(_make_hook(order, "start"))
         app.on_ready(_make_hook(order, "ready"))
         app.on_stop(_make_hook(order, "stop"))
@@ -184,7 +296,7 @@ class TestRun:
 
     async def test_ready_check_failure_skips_ready_hooks(self) -> None:
         order: list[str] = []
-        app = App(AppConfig(name="test"))
+        app = App(_cfg("test"))
         app.on_start(_make_hook(order, "start"))
         app.on_ready(_make_hook(order, "ready"))
         app.on_stop(_make_hook(order, "stop"))
@@ -206,7 +318,7 @@ class TestRun:
 
     async def test_no_ready_check_skips_check(self) -> None:
         order: list[str] = []
-        app = App(AppConfig(name="test"))
+        app = App(_cfg("test"))
         app.on_start(_make_hook(order, "start"))
         app.on_ready(_make_hook(order, "ready"))
         app.on_stop(_make_hook(order, "stop"))
@@ -224,12 +336,12 @@ class TestRun:
 
 class TestAppProperties:
     def test_config_property(self) -> None:
-        cfg = AppConfig(name="svc", version="2.0")
+        cfg = _cfg("svc", version="2.0")
         app = App(cfg)
         assert app.config is cfg
 
     def test_lifecycle_property(self) -> None:
-        app = App(AppConfig(name="svc"))
+        app = App(_cfg("svc"))
         assert isinstance(app.lifecycle, Lifecycle)
 
 
@@ -240,15 +352,14 @@ class TestAppProperties:
 
 class TestSignalHandling:
     async def test_wait_for_signal_registers_and_removes_handlers(self) -> None:
-        """Cover lines 108-119: _wait_for_signal sets/removes signal handlers."""
+        """Cover _wait_for_signal sets/removes signal handlers."""
         import signal
 
-        app = App(AppConfig(name="sig-test"))
+        app = App(_cfg("sig-test"))
 
         async def fire_signal_soon() -> None:
             await asyncio.sleep(0.01)
             loop = asyncio.get_running_loop()
-            # Simulate SIGINT being delivered
             loop.call_soon(lambda: os.kill(os.getpid(), signal.SIGINT))
 
         task = asyncio.create_task(fire_signal_soon())
@@ -260,7 +371,7 @@ class TestSignalHandling:
         import signal
 
         order: list[str] = []
-        app = App(AppConfig(name="full-sig"))
+        app = App(_cfg("full-sig"))
         app.on_start(_make_hook(order, "start"))
         app.on_ready(_make_hook(order, "ready"))
         app.on_stop(_make_hook(order, "stop"))
@@ -275,8 +386,8 @@ class TestSignalHandling:
         assert order == ["start", "ready", "stop"]
 
     async def test_shutdown_timeout(self) -> None:
-        """Cover lines 128-129: graceful shutdown timeout path."""
-        app = App(AppConfig(name="timeout-test", graceful_timeout=0.01))
+        """Cover graceful shutdown timeout path."""
+        app = App(_cfg("timeout-test"), graceful_timeout=0.01)
 
         async def slow_stop() -> None:
             await asyncio.sleep(10)
@@ -297,3 +408,144 @@ def _make_hook(order: list[str], label: str) -> Hook:
         order.append(label)
 
     return _h
+
+
+# ---------------------------------------------------------------------------
+# Mock component for integration tests
+# ---------------------------------------------------------------------------
+
+
+class _MockComponent:
+    """Minimal Component implementation for testing."""
+
+    def __init__(self, name: str, *, order: list[str] | None = None) -> None:
+        self._name = name
+        self._order = order
+        self._started = False
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    async def start(self) -> None:
+        self._started = True
+        if self._order is not None:
+            self._order.append(f"{self._name}:start")
+
+    async def stop(self) -> None:
+        self._started = False
+        if self._order is not None:
+            self._order.append(f"{self._name}:stop")
+
+    async def health(self) -> Health:
+        status = HealthStatus.HEALTHY if self._started else HealthStatus.UNHEALTHY
+        return Health(name=self._name, status=status)
+
+
+# ---------------------------------------------------------------------------
+# App — component integration
+# ---------------------------------------------------------------------------
+
+
+class TestAppComponents:
+    def test_with_component_registers(self) -> None:
+        app = App(_cfg("svc"))
+        comp = _MockComponent("db")
+        app.with_component(comp)
+        assert app.registry.get("db") is comp
+
+    def test_registry_property(self) -> None:
+        app = App(_cfg("svc"))
+        assert isinstance(app.registry, Registry)
+
+    async def test_components_start_before_hooks(self) -> None:
+        order: list[str] = []
+        app = App(_cfg("test"))
+        app.with_component(_MockComponent("db", order=order))
+        app.on_configure(_make_hook(order, "configure"))
+        app.on_start(_make_hook(order, "start"))
+        app.on_stop(_make_hook(order, "stop"))
+
+        async def task() -> None:
+            order.append("task")
+
+        await app.run_task(task)
+        assert order == ["db:start", "configure", "start", "task", "stop", "db:stop"]
+
+    async def test_full_lifecycle_with_components(self) -> None:
+        order: list[str] = []
+        app = App(_cfg("test"))
+        app.with_component(_MockComponent("db", order=order))
+        app.on_configure(_make_hook(order, "configure"))
+        app.on_start(_make_hook(order, "start"))
+        app.on_ready(_make_hook(order, "ready"))
+        app.on_stop(_make_hook(order, "stop"))
+
+        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
+            await app.run()
+
+        assert order == ["db:start", "configure", "start", "ready", "stop", "db:stop"]
+
+    async def test_components_stop_even_on_hook_failure(self) -> None:
+        order: list[str] = []
+        app = App(_cfg("test"))
+        app.with_component(_MockComponent("db", order=order))
+
+        async def bad_start() -> None:
+            raise RuntimeError("hook failed")
+
+        app.on_start(bad_start)
+
+        with pytest.raises(RuntimeError, match="hook failed"):
+            await app.run_task(AsyncMock())
+
+        assert "db:start" in order
+        assert "db:stop" in order
+
+    async def test_components_stop_in_reverse_order(self) -> None:
+        order: list[str] = []
+        app = App(_cfg("test"))
+        app.with_component(_MockComponent("db", order=order))
+        app.with_component(_MockComponent("cache", order=order))
+
+        async def task() -> None:
+            pass
+
+        await app.run_task(task)
+        assert order == ["db:start", "cache:start", "cache:stop", "db:stop"]
+
+    async def test_shutdown_stops_components_after_timeout(self) -> None:
+        order: list[str] = []
+        app = App(_cfg("timeout-test"), graceful_timeout=0.01)
+        app.with_component(_MockComponent("db", order=order))
+
+        async def slow_stop() -> None:
+            await asyncio.sleep(10)
+
+        app.on_stop(slow_stop)
+
+        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
+            await app.run()
+
+        # Components should still be stopped even after hook timeout
+        assert "db:start" in order
+        assert "db:stop" in order
+
+
+# ---------------------------------------------------------------------------
+# Re-exports
+# ---------------------------------------------------------------------------
+
+
+class TestReExports:
+    def test_component_reexported(self) -> None:
+        assert Component is not None
+
+    def test_health_reexported(self) -> None:
+        assert Health is not None
+
+    def test_health_status_reexported(self) -> None:
+        assert HealthStatus is not None
+
+    def test_registry_reexported(self) -> None:
+        assert Registry is not None

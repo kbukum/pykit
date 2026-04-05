@@ -8,6 +8,7 @@ import grpc
 import pytest
 from grpc_health.v1 import health_pb2, health_pb2_grpc
 
+from pykit_component import Component, Health, HealthStatus
 from pykit_server import BaseServer
 
 
@@ -112,3 +113,54 @@ async def test_register_services_default_is_noop() -> None:
     server = BaseServer()
     mock_grpc_server = AsyncMock()
     await server.register_services(mock_grpc_server)  # must not raise
+
+
+# ---------------------------------------------------------------------------
+# Component protocol compliance
+# ---------------------------------------------------------------------------
+
+
+def test_name_property() -> None:
+    """BaseServer should expose a 'name' property for the Component protocol."""
+    server = BaseServer()
+    assert server.name == "grpc-server"
+
+
+def test_satisfies_component_protocol() -> None:
+    """BaseServer should satisfy the Component protocol."""
+    server = BaseServer()
+    assert isinstance(server, Component)
+
+
+@pytest.mark.asyncio
+async def test_health_unhealthy_before_start() -> None:
+    """health() should return UNHEALTHY when server is not started."""
+    server = BaseServer()
+    h = await server.health()
+    assert isinstance(h, Health)
+    assert h.name == "grpc-server"
+    assert h.status == HealthStatus.UNHEALTHY
+    assert h.message == "not running"
+
+
+@pytest.mark.asyncio
+async def test_health_healthy_when_running() -> None:
+    """health() should return HEALTHY when server is started and running."""
+    server = BaseServer(port=50194)
+    await server.start()
+    try:
+        h = await server.health()
+        assert h.status == HealthStatus.HEALTHY
+        assert h.message == "serving"
+    finally:
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_health_unhealthy_after_stop() -> None:
+    """health() should return UNHEALTHY after server is stopped."""
+    server = BaseServer(port=50193)
+    await server.start()
+    await server.stop()
+    h = await server.health()
+    assert h.status == HealthStatus.UNHEALTHY
