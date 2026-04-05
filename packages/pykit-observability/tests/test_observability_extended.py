@@ -36,8 +36,9 @@ def _reset_tracer_provider() -> None:
 
 
 def _reset_meter_provider() -> None:
-    metrics._METER_PROVIDER = None
-    metrics._METER_PROVIDER_SET_ONCE._done = False
+    from opentelemetry.metrics import _internal
+    _internal._METER_PROVIDER = None
+    _internal._METER_PROVIDER_SET_ONCE._done = False
 
 
 @pytest.fixture(autouse=True)
