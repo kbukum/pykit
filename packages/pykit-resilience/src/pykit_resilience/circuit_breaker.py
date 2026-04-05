@@ -9,9 +9,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TypeVar
 
-import grpc
-
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode
 
 T = TypeVar("T")
 
@@ -27,10 +26,8 @@ class State(StrEnum):
 class CircuitOpenError(AppError):
     """Raised when the circuit breaker is open."""
 
-    grpc_status = grpc.StatusCode.UNAVAILABLE
-
     def __init__(self, name: str) -> None:
-        super().__init__(f"Circuit breaker '{name}' is open")
+        super().__init__(ErrorCode.SERVICE_UNAVAILABLE, f"Circuit breaker '{name}' is open")
 
 
 @dataclass

@@ -7,9 +7,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
-import grpc
-
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode
 
 T = TypeVar("T")
 
@@ -17,10 +16,8 @@ T = TypeVar("T")
 class BulkheadFullError(AppError):
     """Raised when the bulkhead has no available slots."""
 
-    grpc_status = grpc.StatusCode.RESOURCE_EXHAUSTED
-
     def __init__(self, name: str) -> None:
-        super().__init__(f"Bulkhead '{name}' is full")
+        super().__init__(ErrorCode.RATE_LIMITED, f"Bulkhead '{name}' is full")
 
 
 @dataclass

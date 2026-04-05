@@ -9,6 +9,7 @@ from sqlalchemy.exc import (
 )
 
 from pykit_errors import AppError, NotFoundError, ServiceUnavailableError
+from pykit_errors.codes import ErrorCode
 
 
 def is_connection_error(err: BaseException) -> bool:
@@ -41,6 +42,6 @@ def translate_error(err: BaseException, resource: str = "") -> AppError:
         return ServiceUnavailableError(resource or "database", str(err))
 
     if is_duplicate_error(err):
-        return AppError(f"duplicate {resource or 'record'}: {err}")
+        return AppError(ErrorCode.ALREADY_EXISTS, f"duplicate {resource or 'record'}: {err}")
 
-    return AppError(str(err))
+    return AppError(ErrorCode.DATABASE_ERROR, str(err))

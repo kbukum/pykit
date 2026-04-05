@@ -8,20 +8,20 @@ import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
-import grpc
-
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode
 
 
 class RetryExhaustedError(AppError):
     """Raised when all retry attempts are exhausted."""
 
-    grpc_status = grpc.StatusCode.UNAVAILABLE
-
     def __init__(self, attempts: int, last_error: Exception) -> None:
         self.attempts = attempts
         self.last_error = last_error
-        super().__init__(f"All {attempts} retry attempts exhausted, last error: {last_error}")
+        super().__init__(
+            ErrorCode.SERVICE_UNAVAILABLE,
+            f"All {attempts} retry attempts exhausted, last error: {last_error}",
+        )
 
 
 @dataclass

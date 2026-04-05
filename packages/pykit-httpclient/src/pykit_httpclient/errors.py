@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import enum
+from typing import Any
 
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode as BaseErrorCode
 
 
 class ErrorCode(enum.StrEnum):
@@ -19,8 +21,21 @@ class ErrorCode(enum.StrEnum):
     SERVER = "server"
 
 
+_HTTP_CODE_TO_BASE: dict[ErrorCode, BaseErrorCode] = {
+    ErrorCode.TIMEOUT: BaseErrorCode.TIMEOUT,
+    ErrorCode.CONNECTION: BaseErrorCode.CONNECTION_FAILED,
+    ErrorCode.AUTH: BaseErrorCode.UNAUTHORIZED,
+    ErrorCode.NOT_FOUND: BaseErrorCode.NOT_FOUND,
+    ErrorCode.RATE_LIMIT: BaseErrorCode.RATE_LIMITED,
+    ErrorCode.VALIDATION: BaseErrorCode.INVALID_INPUT,
+    ErrorCode.SERVER: BaseErrorCode.EXTERNAL_SERVICE,
+}
+
+
 class HttpError(AppError):
     """Structured HTTP client error with classification."""
+
+    code: Any  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -31,7 +46,8 @@ class HttpError(AppError):
         retryable: bool = False,
         body: bytes | None = None,
     ) -> None:
-        super().__init__(message)
+        base_code = _HTTP_CODE_TO_BASE.get(code, BaseErrorCode.INTERNAL)
+        super().__init__(base_code, message)
         self.status_code = status_code
         self.code = code
         self.retryable = retryable

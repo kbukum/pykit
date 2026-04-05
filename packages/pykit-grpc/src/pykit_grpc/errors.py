@@ -6,6 +6,7 @@ import grpc
 
 from pykit_errors import AppError, InvalidInputError, NotFoundError, ServiceUnavailableError
 from pykit_errors.base import TimeoutError as AppTimeoutError
+from pykit_errors.codes import ErrorCode
 
 # ---------------------------------------------------------------------------
 # gRPC status → AppError
@@ -40,7 +41,7 @@ def grpc_error_to_app_error(rpc_error: grpc.RpcError) -> AppError:
     if code == grpc.StatusCode.DEADLINE_EXCEEDED:
         return AppTimeoutError(operation=details or "rpc", timeout_seconds=0)
 
-    return AppError(details or f"gRPC error: {code.name}")
+    return AppError(ErrorCode.INTERNAL, details or f"gRPC error: {code.name}")
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +65,12 @@ def app_error_to_grpc_status(app_error: AppError) -> tuple[grpc.StatusCode, str]
         if isinstance(app_error, err_cls):
             return status_code, str(app_error)
 
-    # Use the grpc_status attribute if set on the class.
-    if hasattr(app_error, "grpc_status") and app_error.grpc_status != grpc.StatusCode.INTERNAL:
-        return app_error.grpc_status, str(app_error)
+    # Use the to_grpc_status() method if available.
+    try:
+        grpc_status = app_error.to_grpc_status()
+        if grpc_status != grpc.StatusCode.INTERNAL:
+            return grpc_status, str(app_error)
+    except (AttributeError, KeyError):
+        pass
 
     return grpc.StatusCode.INTERNAL, str(app_error)

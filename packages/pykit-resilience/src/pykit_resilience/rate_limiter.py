@@ -8,9 +8,8 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
-import grpc
-
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode
 
 T = TypeVar("T")
 
@@ -18,10 +17,8 @@ T = TypeVar("T")
 class RateLimitedError(AppError):
     """Raised when the rate limit is exceeded."""
 
-    grpc_status = grpc.StatusCode.RESOURCE_EXHAUSTED
-
     def __init__(self, name: str) -> None:
-        super().__init__(f"Rate limit exceeded for '{name}'")
+        super().__init__(ErrorCode.RATE_LIMITED, f"Rate limit exceeded for '{name}'")
 
 
 @dataclass

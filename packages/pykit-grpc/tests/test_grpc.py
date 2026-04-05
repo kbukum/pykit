@@ -9,6 +9,7 @@ import grpc
 from pykit_component import Health, HealthStatus
 from pykit_errors import AppError, InvalidInputError, NotFoundError, ServiceUnavailableError
 from pykit_errors.base import TimeoutError as AppTimeoutError
+from pykit_errors.codes import ErrorCode
 from pykit_grpc import (
     GrpcChannel,
     GrpcComponent,
@@ -114,7 +115,7 @@ class TestAppErrorToGrpcStatus:
         assert code == grpc.StatusCode.DEADLINE_EXCEEDED
 
     def test_generic_app_error(self) -> None:
-        code, msg = app_error_to_grpc_status(AppError("boom"))
+        code, msg = app_error_to_grpc_status(AppError(ErrorCode.INTERNAL, "boom"))
         assert code == grpc.StatusCode.INTERNAL
         assert "boom" in msg
 

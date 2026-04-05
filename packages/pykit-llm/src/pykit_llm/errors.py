@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import enum
+from typing import Any
 
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode as BaseErrorCode
 
 
 class LLMErrorCode(enum.StrEnum):
@@ -19,8 +21,21 @@ class LLMErrorCode(enum.StrEnum):
     STREAM = "stream"
 
 
+_LLM_CODE_TO_BASE: dict[LLMErrorCode, BaseErrorCode] = {
+    LLMErrorCode.AUTH: BaseErrorCode.UNAUTHORIZED,
+    LLMErrorCode.RATE_LIMIT: BaseErrorCode.RATE_LIMITED,
+    LLMErrorCode.INVALID_REQUEST: BaseErrorCode.INVALID_INPUT,
+    LLMErrorCode.SERVER: BaseErrorCode.EXTERNAL_SERVICE,
+    LLMErrorCode.TIMEOUT: BaseErrorCode.TIMEOUT,
+    LLMErrorCode.CONNECTION: BaseErrorCode.CONNECTION_FAILED,
+    LLMErrorCode.STREAM: BaseErrorCode.EXTERNAL_SERVICE,
+}
+
+
 class LLMError(AppError):
     """Structured LLM client error with classification."""
+
+    code: Any  # type: ignore[assignment]
 
     def __init__(
         self,
@@ -30,7 +45,8 @@ class LLMError(AppError):
         code: LLMErrorCode = LLMErrorCode.SERVER,
         retryable: bool = False,
     ) -> None:
-        super().__init__(message)
+        base_code = _LLM_CODE_TO_BASE.get(code, BaseErrorCode.INTERNAL)
+        super().__init__(base_code, message)
         self.status_code = status_code
         self.code = code
         self.retryable = retryable

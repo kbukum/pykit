@@ -4,20 +4,21 @@ from __future__ import annotations
 
 from pykit_dag.node import Node
 from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode
 
 
 class CycleError(AppError):
     """Raised when a cycle is detected in the graph."""
 
     def __init__(self, message: str = "cycle detected in graph") -> None:
-        super().__init__(message)
+        super().__init__(ErrorCode.INVALID_INPUT, message)
 
 
 class MissingNodeError(AppError):
     """Raised when an edge references a node not in the graph."""
 
     def __init__(self, node_name: str) -> None:
-        super().__init__(f"node '{node_name}' not found in graph")
+        super().__init__(ErrorCode.NOT_FOUND, f"node '{node_name}' not found in graph")
 
 
 class Graph:

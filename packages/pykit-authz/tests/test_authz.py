@@ -160,7 +160,7 @@ class TestPermissionDeniedError:
 
     def test_grpc_status(self) -> None:
         err = PermissionDeniedError("editor", "user:delete")
-        assert err.grpc_status == grpc.StatusCode.PERMISSION_DENIED
+        assert err.to_grpc_status() == grpc.StatusCode.PERMISSION_DENIED
 
     def test_details(self) -> None:
         err = PermissionDeniedError("viewer", "article:write")
