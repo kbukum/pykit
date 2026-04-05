@@ -5,6 +5,18 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from pydantic import BaseModel as _PydanticBaseModel
+
+
+def _has_custom_method(obj: object, name: str) -> bool:
+    """Return True if *name* is defined on a class before pydantic's BaseModel in the MRO."""
+    for cls in type(obj).__mro__:
+        if cls is _PydanticBaseModel:
+            return False
+        if name in cls.__dict__:
+            return True
+    return False
+
 
 def load_config[T](config_cls: type[T], path: str | Path = "config.toml") -> T:
     """Load configuration from TOML file and environment variables.
@@ -44,11 +56,11 @@ def load_config[T](config_cls: type[T], path: str | Path = "config.toml") -> T:
     config = config_cls(**data) if data else config_cls()
 
     # 4. Call apply_defaults if available
-    if hasattr(config, "apply_defaults"):
+    if _has_custom_method(config, "apply_defaults"):
         config.apply_defaults()
 
-    # 5. Call validate if available
-    if hasattr(config, "validate"):
+    # 5. Call validate if available (skip pydantic's own classmethod)
+    if _has_custom_method(config, "validate"):
         config.validate()
 
     return config
