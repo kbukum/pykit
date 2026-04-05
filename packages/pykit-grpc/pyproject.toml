@@ -7,6 +7,7 @@ dependencies = [
     "grpcio",
     "pykit-errors",
     "pykit-component",
+    "pykit-discovery",
 ]
 
 [build-system]
