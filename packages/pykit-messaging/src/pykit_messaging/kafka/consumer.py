@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from aiokafka import AIOKafkaConsumer
+from aiokafka import AIOKafkaConsumer  # type: ignore[import-untyped]
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, EventHandler, Message, MessageHandler

@@ -65,7 +65,7 @@ Legend: ✅ exists in sentinel pykit (copy as-is) · ⬜ needs building
 | database | `database/` | `rskit-database` | `pykit-database` | ⬜ build |
 | redis | `redis/` | `rskit-cache` | `pykit-redis` | ⬜ build |
 | storage | `storage/` | `rskit-file` | `pykit-storage` | ⬜ build |
-| kafka | `kafka/` | `rskit-messaging` | `pykit-kafka` | ⬜ build |
+| messaging | `messaging/` | `rskit-messaging` | `pykit-messaging` | ✅ complete |
 | httpclient | `httpclient/` | `rskit-http` | `pykit-httpclient` | ⬜ build |
 
 ### Servers
@@ -179,7 +179,7 @@ pykit/                              # git root
 │   ├── pykit-database/
 │   ├── pykit-redis/
 │   ├── pykit-storage/
-│   ├── pykit-kafka/
+│   ├── pykit-messaging/
 │   ├── pykit-httpclient/
 │   │
 │   │── # ── Servers ─────────────────────
@@ -330,7 +330,7 @@ Layer 2  provider, component, resilience       (→ Layer 0)
 Layer 3  di, bootstrap, observability          (→ Layer 0-2)
 Layer 4  pipeline, dag, worker, sse, stateful  (→ Layer 0-2)
 Layer 5  auth, authz, security                 (→ Layer 0-2)
-Layer 6  database, redis, storage, kafka, httpclient  (→ Layer 0-3)
+Layer 6  database, redis, storage, messaging, httpclient  (→ Layer 0-3)
 Layer 7  server, grpc                          (→ Layer 0-6)
 Layer 8  llm, triton, bench, dataset           (→ Layer 0-4)
 Layer 9  discovery, workload, process, testutil, metrics
@@ -367,7 +367,7 @@ Build modules that gokit/rskit have but sentinel pykit doesn't:
 - **database** — Async SQLAlchemy wrapper, repository pattern, migrations
 - **redis** — Redis async client wrapper, typed store, component lifecycle
 - **storage** — Local/S3 file storage abstraction
-- **kafka** — aiokafka producer/consumer with component lifecycle
+- **messaging** — Message producer/consumer abstraction with aiokafka provider and in-memory broker for testing
 - **httpclient** — httpx wrapper with resilience middleware
 
 ### Phase 4 — Servers & Security

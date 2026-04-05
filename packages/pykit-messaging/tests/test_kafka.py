@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -24,7 +26,7 @@ from pykit_messaging.types import Event, Message
 
 
 class TestKafkaConfig:
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         cfg = KafkaConfig()
         assert cfg.name == "kafka"
         assert cfg.brokers == ["localhost:9092"]
@@ -36,7 +38,7 @@ class TestKafkaConfig:
         assert cfg.compression_type == "snappy"
         assert cfg.auto_offset_reset == "earliest"
 
-    def test_custom_values(self):
+    def test_custom_values(self) -> None:
         cfg = KafkaConfig(
             name="my-kafka",
             brokers=["broker1:9092", "broker2:9092"],
@@ -59,7 +61,7 @@ class TestKafkaConfig:
 
 
 class TestMessage:
-    def test_fields(self):
+    def test_fields(self) -> None:
         now = datetime.now(UTC)
         msg = Message(
             key="k1",
@@ -78,21 +80,21 @@ class TestMessage:
         assert msg.timestamp == now
         assert msg.headers == {"h": "v"}
 
-    def test_defaults(self):
+    def test_defaults(self) -> None:
         msg = Message(key=None, value=b"", topic="t", partition=0, offset=0)
         assert msg.timestamp is None
         assert msg.headers == {}
 
 
 class TestEvent:
-    def test_auto_fields(self):
+    def test_auto_fields(self) -> None:
         evt = Event(type="user.created", source="svc-a")
         assert evt.id  # non-empty UUID
         assert evt.timestamp <= datetime.now(UTC)
         assert evt.subject == ""
         assert evt.data is None
 
-    def test_roundtrip_json(self):
+    def test_roundtrip_json(self) -> None:
         evt = Event(type="order.placed", source="shop", subject="order-1", data={"total": 42})
         raw = evt.to_json()
         restored = Event.from_json(raw)
@@ -102,7 +104,7 @@ class TestEvent:
         assert restored.subject == evt.subject
         assert restored.data == evt.data
 
-    def test_to_json_format(self):
+    def test_to_json_format(self) -> None:
         evt = Event(type="t", source="s")
         d = json.loads(evt.to_json())
         assert set(d.keys()) == {
@@ -123,7 +125,7 @@ class TestEvent:
 
 
 class TestProducer:
-    async def test_start_stop(self):
+    async def test_start_stop(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -135,7 +137,7 @@ class TestProducer:
             await producer.stop()
             mock_instance.stop.assert_awaited_once()
 
-    async def test_send(self):
+    async def test_send(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -151,12 +153,12 @@ class TestProducer:
                 headers=[("h", b"v")],
             )
 
-    async def test_send_not_started_raises(self):
+    async def test_send_not_started_raises(self) -> None:
         producer = KafkaProducer(KafkaConfig())
         with pytest.raises(RuntimeError, match="not started"):
             await producer.send("t", b"v")
 
-    async def test_send_event(self):
+    async def test_send_event(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -171,7 +173,7 @@ class TestProducer:
             assert call_kwargs[0][0] == "events"
             assert b"test.event" in call_kwargs[1]["value"]
 
-    async def test_send_json(self):
+    async def test_send_json(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -183,7 +185,7 @@ class TestProducer:
             call_kwargs = mock_instance.send_and_wait.call_args
             assert json.loads(call_kwargs[1]["value"]) == {"foo": "bar"}
 
-    async def test_send_batch(self):
+    async def test_send_batch(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -198,7 +200,7 @@ class TestProducer:
             await producer.send_batch(msgs)
             assert mock_instance.send_and_wait.await_count == 2
 
-    async def test_flush(self):
+    async def test_flush(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -208,7 +210,7 @@ class TestProducer:
             await producer.flush()
             mock_instance.flush.assert_awaited_once()
 
-    async def test_close(self):
+    async def test_close(self) -> None:
         with patch("pykit_messaging.kafka.producer.AIOKafkaProducer") as MockProducer:
             mock_instance = AsyncMock()
             MockProducer.return_value = mock_instance
@@ -218,7 +220,7 @@ class TestProducer:
             await producer.close()
             mock_instance.stop.assert_awaited_once()
 
-    async def test_sasl_config(self):
+    async def test_sasl_config(self) -> None:
         cfg = KafkaConfig(
             sasl_mechanism="PLAIN",
             sasl_username="user",
@@ -243,7 +245,7 @@ class TestProducer:
 
 
 class TestConsumer:
-    async def test_start_stop(self):
+    async def test_start_stop(self) -> None:
         with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             mock_instance = AsyncMock()
             MockConsumer.return_value = mock_instance
@@ -255,7 +257,7 @@ class TestConsumer:
             await consumer.stop()
             mock_instance.stop.assert_awaited_once()
 
-    async def test_consume(self):
+    async def test_consume(self) -> None:
         with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             record = MagicMock()
             record.key = b"k"
@@ -267,7 +269,7 @@ class TestConsumer:
 
             mock_instance = AsyncMock()
 
-            async def _aiter(*_args, **_kwargs):
+            async def _aiter(*_args: Any, **_kwargs: Any) -> AsyncIterator[Any]:
                 yield record
 
             mock_instance.__aiter__ = _aiter
@@ -287,12 +289,12 @@ class TestConsumer:
             assert received[0].value == b"v"
             assert received[0].headers == {"h": "val"}
 
-    async def test_consume_not_started_raises(self):
+    async def test_consume_not_started_raises(self) -> None:
         consumer = KafkaConsumer(KafkaConfig())
         with pytest.raises(RuntimeError, match="not started"):
             await consumer.consume(AsyncMock())
 
-    async def test_subscribe(self):
+    async def test_subscribe(self) -> None:
         with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             mock_instance = AsyncMock()
             MockConsumer.return_value = mock_instance
@@ -302,12 +304,12 @@ class TestConsumer:
             await consumer.subscribe(["t2", "t3"])
             mock_instance.subscribe.assert_called_once_with(["t2", "t3"])
 
-    async def test_subscribe_not_started_raises(self):
+    async def test_subscribe_not_started_raises(self) -> None:
         consumer = KafkaConsumer(KafkaConfig())
         with pytest.raises(RuntimeError, match="not started"):
             await consumer.subscribe(["t1"])
 
-    async def test_sasl_config(self):
+    async def test_sasl_config(self) -> None:
         cfg = KafkaConfig(
             topics=["t1"],
             sasl_mechanism="PLAIN",
@@ -327,7 +329,7 @@ class TestConsumer:
             assert call_kwargs["sasl_plain_password"] == "pass"
             await consumer.stop()
 
-    async def test_consume_events(self):
+    async def test_consume_events(self) -> None:
         evt = Event(type="x", source="s", data={"a": 1})
         with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             record = MagicMock()
@@ -340,7 +342,7 @@ class TestConsumer:
 
             mock_instance = AsyncMock()
 
-            async def _aiter(*_args, **_kwargs):
+            async def _aiter(*_args: Any, **_kwargs: Any) -> AsyncIterator[Any]:
                 yield record
 
             mock_instance.__aiter__ = _aiter
@@ -359,7 +361,7 @@ class TestConsumer:
             assert received[0].type == "x"
             assert received[0].data == {"a": 1}
 
-    async def test_close(self):
+    async def test_close(self) -> None:
         with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             mock_instance = AsyncMock()
             MockConsumer.return_value = mock_instance
@@ -376,7 +378,7 @@ class TestConsumer:
 
 
 class TestErrors:
-    def test_none_is_not_error(self):
+    def test_none_is_not_error(self) -> None:
         assert is_connection_error(None) is False
         assert is_retryable_error(None) is False
 
@@ -389,7 +391,7 @@ class TestErrors:
             "leader not available",
         ],
     )
-    def test_connection_errors(self, msg: str):
+    def test_connection_errors(self, msg: str) -> None:
         assert is_connection_error(Exception(msg)) is True
         assert is_retryable_error(Exception(msg)) is True
 
@@ -401,11 +403,11 @@ class TestErrors:
             "not enough replicas",
         ],
     )
-    def test_retryable_non_connection(self, msg: str):
+    def test_retryable_non_connection(self, msg: str) -> None:
         assert is_connection_error(Exception(msg)) is False
         assert is_retryable_error(Exception(msg)) is True
 
-    def test_non_retryable(self):
+    def test_non_retryable(self) -> None:
         err = Exception("invalid topic name")
         assert is_retryable_error(err) is False
 
@@ -416,7 +418,7 @@ class TestErrors:
 
 
 class TestComponent:
-    async def test_lifecycle(self):
+    async def test_lifecycle(self) -> None:
         with (
             patch("pykit_messaging.kafka.component.KafkaProducer") as MockProducer,
             patch("pykit_messaging.kafka.component.KafkaConsumer") as MockConsumer,
@@ -445,7 +447,7 @@ class TestComponent:
             mock_cons.stop.assert_awaited_once()
             mock_prod.stop.assert_awaited_once()
 
-    async def test_properties(self):
+    async def test_properties(self) -> None:
         with (
             patch("pykit_messaging.kafka.component.KafkaProducer") as MockProducer,
             patch("pykit_messaging.kafka.component.KafkaConsumer") as MockConsumer,

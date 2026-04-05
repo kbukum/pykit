@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from aiokafka import AIOKafkaProducer
+from aiokafka import AIOKafkaProducer  # type: ignore[import-untyped]
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, Message

@@ -1,4 +1,4 @@
-"""Dead-letter queue producer for failed Kafka messages."""
+"""Dead-letter queue producer for failed messages."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from pykit_messaging.kafka.producer import KafkaProducer
+from pykit_messaging.protocols import MessageProducer
 from pykit_messaging.types import Message
 
 
@@ -29,7 +29,7 @@ class DeadLetterProducer:
     defaults to ``".dlq"``.
     """
 
-    def __init__(self, producer: KafkaProducer, *, suffix: str = ".dlq") -> None:
+    def __init__(self, producer: MessageProducer, *, suffix: str = ".dlq") -> None:
         self._producer = producer
         self._suffix = suffix
 
