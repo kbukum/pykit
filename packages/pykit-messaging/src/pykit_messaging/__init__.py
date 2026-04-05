@@ -5,6 +5,7 @@ from __future__ import annotations
 from pykit_messaging.batch import BatchConfig, BatchProducer
 from pykit_messaging.config import BrokerConfig
 from pykit_messaging.errors import ErrorClassifier
+from pykit_messaging.event_publisher import EventPublisher
 from pykit_messaging.handler import FuncHandler, HandlerMiddleware, MessageHandlerProtocol, chain_handlers
 from pykit_messaging.managed_consumer import ManagedConsumer
 from pykit_messaging.managed_producer import ManagedProducer
@@ -36,6 +37,7 @@ __all__ = [
     "ErrorClassifier",
     "Event",
     "EventHandler",
+    "EventPublisher",
     "FuncHandler",
     "HandlerMiddleware",
     "JsonTranslator",
