@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-kafka = ["aiokafka"]
+kafka = ["aiokafka", "cramjam"]
 bridges = ["pykit-provider", "pykit-pipeline", "pykit-dag", "pykit-worker"]
 
 [build-system]
