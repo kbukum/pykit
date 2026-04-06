@@ -40,7 +40,7 @@ class ConsumerRunner:
             raise RuntimeError(msg)
         self._running = True
         self._stop_event.clear()
-        logger.info("ConsumerRunner started")
+        logger.debug("ConsumerRunner started")
 
         async def _dispatch(msg: Message) -> None:
             await self._handler.handle(msg)
@@ -52,7 +52,7 @@ class ConsumerRunner:
         finally:
             self._running = False
             self._stop_event.set()
-            logger.info("ConsumerRunner stopped")
+            logger.debug("ConsumerRunner stopped")
 
     async def stop(self) -> None:
         """Stop the consumption loop gracefully."""

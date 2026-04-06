@@ -42,7 +42,7 @@ class ManagedProducer:
             msg = f"Producer '{self._name}' is already running"
             raise RuntimeError(msg)
         self._running = True
-        logger.info("Producer '%s' started", self._name)
+        logger.debug("Producer '%s' started", self._name)
 
     async def stop(self) -> None:
         """Stop the producer and close the inner producer."""
@@ -50,7 +50,7 @@ class ManagedProducer:
             return
         self._running = False
         await self._inner.close()
-        logger.info("Producer '%s' stopped", self._name)
+        logger.debug("Producer '%s' stopped", self._name)
 
     @property
     def is_running(self) -> bool:

@@ -50,7 +50,7 @@ class ManagedConsumer:
             raise RuntimeError(msg)
         self._running = True
         self._task = asyncio.create_task(self._consume_loop(), name=f"consumer-{self._name}")
-        logger.info("Consumer '%s' started", self._name)
+        logger.debug("Consumer '%s' started", self._name)
 
     async def stop(self) -> None:
         """Stop consumption with graceful shutdown."""
@@ -63,7 +63,7 @@ class ManagedConsumer:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
             self._task = None
-        logger.info("Consumer '%s' stopped", self._name)
+        logger.debug("Consumer '%s' stopped", self._name)
 
     @property
     def is_running(self) -> bool:
