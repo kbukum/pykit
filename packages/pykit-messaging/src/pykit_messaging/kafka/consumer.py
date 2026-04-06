@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Any
 
 from aiokafka import AIOKafkaConsumer  # type: ignore[import-untyped]
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, EventHandler, Message, MessageHandler
+
+logger = logging.getLogger(__name__)
+
+_MAX_START_RETRIES = 30
+_START_BACKOFF_BASE = 1.0
+_START_BACKOFF_MAX = 10.0
 
 
 class KafkaConsumer:
@@ -18,7 +26,7 @@ class KafkaConsumer:
         self._consumer: AIOKafkaConsumer | None = None
 
     async def start(self) -> None:
-        """Create and start the underlying AIOKafkaConsumer."""
+        """Create and start the underlying AIOKafkaConsumer with retry."""
         cfg = self._config
         kwargs: dict[str, Any] = {
             "bootstrap_servers": ",".join(cfg.brokers),
@@ -33,8 +41,27 @@ class KafkaConsumer:
             kwargs["sasl_plain_username"] = cfg.sasl_username
             kwargs["sasl_plain_password"] = cfg.sasl_password
 
-        self._consumer = AIOKafkaConsumer(*cfg.topics, **kwargs)
-        await self._consumer.start()
+        topics_str = ", ".join(cfg.topics) if cfg.topics else "(none)"
+        for attempt in range(1, _MAX_START_RETRIES + 1):
+            try:
+                self._consumer = AIOKafkaConsumer(*cfg.topics, **kwargs)
+                await self._consumer.start()
+                return
+            except Exception:
+                if attempt == _MAX_START_RETRIES:
+                    logger.error(
+                        "Kafka consumer failed to start after %d attempts (topics: %s)",
+                        _MAX_START_RETRIES,
+                        topics_str,
+                    )
+                    raise
+                backoff = min(_START_BACKOFF_BASE * (2 ** (attempt - 1)), _START_BACKOFF_MAX)
+                if attempt == 1:
+                    logger.warning(
+                        "Kafka not ready, retrying connection (topics: %s)...",
+                        topics_str,
+                    )
+                await asyncio.sleep(backoff)
 
     async def stop(self) -> None:
         """Stop the consumer."""

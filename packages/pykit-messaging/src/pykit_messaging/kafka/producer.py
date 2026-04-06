@@ -2,13 +2,21 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from typing import Any
 
 from aiokafka import AIOKafkaProducer  # type: ignore[import-untyped]
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, Message
+
+logger = logging.getLogger(__name__)
+
+_MAX_START_RETRIES = 30
+_START_BACKOFF_BASE = 1.0
+_START_BACKOFF_MAX = 10.0
 
 
 class KafkaProducer:
@@ -19,7 +27,7 @@ class KafkaProducer:
         self._producer: AIOKafkaProducer | None = None
 
     async def start(self) -> None:
-        """Create and start the underlying AIOKafkaProducer."""
+        """Create and start the underlying AIOKafkaProducer with retry."""
         cfg = self._config
         kwargs: dict[str, Any] = {
             "bootstrap_servers": ",".join(cfg.brokers),
@@ -34,8 +42,22 @@ class KafkaProducer:
             kwargs["sasl_plain_username"] = cfg.sasl_username
             kwargs["sasl_plain_password"] = cfg.sasl_password
 
-        self._producer = AIOKafkaProducer(**kwargs)
-        await self._producer.start()
+        for attempt in range(1, _MAX_START_RETRIES + 1):
+            try:
+                self._producer = AIOKafkaProducer(**kwargs)
+                await self._producer.start()
+                return
+            except Exception:
+                if attempt == _MAX_START_RETRIES:
+                    logger.error(
+                        "Kafka producer failed to start after %d attempts",
+                        _MAX_START_RETRIES,
+                    )
+                    raise
+                backoff = min(_START_BACKOFF_BASE * (2 ** (attempt - 1)), _START_BACKOFF_MAX)
+                if attempt == 1:
+                    logger.warning("Kafka not ready, retrying producer connection...")
+                await asyncio.sleep(backoff)
 
     async def stop(self) -> None:
         """Stop the producer."""

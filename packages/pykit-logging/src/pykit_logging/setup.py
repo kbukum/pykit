@@ -50,6 +50,14 @@ def setup_logging(
     if log_format == "auto":
         log_format = "console"
 
+    # Configure standard logging to suppress noisy third-party libraries
+    log_level = getattr(logging, level.upper(), logging.INFO)
+    logging.basicConfig(level=log_level, stream=sys.stderr, format="%(message)s")
+
+    # Suppress noisy Kafka client internals — they retry automatically
+    logging.getLogger("aiokafka").setLevel(logging.WARNING)
+    logging.getLogger("kafka").setLevel(logging.WARNING)
+
     shared_processors: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,
         add_correlation_id,  # type: ignore[list-item]
