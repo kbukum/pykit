@@ -54,9 +54,9 @@ def setup_logging(
     log_level = getattr(logging, level.upper(), logging.INFO)
     logging.basicConfig(level=log_level, stream=sys.stderr, format="%(message)s")
 
-    # Suppress noisy Kafka client internals — they retry automatically
-    logging.getLogger("aiokafka").setLevel(logging.WARNING)
-    logging.getLogger("kafka").setLevel(logging.WARNING)
+    # Suppress noisy Kafka client internals — reconnection is handled by pykit
+    logging.getLogger("aiokafka").setLevel(logging.CRITICAL)
+    logging.getLogger("kafka").setLevel(logging.CRITICAL)
 
     shared_processors: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,
