@@ -58,6 +58,10 @@ def setup_logging(
     logging.getLogger("aiokafka").setLevel(logging.CRITICAL)
     logging.getLogger("kafka").setLevel(logging.CRITICAL)
 
+    # Suppress noisy HTTP client request logging (e.g. Consul registration)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
     shared_processors: list[structlog.types.Processor] = [
         structlog.contextvars.merge_contextvars,
         add_correlation_id,  # type: ignore[list-item]
