@@ -1,17 +1,16 @@
-"""OpenAI-compatible embedding provider backed by httpx."""
+"""OpenAI-compatible embedding provider using pykit-httpclient."""
 
 from __future__ import annotations
 
 from typing import Any
 
-import httpx
-
 from pykit_embedding.provider import EmbeddingError
-from pykit_openai.config import OpenAIConfig
+from pykit_httpclient import AuthConfig, HttpClient, HttpConfig, HttpError
+from pykit_llm_providers.openai.config import OpenAIConfig
 
 
 class OpenAIEmbeddingProvider:
-    """OpenAI-compatible embedding provider.
+    """OpenAI-compatible embedding provider using pykit-httpclient.
 
     Implements the :class:`~pykit_embedding.provider.EmbeddingProvider` protocol.
     Works with OpenAI, Azure OpenAI, local llama.cpp, vLLM, or any server
@@ -22,22 +21,21 @@ class OpenAIEmbeddingProvider:
         self,
         config: OpenAIConfig,
         *,
-        transport: httpx.AsyncBaseTransport | None = None,
+        client: HttpClient | None = None,
     ) -> None:
         self._config = config
-        base_url = config.base_url or "https://api.openai.com/v1"
-        kwargs: dict[str, Any] = {
-            "base_url": base_url,
-            "timeout": config.timeout,
-        }
-        if config.api_key:
-            kwargs["headers"] = {
-                "authorization": f"Bearer {config.api_key}",
-                "content-type": "application/json",
-            }
-        if transport is not None:
-            kwargs["transport"] = transport
-        self._client = httpx.AsyncClient(**kwargs)
+        if client is not None:
+            self._client = client
+            self._owns_client = False
+        else:
+            http_config = HttpConfig(
+                name="openai-embedding",
+                base_url=config.base_url or "https://api.openai.com/v1",
+                timeout=config.timeout,
+                auth=AuthConfig(type="bearer", token=config.api_key) if config.api_key else None,
+            )
+            self._client = HttpClient(http_config)
+            self._owns_client = True
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """Generate embedding vectors for the given texts."""
@@ -50,16 +48,18 @@ class OpenAIEmbeddingProvider:
         }
 
         try:
-            resp = await self._client.post("/embeddings", json=payload)
-        except httpx.HTTPError as exc:
-            raise EmbeddingError(f"embedding request failed: {exc}", retryable=True) from exc
-
-        if resp.status_code != 200:
-            retryable = resp.status_code >= 500 or resp.status_code == 429
+            resp = await self._client.post("/embeddings", body=payload)
+        except HttpError as exc:
+            retryable = exc.retryable
             raise EmbeddingError(
-                f"embedding API returned HTTP {resp.status_code}: {resp.text}",
+                f"embedding request failed: {exc}",
                 retryable=retryable,
-            )
+            ) from exc
+        except Exception as exc:
+            raise EmbeddingError(
+                f"embedding request failed: {exc}",
+                retryable=True,
+            ) from exc
 
         data = resp.json()
         results: list[list[float]] = []
@@ -74,4 +74,5 @@ class OpenAIEmbeddingProvider:
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""
-        await self._client.aclose()
+        if self._owns_client:
+            await self._client.close()

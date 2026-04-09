@@ -54,8 +54,7 @@ dev = [
     "pykit-auth-oidc",
     "pykit-embedding",
     "pykit-vector-store",
-    "pykit-openai",
-    "pykit-anthropic",
+    "pykit-llm-providers",
     "pykit-explain",
     "pykit-hook",
     "pykit-agent",
@@ -95,7 +94,7 @@ constraint-dependencies = [
 [tool.uv.sources]
 pykit                = { workspace = true }
 pykit-agent          = { workspace = true }
-pykit-anthropic      = { workspace = true }
+pykit-llm-providers = { workspace = true }
 pykit-auth           = { workspace = true }
 pykit-auth-oidc      = { workspace = true }
 pykit-authz          = { workspace = true }
@@ -123,7 +122,6 @@ pykit-logging        = { workspace = true }
 pykit-media          = { workspace = true }
 pykit-metrics        = { workspace = true }
 pykit-observability  = { workspace = true }
-pykit-openai         = { workspace = true }
 pykit-pipeline       = { workspace = true }
 pykit-process        = { workspace = true }
 pykit-provider       = { workspace = true }
@@ -196,8 +194,7 @@ source_pkgs = [
     "pykit_auth_oidc",
     "pykit_embedding",
     "pykit_vector_store",
-    "pykit_openai",
-    "pykit_anthropic",
+    "pykit_llm_providers",
     "pykit_explain",
 ]
 branch = true
@@ -251,7 +248,7 @@ known-first-party = [
     "pykit_storage", "pykit_messaging", "pykit_httpclient", "pykit_grpc",
     "pykit_auth", "pykit_authz", "pykit_llm", "pykit_discovery",
     "pykit_process", "pykit_workload",
-    "pykit_openai", "pykit_anthropic", "pykit_explain",
+    "pykit_llm_providers", "pykit_explain",
 ]
 
 [tool.mypy]

@@ -8,7 +8,6 @@ from typing import Any
 
 import httpx
 
-from pykit_anthropic.config import AnthropicConfig
 from pykit_llm.config import LLMConfig
 from pykit_llm.errors import LLMError, LLMErrorCode
 from pykit_llm.types import (
@@ -26,6 +25,7 @@ from pykit_llm.types import (
     UserMessage,
     text_of,
 )
+from pykit_llm_providers.anthropic.config import AnthropicConfig
 
 
 class AnthropicProvider:

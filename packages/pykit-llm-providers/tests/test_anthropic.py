@@ -7,7 +7,6 @@ import json
 import httpx
 import pytest
 
-from pykit_anthropic import AnthropicConfig, AnthropicProvider
 from pykit_llm import (
     CompletionRequest,
     LLMProvider,
@@ -16,6 +15,7 @@ from pykit_llm import (
     user,
 )
 from pykit_llm.errors import LLMError, LLMErrorCode
+from pykit_llm_providers.anthropic import AnthropicConfig, AnthropicProvider
 
 
 def _mock_transport(handler):
@@ -42,7 +42,6 @@ def _sse_stream(*chunks: str, done: bool = True) -> str:
     """Build Anthropic-style SSE events from content chunks."""
     lines: list[str] = []
 
-    # message_start event
     start = {
         "type": "message_start",
         "message": {
@@ -55,11 +54,9 @@ def _sse_stream(*chunks: str, done: bool = True) -> str:
     }
     lines.append(f"event: message_start\ndata: {json.dumps(start)}\n\n")
 
-    # content_block_start
     block_start = {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}}
     lines.append(f"event: content_block_start\ndata: {json.dumps(block_start)}\n\n")
 
-    # content deltas
     for c in chunks:
         delta = {
             "type": "content_block_delta",
@@ -68,12 +65,10 @@ def _sse_stream(*chunks: str, done: bool = True) -> str:
         }
         lines.append(f"event: content_block_delta\ndata: {json.dumps(delta)}\n\n")
 
-    # content_block_stop
     block_stop = {"type": "content_block_stop", "index": 0}
     lines.append(f"event: content_block_stop\ndata: {json.dumps(block_stop)}\n\n")
 
     if done:
-        # message_delta with final usage
         msg_delta = {
             "type": "message_delta",
             "delta": {"stop_reason": "end_turn"},
@@ -81,18 +76,15 @@ def _sse_stream(*chunks: str, done: bool = True) -> str:
         }
         lines.append(f"event: message_delta\ndata: {json.dumps(msg_delta)}\n\n")
 
-        # message_stop
         msg_stop = {"type": "message_stop"}
         lines.append(f"event: message_stop\ndata: {json.dumps(msg_stop)}\n\n")
 
     return "".join(lines)
 
 
-class TestAnthropicProviderProtocol:
-    def test_implements_llm_provider(self):
-        cfg = AnthropicConfig(api_key="test")
-        provider = AnthropicProvider(cfg)
-        assert isinstance(provider, LLMProvider)
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
 
 
 class TestAnthropicConfig:
@@ -114,6 +106,23 @@ class TestAnthropicConfig:
         assert cfg.api_key == "sk-ant-test"
         assert cfg.model == "claude-opus-4-20250514"
         assert cfg.max_tokens == 8192
+
+
+# ---------------------------------------------------------------------------
+# Protocol
+# ---------------------------------------------------------------------------
+
+
+class TestAnthropicProviderProtocol:
+    def test_implements_llm_provider(self):
+        cfg = AnthropicConfig(api_key="test")
+        provider = AnthropicProvider(cfg)
+        assert isinstance(provider, LLMProvider)
+
+
+# ---------------------------------------------------------------------------
+# Complete
+# ---------------------------------------------------------------------------
 
 
 class TestAnthropicComplete:
@@ -145,7 +154,6 @@ class TestAnthropicComplete:
         def handler(request: httpx.Request) -> httpx.Response:
             body = json.loads(request.content)
             assert body["system"] == "You are helpful"
-            # System message should NOT be in messages list
             for msg in body["messages"]:
                 assert msg["role"] != "system"
             return httpx.Response(200, json=_anthropic_response())
@@ -221,6 +229,11 @@ class TestAnthropicComplete:
             assert resp.text() == "Hello!"
         finally:
             await provider.close()
+
+
+# ---------------------------------------------------------------------------
+# Stream
+# ---------------------------------------------------------------------------
 
 
 class TestAnthropicStream:

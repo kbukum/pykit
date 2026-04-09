@@ -1,4 +1,4 @@
-"""Tests for embedding providers (using pykit-openai vendor module)."""
+"""Tests for embedding providers (using pykit-llm-providers vendor module)."""
 
 from __future__ import annotations
 
@@ -8,11 +8,22 @@ import httpx
 import pytest
 
 from pykit_embedding.provider import EmbeddingError, EmbeddingProvider
-from pykit_openai import OpenAIConfig, OpenAIEmbeddingProvider
+from pykit_httpclient import AuthConfig, HttpClient, HttpConfig
+from pykit_llm_providers.openai import OpenAIConfig, OpenAIEmbeddingProvider
 
 
 def _mock_transport(handler):
     return httpx.MockTransport(handler)
+
+
+def _make_client(handler) -> HttpClient:
+    config = HttpConfig(
+        name="test-embedding",
+        base_url="https://api.openai.com/v1",
+        timeout=30.0,
+        auth=AuthConfig(type="bearer", token="sk-test"),
+    )
+    return HttpClient(config, transport=_mock_transport(handler))
 
 
 def _embedding_response(vectors: list[list[float]]) -> dict:
@@ -40,7 +51,7 @@ class TestOpenAIEmbeddingProvider:
             assert body["input"] == ["hello"]
             return httpx.Response(200, json=_embedding_response([[0.1, 0.2, 0.3]]))
 
-        provider = OpenAIEmbeddingProvider(config, transport=_mock_transport(handler))
+        provider = OpenAIEmbeddingProvider(config, client=_make_client(handler))
         try:
             result = await provider.embed(["hello"])
             assert len(result) == 1
@@ -58,7 +69,7 @@ class TestOpenAIEmbeddingProvider:
                 json=_embedding_response([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]),
             )
 
-        provider = OpenAIEmbeddingProvider(config, transport=_mock_transport(handler))
+        provider = OpenAIEmbeddingProvider(config, client=_make_client(handler))
         try:
             result = await provider.embed(["hello", "world"])
             assert len(result) == 2
@@ -66,9 +77,7 @@ class TestOpenAIEmbeddingProvider:
             await provider.close()
 
     async def test_embed_empty(self, config: OpenAIConfig) -> None:
-        provider = OpenAIEmbeddingProvider(
-            config, transport=_mock_transport(lambda r: httpx.Response(200, json=_embedding_response([])))
-        )
+        provider = OpenAIEmbeddingProvider(config)
         try:
             result = await provider.embed([])
             assert result == []
@@ -79,7 +88,7 @@ class TestOpenAIEmbeddingProvider:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(500, text="Internal Server Error")
 
-        provider = OpenAIEmbeddingProvider(config, transport=_mock_transport(handler))
+        provider = OpenAIEmbeddingProvider(config, client=_make_client(handler))
         try:
             with pytest.raises(EmbeddingError) as exc_info:
                 await provider.embed(["hello"])
@@ -91,7 +100,7 @@ class TestOpenAIEmbeddingProvider:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(401, text="Unauthorized")
 
-        provider = OpenAIEmbeddingProvider(config, transport=_mock_transport(handler))
+        provider = OpenAIEmbeddingProvider(config, client=_make_client(handler))
         try:
             with pytest.raises(EmbeddingError) as exc_info:
                 await provider.embed(["hello"])

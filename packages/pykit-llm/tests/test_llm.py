@@ -27,7 +27,7 @@ from pykit_llm.errors import (
     LLMErrorCode,
     classify_status,
 )
-from pykit_openai import OpenAIProvider
+from pykit_llm_providers.openai import OpenAIProvider
 
 # ---------------------------------------------------------------------------
 # Helpers

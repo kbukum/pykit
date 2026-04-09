@@ -1,7 +1,6 @@
 """pykit-embedding — Embedding provider abstractions mirroring rskit-embedding.
 
-Vendor-specific implementations (e.g. OpenAI) live in separate packages
-such as ``pykit-openai``.
+Vendor-specific implementations (e.g. OpenAI) live in ``pykit-llm-providers``.
 """
 
 from __future__ import annotations

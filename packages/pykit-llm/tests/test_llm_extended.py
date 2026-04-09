@@ -24,7 +24,7 @@ from pykit_llm.errors import (
     server_error,
     stream_error,
 )
-from pykit_openai import OpenAIProvider
+from pykit_llm_providers.openai import OpenAIProvider
 
 # ---------------------------------------------------------------------------
 # Helpers

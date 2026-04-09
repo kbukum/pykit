@@ -2,18 +2,17 @@
 
 LLM provider abstractions with streaming support.
 
-Vendor-specific implementations live in separate packages:
-- **pykit-openai** — OpenAI-compatible provider (OpenAI, Azure, vLLM, llama.cpp)
-- **pykit-anthropic** — Anthropic Claude provider
+Vendor-specific implementations live in **pykit-llm-providers**:
+- **OpenAI** — OpenAI-compatible provider (OpenAI, Azure, vLLM, llama.cpp)
+- **Anthropic** — Anthropic Claude provider
+- **Gemini** — Google Gemini provider
 
 ## Installation
 
 ```bash
 pip install pykit-llm
-# For OpenAI support:
-pip install pykit-openai
-# For Anthropic support:
-pip install pykit-anthropic
+# For vendor implementations:
+pip install pykit-llm-providers
 ```
 
 ## Quick Start
@@ -21,7 +20,7 @@ pip install pykit-anthropic
 ```python
 import asyncio
 from pykit_llm import CompletionRequest, user
-from pykit_openai import OpenAIConfig, OpenAIProvider
+from pykit_llm_providers.openai import OpenAIConfig, OpenAIProvider
 
 config = OpenAIConfig(
     api_key="sk-...",

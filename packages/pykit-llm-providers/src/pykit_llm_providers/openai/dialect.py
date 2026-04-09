@@ -23,7 +23,7 @@ from pykit_llm.types import (
     UserMessage,
     text_of,
 )
-from pykit_openai.config import OpenAIConfig
+from pykit_llm_providers.openai.config import OpenAIConfig
 
 _DEFAULT_BASE_URL = "https://api.openai.com/v1"
 
