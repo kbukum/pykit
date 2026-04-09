@@ -23,6 +23,7 @@ from pykit_llm.types import (
     UserMessage,
     text_of,
 )
+from pykit_openai.config import OpenAIConfig
 
 _DEFAULT_BASE_URL = "https://api.openai.com/v1"
 
@@ -32,23 +33,32 @@ class OpenAIProvider:
 
     def __init__(
         self,
-        config: LLMConfig,
+        config: LLMConfig | OpenAIConfig,
         *,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
-        base_url = config.base_url or _DEFAULT_BASE_URL
+        if isinstance(config, OpenAIConfig):
+            self._config = LLMConfig(
+                base_url=config.base_url,
+                api_key=config.api_key,
+                model=config.model,
+                timeout=config.timeout,
+            )
+        else:
+            self._config = config
+
+        base_url = self._config.base_url or _DEFAULT_BASE_URL
         kwargs: dict[str, Any] = {
             "base_url": base_url,
-            "timeout": config.timeout,
+            "timeout": self._config.timeout,
             "headers": {
-                "authorization": f"Bearer {config.api_key}",
+                "authorization": f"Bearer {self._config.api_key}",
                 "content-type": "application/json",
             },
         }
         if transport is not None:
             kwargs["transport"] = transport
         self._client = httpx.AsyncClient(**kwargs)
-        self._config = config
 
     # ------------------------------------------------------------------
     # Public API

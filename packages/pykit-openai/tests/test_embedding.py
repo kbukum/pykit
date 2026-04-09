@@ -1,4 +1,4 @@
-"""Tests for embedding providers (using pykit-openai vendor module)."""
+"""Tests for OpenAI embedding provider."""
 
 from __future__ import annotations
 
@@ -67,7 +67,8 @@ class TestOpenAIEmbeddingProvider:
 
     async def test_embed_empty(self, config: OpenAIConfig) -> None:
         provider = OpenAIEmbeddingProvider(
-            config, transport=_mock_transport(lambda r: httpx.Response(200, json=_embedding_response([])))
+            config,
+            transport=_mock_transport(lambda r: httpx.Response(200, json=_embedding_response([]))),
         )
         try:
             result = await provider.embed([])

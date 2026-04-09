@@ -1,11 +1,11 @@
 [project]
-name = "pykit-llm"
-description = "LLM client abstraction and prompt management"
+name = "pykit-anthropic"
+description = "Anthropic vendor module — LLM provider for Claude API"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "pykit-errors",
-    "pykit-tool",
+    "httpx",
+    "pykit-llm",
 ]
 
 [build-system]
@@ -13,4 +13,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pykit_llm"]
+packages = ["src/pykit_anthropic"]

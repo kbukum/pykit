@@ -2,44 +2,33 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from pykit_embedding.provider import EmbeddingError
-
-
-@dataclass
-class OpenAIEmbeddingConfig:
-    """Configuration for the OpenAI-compatible embedding provider.
-
-    Works with OpenAI, Azure OpenAI, local llama.cpp, vLLM, or any server
-    that exposes the ``/v1/embeddings`` endpoint.
-    """
-
-    endpoint: str = "https://api.openai.com"
-    api_key: str = ""
-    model: str = "text-embedding-3-small"
-    dimensions: int = 1536
+from pykit_openai.config import OpenAIConfig
 
 
 class OpenAIEmbeddingProvider:
     """OpenAI-compatible embedding provider.
 
     Implements the :class:`~pykit_embedding.provider.EmbeddingProvider` protocol.
+    Works with OpenAI, Azure OpenAI, local llama.cpp, vLLM, or any server
+    that exposes the ``/v1/embeddings`` endpoint.
     """
 
     def __init__(
         self,
-        config: OpenAIEmbeddingConfig,
+        config: OpenAIConfig,
         *,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
         self._config = config
+        base_url = config.base_url or "https://api.openai.com/v1"
         kwargs: dict[str, Any] = {
-            "base_url": config.endpoint,
-            "timeout": 120.0,
+            "base_url": base_url,
+            "timeout": config.timeout,
         }
         if config.api_key:
             kwargs["headers"] = {
@@ -56,12 +45,12 @@ class OpenAIEmbeddingProvider:
             return []
 
         payload: dict[str, Any] = {
-            "model": self._config.model,
+            "model": self._config.embedding_model,
             "input": texts,
         }
 
         try:
-            resp = await self._client.post("/v1/embeddings", json=payload)
+            resp = await self._client.post("/embeddings", json=payload)
         except httpx.HTTPError as exc:
             raise EmbeddingError(f"embedding request failed: {exc}", retryable=True) from exc
 
@@ -81,7 +70,7 @@ class OpenAIEmbeddingProvider:
 
     def dimensions(self) -> int:
         """Return the configured embedding dimensions."""
-        return self._config.dimensions
+        return self._config.embedding_dimensions
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""
