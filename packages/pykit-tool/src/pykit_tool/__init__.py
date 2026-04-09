@@ -28,6 +28,13 @@ from pykit_tool.middleware import (
     with_timeout,
     with_validation,
 )
+from pykit_tool.middleware_retry_metrics import (
+    InMemoryMetrics,
+    MetricsCollector,
+    RetryConfig,
+    with_metrics,
+    with_retry,
+)
 from pykit_tool.registry import Registry
 from pykit_tool.result import Result, error_result, json_result, text_result
 from pykit_tool.tool import Tool
@@ -37,9 +44,12 @@ __all__ = [
     "Callable",
     "Context",
     "Definition",
+    "InMemoryMetrics",
+    "MetricsCollector",
     "Middleware",
     "Registry",
     "Result",
+    "RetryConfig",
     "Tool",
     "chain",
     "error_result",
@@ -47,7 +57,9 @@ __all__ = [
     "text_result",
     "tool",
     "with_logging",
+    "with_metrics",
     "with_result_limit",
+    "with_retry",
     "with_timeout",
     "with_validation",
 ]
