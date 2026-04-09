@@ -16,7 +16,6 @@ from pykit_tool.definition import Definition
 from pykit_tool.middleware import Middleware
 from pykit_tool.result import Result
 
-
 # ---------------------------------------------------------------------------
 # Retry
 # ---------------------------------------------------------------------------
@@ -78,7 +77,7 @@ class _RetryWrapper:
                     self._config.base_delay * (2**attempt),
                     self._config.max_delay,
                 )
-                jitter = random.uniform(0, delay * 0.5)  # noqa: S311
+                jitter = random.uniform(0, delay * 0.5)
                 await asyncio.sleep(delay + jitter)
         raise last_error  # type: ignore[misc]  # unreachable but satisfies type checker
 

@@ -9,13 +9,12 @@ from typing import Any
 
 from pykit_llm.types import AssistantMessage, CompletionRequest, CompletionResponse
 
-
 # ---------------------------------------------------------------------------
 # Event types
 # ---------------------------------------------------------------------------
 
 
-class EventType(str, enum.Enum):
+class EventType(enum.StrEnum):
     """Hook event categories."""
 
     PRE_TOOL_CALL = "pre_tool_call"

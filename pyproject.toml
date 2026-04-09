@@ -58,6 +58,7 @@ dev = [
     "pykit-anthropic",
     "pykit-explain",
     "pykit-hook",
+    "pykit-agent",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -93,6 +94,7 @@ constraint-dependencies = [
 
 [tool.uv.sources]
 pykit                = { workspace = true }
+pykit-agent          = { workspace = true }
 pykit-anthropic      = { workspace = true }
 pykit-auth           = { workspace = true }
 pykit-auth-oidc      = { workspace = true }

@@ -11,7 +11,6 @@ from pykit_llm.types import (
     CompletionRequest,
     CompletionResponse,
     Message,
-    Usage,
     system,
     user,
 )

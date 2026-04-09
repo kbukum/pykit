@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -18,7 +17,6 @@ from pykit_tool.middleware_retry_metrics import (
     with_retry,
 )
 from pykit_tool.result import Result, text_result
-
 
 # ---------------------------------------------------------------------------
 # Helpers
