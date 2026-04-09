@@ -57,6 +57,7 @@ dev = [
     "pykit-openai",
     "pykit-anthropic",
     "pykit-explain",
+    "pykit-hook",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -111,6 +112,7 @@ pykit-encryption     = { workspace = true }
 pykit-errors         = { workspace = true }
 pykit-explain        = { workspace = true }
 pykit-grpc           = { workspace = true }
+pykit-hook           = { workspace = true }
 pykit-httpclient     = { workspace = true }
 pykit-messaging     = { workspace = true }
 pykit-kafka-middleware = { workspace = true }
