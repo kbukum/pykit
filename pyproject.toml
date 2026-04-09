@@ -58,6 +58,7 @@ dev = [
     "pykit-explain",
     "pykit-hook",
     "pykit-agent",
+    "pykit-mcp",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -119,6 +120,7 @@ pykit-messaging     = { workspace = true }
 pykit-kafka-middleware = { workspace = true }
 pykit-llm            = { workspace = true }
 pykit-logging        = { workspace = true }
+pykit-mcp            = { workspace = true }
 pykit-media          = { workspace = true }
 pykit-metrics        = { workspace = true }
 pykit-observability  = { workspace = true }
