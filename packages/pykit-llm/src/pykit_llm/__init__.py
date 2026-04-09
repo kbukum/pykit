@@ -1,7 +1,17 @@
 """pykit-llm — LLM provider abstractions with discriminated union message types."""
 
 from pykit_llm.config import LLMConfig
-from pykit_llm.provider import LLMProvider
+from pykit_llm.provider import Capabilities, LLMProvider, Provider, count_tokens_approx
+from pykit_llm.stream_events import (
+    ContentDelta,
+    MessageComplete,
+    MessageStart,
+    StreamError,
+    StreamEvent,
+    ThinkingDelta,
+    ToolCallDelta,
+    UsageUpdate,
+)
 from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
@@ -32,27 +42,38 @@ from pykit_llm.types import (
 
 __all__ = [
     "AssistantMessage",
+    "Capabilities",
     "CompletionRequest",
     "CompletionResponse",
     "ContentBlock",
+    "ContentDelta",
     "FunctionCall",
     "ImageBlock",
     "LLMConfig",
     "LLMProvider",
     "Message",
+    "MessageComplete",
+    "MessageStart",
+    "Provider",
     "StopReason",
     "StreamChunk",
+    "StreamError",
+    "StreamEvent",
     "SystemMessage",
     "TextBlock",
     "ThinkingBlock",
+    "ThinkingDelta",
     "ToolCall",
+    "ToolCallDelta",
     "ToolChoice",
     "ToolResultBlock",
     "ToolResultMessage",
     "ToolUseBlock",
     "Usage",
+    "UsageUpdate",
     "UserMessage",
     "assistant",
+    "count_tokens_approx",
     "system",
     "text_content",
     "text_of",
