@@ -9,6 +9,13 @@ from typing import Any
 import pytest
 
 from pykit_agent.agent import Agent, AgentConfig
+from pykit_agent.hooks import (
+    EVENT_POST_TOOL_CALL,
+    EVENT_PRE_LLM_CALL,
+    EVENT_PRE_TOOL_CALL,
+    EVENT_TURN_START,
+    PreLLMCall,
+)
 from pykit_agent.types import (
     AgentResult,
     ContextCompactedEvent,
@@ -21,7 +28,7 @@ from pykit_agent.types import (
     TurnStartEvent,
 )
 from pykit_hook.registry import HookRegistry
-from pykit_hook.types import Action, EventType, HookEvent, HookResult, PreLLMCall
+from pykit_hook.types import Action, Event, Result
 from pykit_llm.provider import Capabilities
 from pykit_llm.stream_events import ContentDelta, StreamEvent
 from pykit_llm.types import (
@@ -312,7 +319,7 @@ class TestAgentHooks:
     async def test_turn_start_hook_called(self) -> None:
         called: list[int] = []
         hooks = HookRegistry()
-        hooks.on(EventType.TURN_START, lambda e: (called.append(1), HookResult())[1])
+        hooks.on(EVENT_TURN_START, lambda e: (called.append(1), Result())[1])
 
         provider = MockProvider([_text_response("ok")])
         agent = Agent(AgentConfig(provider=provider, hooks=hooks))
@@ -323,8 +330,8 @@ class TestAgentHooks:
     async def test_abort_on_turn_start(self) -> None:
         hooks = HookRegistry()
         hooks.on(
-            EventType.TURN_START,
-            lambda e: HookResult(action=Action.ABORT, reason="nope"),
+            EVENT_TURN_START,
+            lambda e: Result(action=Action.ABORT, reason="nope"),
         )
 
         provider = MockProvider([_text_response("never")])
@@ -334,17 +341,17 @@ class TestAgentHooks:
 
     @pytest.mark.asyncio
     async def test_pre_llm_modify_hook(self) -> None:
-        def modify_request(event: HookEvent) -> HookResult:
+        def modify_request(event: Event) -> Result:
             if isinstance(event, PreLLMCall):
                 modified = CompletionRequest(
                     messages=event.request.messages,
                     temperature=0.0,
                 )
-                return HookResult(action=Action.MODIFY, modified_data=modified)
-            return HookResult()
+                return Result(action=Action.MODIFY, modified_data=modified)
+            return Result()
 
         hooks = HookRegistry()
-        hooks.on(EventType.PRE_LLM_CALL, modify_request)
+        hooks.on(EVENT_PRE_LLM_CALL, modify_request)
 
         provider = MockProvider([_text_response("ok")])
         agent = Agent(AgentConfig(provider=provider, hooks=hooks))
@@ -358,8 +365,8 @@ class TestAgentHooks:
         post_calls: list[str] = []
 
         hooks = HookRegistry()
-        hooks.on(EventType.PRE_TOOL_CALL, lambda e: (pre_calls.append(e.name), HookResult())[1])
-        hooks.on(EventType.POST_TOOL_CALL, lambda e: (post_calls.append(e.name), HookResult())[1])
+        hooks.on(EVENT_PRE_TOOL_CALL, lambda e: (pre_calls.append(e.name), Result())[1])
+        hooks.on(EVENT_POST_TOOL_CALL, lambda e: (post_calls.append(e.name), Result())[1])
 
         @tool(description="Echo")
         async def echo(ctx: Context, text: str) -> str:
@@ -381,8 +388,8 @@ class TestAgentHooks:
     async def test_abort_pre_tool_call(self) -> None:
         hooks = HookRegistry()
         hooks.on(
-            EventType.PRE_TOOL_CALL,
-            lambda e: HookResult(action=Action.ABORT, reason="blocked"),
+            EVENT_PRE_TOOL_CALL,
+            lambda e: Result(action=Action.ABORT, reason="blocked"),
         )
 
         @tool(description="Echo")

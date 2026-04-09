@@ -1,11 +1,9 @@
 [project]
 name = "pykit-hook"
-description = "Event hooks for agentic system lifecycle — tool calls, LLM calls, turns"
+description = "Generic event hook system — subscribe, emit, and handle typed events"
 version = "0.1.0"
 requires-python = ">=3.13"
-dependencies = [
-    "pykit-llm",
-]
+dependencies = []
 
 [build-system]
 requires = ["hatchling"]

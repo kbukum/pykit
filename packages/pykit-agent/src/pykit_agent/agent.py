@@ -7,6 +7,22 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any
 
+from pykit_agent.hooks import (
+    EVENT_ON_ERROR,
+    EVENT_POST_LLM_CALL,
+    EVENT_POST_TOOL_CALL,
+    EVENT_PRE_LLM_CALL,
+    EVENT_PRE_TOOL_CALL,
+    EVENT_TURN_END,
+    EVENT_TURN_START,
+    OnError,
+    PostLLMCall,
+    PostToolCall,
+    PreLLMCall,
+    PreToolCall,
+    TurnEnd,
+    TurnStart,
+)
 from pykit_agent.types import (
     AgentEvent,
     AgentResult,
@@ -20,17 +36,7 @@ from pykit_agent.types import (
     TurnStartEvent,
 )
 from pykit_hook.registry import HookRegistry
-from pykit_hook.types import (
-    Action,
-    EventType,
-    OnError,
-    PostLLMCall,
-    PostToolCall,
-    PreLLMCall,
-    PreToolCall,
-    TurnEnd,
-    TurnStart,
-)
+from pykit_hook.types import Action
 from pykit_llm.provider import Provider, count_tokens_approx
 from pykit_llm.types import (
     AssistantMessage,
@@ -105,8 +111,8 @@ class Agent:
             yield TurnStartEvent(turn=turn)
 
             # Emit TurnStart hook
-            if cfg.hooks and cfg.hooks.has_handlers(EventType.TURN_START):
-                hook_result = cfg.hooks.emit(TurnStart(type=EventType.TURN_START, turn=turn))
+            if cfg.hooks and cfg.hooks.has_handlers(EVENT_TURN_START):
+                hook_result = cfg.hooks.emit(TurnStart(type=EVENT_TURN_START, turn=turn))
                 if hook_result.action == Action.ABORT:
                     result = AgentResult(
                         messages=msgs,
@@ -122,8 +128,8 @@ class Agent:
             request = self._build_request(msgs)
 
             # Emit PreLLMCall hook (allow Modify to alter request)
-            if cfg.hooks and cfg.hooks.has_handlers(EventType.PRE_LLM_CALL):
-                hook_result = cfg.hooks.emit(PreLLMCall(type=EventType.PRE_LLM_CALL, request=request))
+            if cfg.hooks and cfg.hooks.has_handlers(EVENT_PRE_LLM_CALL):
+                hook_result = cfg.hooks.emit(PreLLMCall(type=EVENT_PRE_LLM_CALL, request=request))
                 if hook_result.action == Action.ABORT:
                     result = AgentResult(
                         messages=msgs,
@@ -141,16 +147,16 @@ class Agent:
             try:
                 response = await cfg.provider.complete(request)
             except Exception as exc:
-                if cfg.hooks and cfg.hooks.has_handlers(EventType.ON_ERROR):
-                    cfg.hooks.emit(OnError(type=EventType.ON_ERROR, error=exc, source="llm"))
+                if cfg.hooks and cfg.hooks.has_handlers(EVENT_ON_ERROR):
+                    cfg.hooks.emit(OnError(type=EVENT_ON_ERROR, error=exc, source="llm"))
                 raise
 
             total_usage = _add_usage(total_usage, response.usage)
 
             # Emit PostLLMCall hook
-            if cfg.hooks and cfg.hooks.has_handlers(EventType.POST_LLM_CALL):
+            if cfg.hooks and cfg.hooks.has_handlers(EVENT_POST_LLM_CALL):
                 hook_result = cfg.hooks.emit(
-                    PostLLMCall(type=EventType.POST_LLM_CALL, response=response)
+                    PostLLMCall(type=EVENT_POST_LLM_CALL, response=response)
                 )
                 if hook_result.action == Action.ABORT:
                     result = AgentResult(
@@ -191,10 +197,10 @@ class Agent:
                 )
 
                 # Emit PreToolCall hook
-                if cfg.hooks and cfg.hooks.has_handlers(EventType.PRE_TOOL_CALL):
+                if cfg.hooks and cfg.hooks.has_handlers(EVENT_PRE_TOOL_CALL):
                     hook_result = cfg.hooks.emit(
                         PreToolCall(
-                            type=EventType.PRE_TOOL_CALL,
+                            type=EVENT_PRE_TOOL_CALL,
                             name=tc.function.name,
                             input=tool_input,
                         )
@@ -214,18 +220,18 @@ class Agent:
                     except Exception as exc:
                         tool_error = exc
                         tool_result_content = str(exc)
-                        if cfg.hooks and cfg.hooks.has_handlers(EventType.ON_ERROR):
+                        if cfg.hooks and cfg.hooks.has_handlers(EVENT_ON_ERROR):
                             cfg.hooks.emit(
-                                OnError(type=EventType.ON_ERROR, error=exc, source=f"tool:{tc.function.name}")
+                                OnError(type=EVENT_ON_ERROR, error=exc, source=f"tool:{tc.function.name}")
                             )
                 else:
                     tool_result_content = f"no tool registry: cannot execute {tc.function.name}"
 
                 # Emit PostToolCall hook
-                if cfg.hooks and cfg.hooks.has_handlers(EventType.POST_TOOL_CALL):
+                if cfg.hooks and cfg.hooks.has_handlers(EVENT_POST_TOOL_CALL):
                     cfg.hooks.emit(
                         PostToolCall(
-                            type=EventType.POST_TOOL_CALL,
+                            type=EVENT_POST_TOOL_CALL,
                             name=tc.function.name,
                             input=tool_input,
                             result=tool_result_content,
@@ -297,8 +303,8 @@ class Agent:
     def _emit_turn_end(self, turn: int, message: AssistantMessage) -> None:
         """Emit TurnEnd hook if handlers are registered."""
         cfg = self._config
-        if cfg.hooks and cfg.hooks.has_handlers(EventType.TURN_END):
-            cfg.hooks.emit(TurnEnd(type=EventType.TURN_END, turn=turn, message=message))
+        if cfg.hooks and cfg.hooks.has_handlers(EVENT_TURN_END):
+            cfg.hooks.emit(TurnEnd(type=EVENT_TURN_END, turn=turn, message=message))
 
 
 def _last_assistant(messages: list[Message]) -> AssistantMessage:

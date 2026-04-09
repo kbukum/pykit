@@ -1,99 +1,29 @@
-"""Hook event types for agentic system lifecycle."""
+"""Generic hook primitives — event system with zero domain dependencies."""
 
 from __future__ import annotations
 
 import enum
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from typing import Any
-
-from pykit_llm.types import AssistantMessage, CompletionRequest, CompletionResponse
+from dataclasses import dataclass
+from typing import Any, Protocol, runtime_checkable
 
 # ---------------------------------------------------------------------------
-# Event types
+# Event type alias
 # ---------------------------------------------------------------------------
 
-
-class EventType(enum.StrEnum):
-    """Hook event categories."""
-
-    PRE_TOOL_CALL = "pre_tool_call"
-    POST_TOOL_CALL = "post_tool_call"
-    PRE_LLM_CALL = "pre_llm_call"
-    POST_LLM_CALL = "post_llm_call"
-    ON_ERROR = "on_error"
-    TURN_START = "turn_start"
-    TURN_END = "turn_end"
-
+EventType = str
+"""String identifier for an event category (e.g. ``"pre_tool_call"``)."""
 
 # ---------------------------------------------------------------------------
-# Hook events — discriminated union
+# Event protocol
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class HookEvent:
-    """Base class for all hook events."""
+@runtime_checkable
+class Event(Protocol):
+    """Any object with a ``type`` attribute is a valid hook event."""
 
     type: EventType
-
-
-@dataclass
-class PreToolCall(HookEvent):
-    """Emitted before a tool is called."""
-
-    name: str = ""
-    input: Any = None
-
-
-@dataclass
-class PostToolCall(HookEvent):
-    """Emitted after a tool call completes."""
-
-    name: str = ""
-    input: Any = None
-    result: Any = None
-    error: Exception | None = None
-
-
-@dataclass
-class PreLLMCall(HookEvent):
-    """Emitted before an LLM completion is requested."""
-
-    request: CompletionRequest = field(default_factory=lambda: CompletionRequest(messages=[]))
-
-
-@dataclass
-class PostLLMCall(HookEvent):
-    """Emitted after an LLM completion returns."""
-
-    response: CompletionResponse = field(
-        default_factory=lambda: CompletionResponse(message=AssistantMessage())
-    )
-    error: Exception | None = None
-
-
-@dataclass
-class OnError(HookEvent):
-    """Emitted when an error occurs."""
-
-    error: Exception = field(default_factory=Exception)
-    source: str = ""
-
-
-@dataclass
-class TurnStart(HookEvent):
-    """Emitted at the beginning of an agent turn."""
-
-    turn: int = 0
-
-
-@dataclass
-class TurnEnd(HookEvent):
-    """Emitted at the end of an agent turn."""
-
-    turn: int = 0
-    message: AssistantMessage = field(default_factory=AssistantMessage)
 
 
 # ---------------------------------------------------------------------------
@@ -110,7 +40,7 @@ class Action(enum.Enum):
 
 
 @dataclass
-class HookResult:
+class Result:
     """Result returned by a hook handler."""
 
     action: Action = Action.CONTINUE
@@ -122,4 +52,31 @@ class HookResult:
 # Handler type
 # ---------------------------------------------------------------------------
 
-HookHandler = Callable[[HookEvent], HookResult]
+Handler = Callable[[Event], Result]
+
+# ---------------------------------------------------------------------------
+# Convenience factories
+# ---------------------------------------------------------------------------
+
+
+def continue_() -> Result:
+    """Return a CONTINUE result."""
+    return Result()
+
+
+def abort(reason: str = "") -> Result:
+    """Return an ABORT result."""
+    return Result(action=Action.ABORT, reason=reason)
+
+
+def modify(data: Any, reason: str = "") -> Result:
+    """Return a MODIFY result."""
+    return Result(action=Action.MODIFY, modified_data=data, reason=reason)
+
+# ---------------------------------------------------------------------------
+# Backwards-compatible aliases
+# ---------------------------------------------------------------------------
+
+HookEvent = Event
+HookResult = Result
+HookHandler = Handler

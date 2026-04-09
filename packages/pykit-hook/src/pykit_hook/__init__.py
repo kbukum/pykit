@@ -1,33 +1,32 @@
-"""pykit-hook — Event hooks for agentic system lifecycle."""
+"""pykit-hook — Generic event hook system."""
 
-from pykit_hook.registry import HookRegistry
+from pykit_hook.registry import HookRegistry, Registry
 from pykit_hook.types import (
     Action,
+    Event,
     EventType,
+    Handler,
     HookEvent,
     HookHandler,
     HookResult,
-    OnError,
-    PostLLMCall,
-    PostToolCall,
-    PreLLMCall,
-    PreToolCall,
-    TurnEnd,
-    TurnStart,
+    Result,
+    abort,
+    continue_,
+    modify,
 )
 
 __all__ = [
     "Action",
+    "Event",
     "EventType",
+    "Handler",
     "HookEvent",
     "HookHandler",
     "HookRegistry",
     "HookResult",
-    "OnError",
-    "PostLLMCall",
-    "PostToolCall",
-    "PreLLMCall",
-    "PreToolCall",
-    "TurnEnd",
-    "TurnStart",
+    "Registry",
+    "Result",
+    "abort",
+    "continue_",
+    "modify",
 ]

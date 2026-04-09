@@ -1,14 +1,14 @@
-"""HookRegistry — subscribe to and emit lifecycle events."""
+"""Registry — subscribe to and emit lifecycle events."""
 
 from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable
 
-from pykit_hook.types import Action, EventType, HookEvent, HookHandler, HookResult
+from pykit_hook.types import Action, Event, EventType, Handler, Result
 
 
-class HookRegistry:
+class Registry:
     """Central registry for hook event handlers.
 
     Handlers are executed sequentially in registration order.
@@ -17,9 +17,9 @@ class HookRegistry:
     """
 
     def __init__(self) -> None:
-        self._handlers: dict[EventType, list[HookHandler]] = defaultdict(list)
+        self._handlers: dict[EventType, list[Handler]] = defaultdict(list)
 
-    def on(self, event_type: EventType, handler: HookHandler) -> Callable[[], None]:
+    def on(self, event_type: EventType, handler: Handler) -> Callable[[], None]:
         """Register a handler for an event type.
 
         Args:
@@ -38,7 +38,7 @@ class HookRegistry:
 
         return unsubscribe
 
-    def emit(self, event: HookEvent) -> HookResult:
+    def emit(self, event: Event) -> Result:
         """Emit an event and run all registered handlers sequentially.
 
         - First ``ABORT`` result short-circuits and returns immediately.
@@ -52,7 +52,7 @@ class HookRegistry:
             Aggregated hook result.
         """
         handlers = self._handlers.get(event.type, [])
-        last_result = HookResult()
+        last_result = Result()
         for handler in handlers:
             result = handler(event)
             if result.action == Action.ABORT:
@@ -72,3 +72,7 @@ class HookRegistry:
                 self._handlers.pop(et, None)
         else:
             self._handlers.clear()
+
+
+# Backwards-compatible alias
+HookRegistry = Registry
