@@ -11,11 +11,17 @@ import httpx
 from pykit_llm.config import LLMConfig
 from pykit_llm.errors import LLMError, LLMErrorCode, classify_status
 from pykit_llm.types import (
+    AssistantMessage,
     CompletionRequest,
     CompletionResponse,
     Message,
     StreamChunk,
+    SystemMessage,
+    TextBlock,
+    ToolResultMessage,
     Usage,
+    UserMessage,
+    text_of,
 )
 
 _DEFAULT_BASE_URL = "https://api.openai.com/v1"
@@ -100,10 +106,18 @@ def _build_payload(request: CompletionRequest, config: LLMConfig, *, stream: boo
 
 
 def _encode_message(msg: Message) -> dict[str, str]:
-    d: dict[str, str] = {"role": str(msg.role), "content": msg.content}
-    if msg.name is not None:
-        d["name"] = msg.name
-    return d
+    """Encode a discriminated union Message to the OpenAI wire format."""
+    match msg:
+        case UserMessage(content=blocks):
+            return {"role": "user", "content": text_of(blocks)}
+        case AssistantMessage(content=blocks):
+            return {"role": "assistant", "content": text_of(blocks)}
+        case SystemMessage(content=content):
+            return {"role": "system", "content": content}
+        case ToolResultMessage(tool_use_id=tid, content=content):
+            return {"role": "tool", "content": content, "tool_call_id": tid}
+        case _:
+            return {"role": "user", "content": ""}
 
 
 def _parse_response(data: dict[str, Any]) -> CompletionResponse:
@@ -116,13 +130,16 @@ def _parse_response(data: dict[str, Any]) -> CompletionResponse:
             total_tokens=usage_data.get("total_tokens", 0),
         )
         if usage_data
-        else None
+        else Usage()
     )
+    content = choice["message"]["content"]
+    message = AssistantMessage(content=[TextBlock(text=content)])
+
     return CompletionResponse(
-        content=choice["message"]["content"],
+        message=message,
         model=data.get("model", ""),
         usage=usage,
-        finish_reason=choice.get("finish_reason", "stop"),
+        stop_reason=choice.get("finish_reason", "stop"),
     )
 
 

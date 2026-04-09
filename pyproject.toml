@@ -17,6 +17,7 @@ dev = [
     "pykit-server",
     "pykit-metrics",
     "pykit-testutil",
+    "pykit-tool",
     "pykit-triton",
     "pykit-dataset",
     "pykit-bench",
@@ -26,6 +27,7 @@ dev = [
     "pykit-version",
     "pykit-component",
     "pykit-resilience",
+    "pykit-schema",
     "pykit-di",
     "pykit-bootstrap",
     "pykit-messaging",
@@ -117,6 +119,7 @@ pykit-process        = { workspace = true }
 pykit-provider       = { workspace = true }
 pykit-redis          = { workspace = true }
 pykit-resilience     = { workspace = true }
+pykit-schema         = { workspace = true }
 pykit-security       = { workspace = true }
 pykit-server         = { workspace = true }
 pykit-server-middleware = { workspace = true }
@@ -124,6 +127,7 @@ pykit-sse            = { workspace = true }
 pykit-stateful       = { workspace = true }
 pykit-storage        = { workspace = true }
 pykit-testutil       = { workspace = true }
+pykit-tool           = { workspace = true }
 pykit-triton         = { workspace = true }
 pykit-util           = { workspace = true }
 pykit-validation     = { workspace = true }

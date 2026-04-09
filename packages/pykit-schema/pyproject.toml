@@ -1,12 +1,11 @@
 [project]
-name = "pykit-llm"
-description = "LLM client abstraction and prompt management"
+name = "pykit-schema"
+description = "JSON Schema generation from Python types and Pydantic models"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "httpx",
-    "pykit-errors",
-    "pykit-tool",
+    "pydantic>=2.12",
+    "jsonschema>=4.23",
 ]
 
 [build-system]
@@ -14,4 +13,4 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pykit_llm"]
+packages = ["src/pykit_schema"]

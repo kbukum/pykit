@@ -9,13 +9,11 @@ import pytest
 
 from pykit_llm import (
     CompletionRequest,
-    CompletionResponse,
     LLMConfig,
     LLMProvider,
-    Message,
-    Role,
     StreamChunk,
     Usage,
+    user,
 )
 from pykit_llm.errors import (
     LLMError,
@@ -153,26 +151,6 @@ class TestLLMErrorFormatting:
 
 
 # ---------------------------------------------------------------------------
-# Role enum edge cases
-# ---------------------------------------------------------------------------
-
-
-class TestRoleExtended:
-    def test_role_is_str(self):
-        """Role values can be compared as plain strings."""
-        assert Role.SYSTEM == "system"
-        assert str(Role.TOOL) == "tool"
-
-    def test_role_membership(self):
-        assert "user" in [r.value for r in Role]
-        assert "admin" not in [r.value for r in Role]
-
-    def test_role_iteration(self):
-        roles = list(Role)
-        assert len(roles) == 4
-
-
-# ---------------------------------------------------------------------------
 # Usage edge cases
 # ---------------------------------------------------------------------------
 
@@ -210,7 +188,7 @@ class TestCompletionRequestExtended:
 
     def test_extra_dict_passthrough(self):
         req = CompletionRequest(
-            messages=[Message(role=Role.USER, content="hi")],
+            messages=[user("hi")],
             extra={"top_p": 0.9, "presence_penalty": 0.5},
         )
         assert req.extra["top_p"] == 0.9
@@ -280,7 +258,7 @@ class TestOpenAIStreamErrorsExtended:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             with pytest.raises(LLMError) as exc_info:
                 async for _ in provider.stream(req):
                     pass
@@ -297,7 +275,7 @@ class TestOpenAIStreamErrorsExtended:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             with pytest.raises(LLMError) as exc_info:
                 async for _ in provider.stream(req):
                     pass
@@ -329,11 +307,11 @@ class TestOpenAIExtraExtended:
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
             req = CompletionRequest(
-                messages=[Message(role=Role.USER, content="Hi")],
+                messages=[user("Hi")],
                 extra={"top_p": 0.9, "frequency_penalty": 0.3},
             )
             resp = await provider.complete(req)
-            assert resp.content == "Hello!"
+            assert resp.text() == "Hello!"
         finally:
             await provider.close()
 
@@ -349,7 +327,7 @@ class TestOpenAIResponseParsing:
         return LLMConfig(api_key="sk-test", model="gpt-4")
 
     async def test_response_without_usage(self, config):
-        """Response with no usage section → usage is None."""
+        """Response with no usage section → usage has default values."""
         resp_data = {
             "id": "chatcmpl-test",
             "object": "chat.completion",
@@ -368,24 +346,24 @@ class TestOpenAIResponseParsing:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             resp = await provider.complete(req)
-            assert resp.content == "ok"
-            assert resp.usage is None
+            assert resp.text() == "ok"
+            assert resp.usage.prompt_tokens == 0
         finally:
             await provider.close()
 
     async def test_response_finish_reason_length(self, config):
-        """finish_reason='length' is correctly propagated."""
+        """finish_reason='length' is correctly propagated as stop_reason."""
 
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json=_openai_response(finish_reason="length"))
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             resp = await provider.complete(req)
-            assert resp.finish_reason == "length"
+            assert resp.stop_reason == "length"
         finally:
             await provider.close()
 
@@ -409,7 +387,7 @@ class TestOpenAISSEParsing:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             chunks = [c async for c in provider.stream(req)]
             contents = [c.content for c in chunks if not c.done]
             assert "Hello" in contents
@@ -425,7 +403,7 @@ class TestOpenAISSEParsing:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             chunks = [c async for c in provider.stream(req)]
             contents = [c.content for c in chunks if not c.done]
             assert "ok" in contents
@@ -448,7 +426,7 @@ class TestOpenAISSEParsing:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             chunks = [c async for c in provider.stream(req)]
             content_chunks = [c for c in chunks if not c.done]
             assert len(content_chunks) >= 1
@@ -516,8 +494,8 @@ class TestLargeContent:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content=long_content)])
+            req = CompletionRequest(messages=[user(long_content)])
             resp = await provider.complete(req)
-            assert resp.content == "ok"
+            assert resp.text() == "ok"
         finally:
             await provider.close()

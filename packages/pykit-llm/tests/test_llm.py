@@ -8,14 +8,19 @@ import httpx
 import pytest
 
 from pykit_llm import (
+    AssistantMessage,
     CompletionRequest,
     CompletionResponse,
     LLMConfig,
     LLMProvider,
-    Message,
-    Role,
+    StopReason,
     StreamChunk,
+    TextBlock,
     Usage,
+    assistant,
+    system,
+    text_of,
+    user,
 )
 from pykit_llm.errors import (
     LLMError,
@@ -72,21 +77,38 @@ def _sse_lines(*chunks: str, done: bool = True) -> str:
 
 
 class TestTypes:
-    def test_role_values(self):
-        assert Role.SYSTEM == "system"
-        assert Role.USER == "user"
-        assert Role.ASSISTANT == "assistant"
-        assert Role.TOOL == "tool"
+    def test_user_message(self):
+        m = user("hi")
+        assert m.role == "user"
+        assert text_of(m.content) == "hi"
 
-    def test_message(self):
-        m = Message(role=Role.USER, content="hi")
-        assert m.role == Role.USER
-        assert m.content == "hi"
-        assert m.name is None
+    def test_assistant_message(self):
+        m = assistant("hello")
+        assert m.role == "assistant"
+        assert text_of(m.content) == "hello"
 
-    def test_message_with_name(self):
-        m = Message(role=Role.SYSTEM, content="setup", name="ctx")
-        assert m.name == "ctx"
+    def test_system_message(self):
+        m = system("you are helpful")
+        assert m.role == "system"
+        assert m.content == "you are helpful"
+
+    def test_tool_result_message(self):
+        from pykit_llm import tool_result_msg
+
+        m = tool_result_msg("tu-1", "result data")
+        assert m.role == "tool_result"
+        assert m.tool_use_id == "tu-1"
+        assert m.content == "result data"
+        assert m.is_error is False
+
+    def test_text_of(self):
+        blocks = [TextBlock(text="hello"), TextBlock(text=" world")]
+        assert text_of(blocks) == "hello world"
+
+    def test_stop_reason_constants(self):
+        assert StopReason.END_TURN == "end_turn"
+        assert StopReason.TOOL_USE == "tool_use"
+        assert StopReason.MAX_TOKENS == "max_tokens"
 
     def test_usage_defaults(self):
         u = Usage()
@@ -104,10 +126,16 @@ class TestTypes:
         assert req.extra == {}
 
     def test_completion_response(self):
-        r = CompletionResponse(content="hello", model="gpt-4")
-        assert r.content == "hello"
-        assert r.finish_reason == "stop"
-        assert r.usage is None
+        msg = AssistantMessage(content=[TextBlock(text="hello")])
+        r = CompletionResponse(message=msg, model="gpt-4")
+        assert r.text() == "hello"
+        assert r.stop_reason == ""
+        assert r.usage.prompt_tokens == 0
+
+    def test_completion_response_has_tool_calls(self):
+        msg = AssistantMessage()
+        r = CompletionResponse(message=msg)
+        assert r.has_tool_calls() is False
 
     def test_stream_chunk_defaults(self):
         c = StreamChunk()
@@ -220,15 +248,14 @@ class TestOpenAIComplete:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             resp = await provider.complete(req)
-            assert resp.content == "Hello!"
+            assert resp.text() == "Hello!"
             assert resp.model == "gpt-4"
-            assert resp.usage is not None
             assert resp.usage.prompt_tokens == 10
             assert resp.usage.completion_tokens == 5
             assert resp.usage.total_tokens == 15
-            assert resp.finish_reason == "stop"
+            assert resp.stop_reason == "stop"
         finally:
             await provider.close()
 
@@ -243,13 +270,13 @@ class TestOpenAIComplete:
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
             req = CompletionRequest(
-                messages=[Message(role=Role.USER, content="Hi")],
+                messages=[user("Hi")],
                 temperature=0.2,
                 max_tokens=100,
                 stop=["\n"],
             )
             resp = await provider.complete(req)
-            assert resp.content == "Hello!"
+            assert resp.text() == "Hello!"
         finally:
             await provider.close()
 
@@ -262,7 +289,7 @@ class TestOpenAIComplete:
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
             req = CompletionRequest(
-                messages=[Message(role=Role.USER, content="Hi")],
+                messages=[user("Hi")],
                 model="gpt-3.5-turbo",
             )
             resp = await provider.complete(req)
@@ -277,22 +304,21 @@ class TestOpenAIComplete:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             await provider.complete(req)
         finally:
             await provider.close()
 
-    async def test_complete_message_with_name(self, config):
+    async def test_complete_system_message(self, config):
         def handler(request: httpx.Request) -> httpx.Response:
             body = json.loads(request.content)
-            assert body["messages"][0]["name"] == "system-ctx"
+            assert body["messages"][0]["role"] == "system"
+            assert body["messages"][0]["content"] == "You are helpful"
             return httpx.Response(200, json=_openai_response())
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(
-                messages=[Message(role=Role.SYSTEM, content="You are helpful", name="system-ctx")],
-            )
+            req = CompletionRequest(messages=[system("You are helpful")])
             await provider.complete(req)
         finally:
             await provider.close()
@@ -317,7 +343,7 @@ class TestOpenAIStream:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             chunks: list[StreamChunk] = []
             async for chunk in provider.stream(req):
                 chunks.append(chunk)
@@ -336,7 +362,7 @@ class TestOpenAIStream:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             chunks = [c async for c in provider.stream(req)]
             assert len(chunks) == 1
             assert chunks[0].done is True
@@ -360,7 +386,7 @@ class TestErrorHandling:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             with pytest.raises(LLMError) as exc_info:
                 await provider.complete(req)
             assert exc_info.value.code == LLMErrorCode.AUTH
@@ -374,7 +400,7 @@ class TestErrorHandling:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             with pytest.raises(LLMError) as exc_info:
                 await provider.complete(req)
             assert exc_info.value.code == LLMErrorCode.RATE_LIMIT
@@ -388,7 +414,7 @@ class TestErrorHandling:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             with pytest.raises(LLMError) as exc_info:
                 await provider.complete(req)
             assert exc_info.value.code == LLMErrorCode.SERVER
@@ -402,7 +428,7 @@ class TestErrorHandling:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            req = CompletionRequest(messages=[Message(role=Role.USER, content="Hi")])
+            req = CompletionRequest(messages=[user("Hi")])
             with pytest.raises(LLMError) as exc_info:
                 async for _ in provider.stream(req):
                     pass
