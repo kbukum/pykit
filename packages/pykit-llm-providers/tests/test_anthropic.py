@@ -291,6 +291,90 @@ class TestAnthropicStream:
         finally:
             await provider.close()
 
+    async def test_stream_tool_use(self, config):
+        """Tool use blocks in the SSE stream populate StreamChunk.tool_calls."""
+        lines: list[str] = []
+
+        # message_start
+        start = {
+            "type": "message_start",
+            "message": {
+                "id": "msg-test",
+                "type": "message",
+                "role": "assistant",
+                "model": "claude-sonnet-4-20250514",
+                "usage": {"input_tokens": 10, "output_tokens": 0},
+            },
+        }
+        lines.append(f"event: message_start\ndata: {json.dumps(start)}\n\n")
+
+        # content_block_start with tool_use
+        block_start = {
+            "type": "content_block_start",
+            "index": 0,
+            "content_block": {
+                "type": "tool_use",
+                "id": "toolu_123",
+                "name": "get_weather",
+            },
+        }
+        lines.append(f"event: content_block_start\ndata: {json.dumps(block_start)}\n\n")
+
+        # content_block_delta with input_json_delta
+        delta1 = {
+            "type": "content_block_delta",
+            "index": 0,
+            "delta": {"type": "input_json_delta", "partial_json": '{"loc'},
+        }
+        lines.append(f"event: content_block_delta\ndata: {json.dumps(delta1)}\n\n")
+
+        delta2 = {
+            "type": "content_block_delta",
+            "index": 0,
+            "delta": {"type": "input_json_delta", "partial_json": 'ation":"NYC"}'},
+        }
+        lines.append(f"event: content_block_delta\ndata: {json.dumps(delta2)}\n\n")
+
+        # content_block_stop
+        block_stop = {"type": "content_block_stop", "index": 0}
+        lines.append(f"event: content_block_stop\ndata: {json.dumps(block_stop)}\n\n")
+
+        # message_delta + message_stop
+        msg_delta = {
+            "type": "message_delta",
+            "delta": {"stop_reason": "tool_use"},
+            "usage": {"output_tokens": 5},
+        }
+        lines.append(f"event: message_delta\ndata: {json.dumps(msg_delta)}\n\n")
+        msg_stop = {"type": "message_stop"}
+        lines.append(f"event: message_stop\ndata: {json.dumps(msg_stop)}\n\n")
+
+        sse = "".join(lines)
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=sse.encode(), headers={"content-type": "text/event-stream"})
+
+        provider = AnthropicProvider(config, transport=_mock_transport(handler))
+        try:
+            chunks: list[StreamChunk] = []
+            async for chunk in provider.stream(CompletionRequest(messages=[user("weather")])):
+                chunks.append(chunk)
+
+            tc_chunks = [c for c in chunks if c.tool_calls]
+            assert len(tc_chunks) == 3
+
+            # First chunk: content_block_start with id and name
+            first = tc_chunks[0].tool_calls[0]
+            assert first.id == "toolu_123"
+            assert first.function.name == "get_weather"
+            assert first.function.arguments == ""
+
+            # Subsequent chunks: input_json_delta with partial args
+            assert tc_chunks[1].tool_calls[0].function.arguments == '{"loc'
+            assert tc_chunks[2].tool_calls[0].function.arguments == 'ation":"NYC"}'
+        finally:
+            await provider.close()
+
     async def test_stream_401(self, config):
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(401, json={"error": {"message": "Unauthorized"}})

@@ -215,6 +215,84 @@ class TestOpenAIStream:
             await provider.close()
 
 
+class TestOpenAIStreamToolCalls:
+    @pytest.fixture
+    def config(self):
+        return LLMConfig(api_key="sk-test", model="gpt-4")
+
+    async def test_stream_tool_calls(self, config):
+        """Tool call deltas in the SSE stream populate StreamChunk.tool_calls."""
+        chunks_data: list[dict] = [
+            {
+                "id": "chatcmpl-0",
+                "object": "chat.completion.chunk",
+                "model": "gpt-4",
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "tool_calls": [
+                                {
+                                    "id": "call_abc",
+                                    "function": {
+                                        "name": "get_weather",
+                                        "arguments": '{"loc',
+                                    },
+                                }
+                            ]
+                        },
+                        "finish_reason": None,
+                    }
+                ],
+            },
+            {
+                "id": "chatcmpl-1",
+                "object": "chat.completion.chunk",
+                "model": "gpt-4",
+                "choices": [
+                    {
+                        "index": 0,
+                        "delta": {
+                            "tool_calls": [
+                                {
+                                    "id": "",
+                                    "function": {
+                                        "name": "",
+                                        "arguments": 'ation":"NYC"}',
+                                    },
+                                }
+                            ]
+                        },
+                        "finish_reason": None,
+                    }
+                ],
+            },
+        ]
+        sse = ""
+        for d in chunks_data:
+            sse += f"data: {json.dumps(d)}\n\n"
+        sse += "data: [DONE]\n\n"
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=sse.encode(), headers={"content-type": "text/event-stream"})
+
+        provider = OpenAIProvider(config, transport=_mock_transport(handler))
+        try:
+            chunks: list[StreamChunk] = []
+            async for chunk in provider.stream(CompletionRequest(messages=[user("weather")])):
+                chunks.append(chunk)
+            tc_chunks = [c for c in chunks if c.tool_calls]
+            assert len(tc_chunks) == 2
+            first = tc_chunks[0].tool_calls[0]
+            assert first.id == "call_abc"
+            assert first.function.name == "get_weather"
+            assert first.function.arguments == '{"loc'
+            second = tc_chunks[1].tool_calls[0]
+            assert second.function.arguments == 'ation":"NYC"}'
+        finally:
+            await provider.close()
+
+
 class TestOpenAIWithUnifiedConfig:
     async def test_complete_with_openai_config(self):
         cfg = OpenAIConfig(api_key="sk-unified", model="gpt-4o")

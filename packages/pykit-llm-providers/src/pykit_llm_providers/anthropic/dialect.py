@@ -14,10 +14,12 @@ from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
+    FunctionCall,
     Message,
     StreamChunk,
     SystemMessage,
     TextBlock,
+    ToolCall,
     ToolResultBlock,
     ToolResultMessage,
     ToolUseBlock,
@@ -280,10 +282,31 @@ async def _iter_sse(resp: httpx.Response) -> AsyncIterator[StreamChunk]:
 
         event_type = data.get("type", "")
 
-        if event_type == "content_block_delta":
+        if event_type == "content_block_start":
+            cb = data.get("content_block", {})
+            if cb.get("type") == "tool_use":
+                yield StreamChunk(
+                    tool_calls=[
+                        ToolCall(
+                            id=cb.get("id", ""),
+                            function=FunctionCall(name=cb.get("name", ""), arguments=""),
+                        )
+                    ]
+                )
+
+        elif event_type == "content_block_delta":
             delta = data.get("delta", {})
             if delta.get("type") == "text_delta":
                 yield StreamChunk(content=delta.get("text", ""))
+            elif delta.get("type") == "input_json_delta":
+                yield StreamChunk(
+                    tool_calls=[
+                        ToolCall(
+                            id="",
+                            function=FunctionCall(name="", arguments=delta.get("partial_json", "")),
+                        )
+                    ]
+                )
 
         elif event_type == "message_delta":
             usage_data = data.get("usage", {})

@@ -14,10 +14,12 @@ from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
+    FunctionCall,
     Message,
     StreamChunk,
     SystemMessage,
     TextBlock,
+    ToolCall,
     ToolResultMessage,
     Usage,
     UserMessage,
@@ -172,6 +174,22 @@ async def _iter_sse(resp: httpx.Response) -> AsyncIterator[StreamChunk]:
         delta = data.get("choices", [{}])[0].get("delta", {})
         content = delta.get("content", "")
 
+        tool_calls_data = delta.get("tool_calls")
+        tool_calls = None
+        if tool_calls_data:
+            tool_calls = []
+            for tc in tool_calls_data:
+                func = tc.get("function", {})
+                tool_calls.append(
+                    ToolCall(
+                        id=tc.get("id", ""),
+                        function=FunctionCall(
+                            name=func.get("name", ""),
+                            arguments=func.get("arguments", ""),
+                        ),
+                    )
+                )
+
         usage_data = data.get("usage")
         usage = (
             Usage(
@@ -182,4 +200,4 @@ async def _iter_sse(resp: httpx.Response) -> AsyncIterator[StreamChunk]:
             if usage_data
             else None
         )
-        yield StreamChunk(content=content, usage=usage)
+        yield StreamChunk(content=content, usage=usage, tool_calls=tool_calls)

@@ -325,6 +325,51 @@ class TestGeminiStream:
         finally:
             await provider.close()
 
+    async def test_stream_function_call(self, config):
+        """functionCall parts in the SSE stream populate StreamChunk.tool_calls."""
+        data = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "functionCall": {
+                                    "name": "get_weather",
+                                    "args": {"location": "NYC"},
+                                }
+                            }
+                        ],
+                        "role": "model",
+                    },
+                    "finishReason": "TOOL_USE",
+                }
+            ],
+            "usageMetadata": {
+                "promptTokenCount": 10,
+                "candidatesTokenCount": 5,
+                "totalTokenCount": 15,
+            },
+        }
+        sse = f"data: {json.dumps(data)}\n\n"
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, content=sse.encode(), headers={"content-type": "text/event-stream"})
+
+        provider = GeminiProvider(config, transport=_mock_transport(handler))
+        try:
+            chunks: list[StreamChunk] = []
+            async for chunk in provider.stream(CompletionRequest(messages=[user("weather")])):
+                chunks.append(chunk)
+            tc_chunks = [c for c in chunks if c.tool_calls]
+            assert len(tc_chunks) == 1
+            tc = tc_chunks[0].tool_calls[0]
+            assert tc.id == "get_weather"
+            assert tc.function.name == "get_weather"
+            assert json.loads(tc.function.arguments) == {"location": "NYC"}
+            assert tc_chunks[0].done is True
+        finally:
+            await provider.close()
+
     async def test_stream_with_usage(self, config):
         def handler(request: httpx.Request) -> httpx.Response:
             sse = _sse_stream("Hello")
