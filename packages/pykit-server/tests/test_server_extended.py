@@ -13,7 +13,6 @@ from grpc_health.v1 import health_pb2, health_pb2_grpc
 from pykit_component import Health, HealthStatus
 from pykit_server import BaseServer
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -371,9 +370,7 @@ class TestInterceptors:
             call_kwargs = mock_server_fn.call_args
             assert interceptor in call_kwargs.kwargs.get(
                 "interceptors", call_kwargs.args[0] if call_kwargs.args else []
-            ) or interceptor in (
-                call_kwargs.kwargs.get("interceptors", [])
-            )
+            ) or interceptor in (call_kwargs.kwargs.get("interceptors", []))
 
             # Clean up
             s._server = mock_srv

@@ -8,9 +8,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import struct
 import threading
-from typing import Any
 
 import pytest
 from cryptography.exceptions import InvalidTag
@@ -22,7 +20,7 @@ from pykit_encryption import (
     FernetEncryptor,
     new_encryptor,
 )
-from pykit_encryption.factory import Algorithm, _REGISTRY
+from pykit_encryption.factory import _REGISTRY, Algorithm
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -78,9 +76,7 @@ class TestParametrizedRoundTrips:
     """Encrypt→decrypt must be identity for every algorithm × plaintext × key."""
 
     @pytest.mark.parametrize("plaintext", PLAINTEXTS, ids=[f"pt{i}" for i in range(len(PLAINTEXTS))])
-    def test_roundtrip_all_plaintexts(
-        self, encryptor_cls: type, plaintext: str
-    ) -> None:
+    def test_roundtrip_all_plaintexts(self, encryptor_cls: type, plaintext: str) -> None:
         enc = encryptor_cls("test-key-123")
         ct = enc.encrypt(plaintext)
         assert enc.decrypt(ct) == plaintext
@@ -278,9 +274,7 @@ class TestFactoryProtocol:
     def test_registry_classes_conform_to_protocol(self) -> None:
         for algo, cls in _REGISTRY.items():
             instance = cls("test-key")  # type: ignore[call-arg]
-            assert isinstance(instance, Encryptor), (
-                f"{cls.__name__} does not conform to Encryptor protocol"
-            )
+            assert isinstance(instance, Encryptor), f"{cls.__name__} does not conform to Encryptor protocol"
 
     def test_encryptor_protocol_has_encrypt_and_decrypt(self) -> None:
         assert hasattr(Encryptor, "encrypt")

@@ -67,9 +67,11 @@ async def demo_bootstrap() -> None:
     """Show App lifecycle: start → task → stop."""
     print("\n=== Bootstrap App ===")
 
-    app = App(DefaultAppConfig(
-        service=ServiceConfig(name="my-service", environment=Environment.STAGING, version="1.2.0"),
-    ))
+    app = App(
+        DefaultAppConfig(
+            service=ServiceConfig(name="my-service", environment=Environment.STAGING, version="1.2.0"),
+        )
+    )
 
     async def on_start() -> None:
         print(f"  [start] {app.config.name} v{app.config.version} booting…")

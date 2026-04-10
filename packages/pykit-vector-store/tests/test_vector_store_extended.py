@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import math
-from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -16,7 +14,6 @@ from pykit_vector_store.store import (
     VectorStore,
     VectorStoreError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Data type / builder tests
@@ -279,12 +276,14 @@ class TestInMemoryVectorStoreExtended:
         store = InMemoryVectorStore()
         await store.ensure_collection("test", 2)
 
-        payload = PointPayload(fields={
-            "tags": ["a", "b"],
-            "nested": {"key": "value"},
-            "count": 42,
-            "flag": True,
-        })
+        payload = PointPayload(
+            fields={
+                "tags": ["a", "b"],
+                "nested": {"key": "value"},
+                "count": 42,
+                "flag": True,
+            }
+        )
         await store.upsert("test", "1", [1.0, 0.0], payload)
         results = await store.search("test", [1.0, 0.0], 1)
         assert results[0].payload.fields["tags"] == ["a", "b"]

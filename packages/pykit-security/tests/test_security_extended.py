@@ -24,9 +24,7 @@ try:
 except ImportError:
     HAS_CRYPTOGRAPHY = False
 
-needs_cryptography = pytest.mark.skipif(
-    not HAS_CRYPTOGRAPHY, reason="cryptography library not available"
-)
+needs_cryptography = pytest.mark.skipif(not HAS_CRYPTOGRAPHY, reason="cryptography library not available")
 
 
 # ---------------------------------------------------------------------------

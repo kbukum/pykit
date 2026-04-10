@@ -140,7 +140,9 @@ class Agent:
                     )
                     yield CompleteEvent(result=result)
                     return
-                if hook_result.action == Action.MODIFY and isinstance(hook_result.modified_data, CompletionRequest):
+                if hook_result.action == Action.MODIFY and isinstance(
+                    hook_result.modified_data, CompletionRequest
+                ):
                     request = hook_result.modified_data
 
             # Call provider
@@ -155,9 +157,7 @@ class Agent:
 
             # Emit PostLLMCall hook
             if cfg.hooks and cfg.hooks.has_handlers(EVENT_POST_LLM_CALL):
-                hook_result = cfg.hooks.emit(
-                    PostLLMCall(type=EVENT_POST_LLM_CALL, response=response)
-                )
+                hook_result = cfg.hooks.emit(PostLLMCall(type=EVENT_POST_LLM_CALL, response=response))
                 if hook_result.action == Action.ABORT:
                     result = AgentResult(
                         messages=msgs,

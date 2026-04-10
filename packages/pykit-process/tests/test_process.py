@@ -163,9 +163,7 @@ async def test_stdin_data_input():
 
 
 async def test_stdin_cat():
-    result = await run_command(
-        Command(program="cat", stdin_data=b"piped through cat")
-    )
+    result = await run_command(Command(program="cat", stdin_data=b"piped through cat"))
     assert result.success
     assert result.stdout == "piped through cat"
 
@@ -189,11 +187,7 @@ async def test_shell_timeout():
 
 async def test_grace_period_sigterm_then_sigkill():
     """Process that traps SIGTERM and ignores it should be SIGKILLed after grace_period."""
-    trap_script = (
-        "import signal, time; "
-        "signal.signal(signal.SIGTERM, lambda *a: None); "
-        "time.sleep(60)"
-    )
+    trap_script = "import signal, time; signal.signal(signal.SIGTERM, lambda *a: None); time.sleep(60)"
     cfg = ProcessConfig(timeout=0.5, grace_period=0.5)
     with pytest.raises(TimeoutError):
         await run_command(
@@ -312,10 +306,7 @@ async def test_very_long_output():
 
 
 async def test_concurrent_subprocess_execution():
-    cmds = [
-        run_command(Command(program="echo", args=[str(i)]))
-        for i in range(10)
-    ]
+    cmds = [run_command(Command(program="echo", args=[str(i)])) for i in range(10)]
     results = await asyncio.gather(*cmds)
     assert all(r.success for r in results)
     outputs = sorted(r.stdout.strip() for r in results)
@@ -323,9 +314,7 @@ async def test_concurrent_subprocess_execution():
 
 
 async def test_special_characters_in_args():
-    result = await run_command(
-        Command(program="echo", args=["hello world", "$HOME", "it's", '"quoted"'])
-    )
+    result = await run_command(Command(program="echo", args=["hello world", "$HOME", "it's", '"quoted"']))
     assert result.success
     assert "hello world" in result.stdout
     assert "$HOME" in result.stdout

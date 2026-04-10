@@ -4,25 +4,25 @@ from __future__ import annotations
 
 import asyncio
 import json
-
-import pytest
 from datetime import UTC, datetime
 
-from pykit_messaging.types import Message, Event
-from pykit_messaging.handler import (
-    FuncHandler,
-    chain_handlers,
-    MessageHandlerProtocol,
-)
-from pykit_messaging.router import MessageRouter
+import pytest
+
+from pykit_messaging.config import BrokerConfig
 from pykit_messaging.errors import (
+    GENERIC_CONNECTION_PATTERNS,
     is_connection_error,
     is_retryable_error,
-    GENERIC_CONNECTION_PATTERNS,
 )
-from pykit_messaging.config import BrokerConfig
-from pykit_messaging.translator import JsonTranslator
+from pykit_messaging.handler import (
+    FuncHandler,
+    MessageHandlerProtocol,
+    chain_handlers,
+)
 from pykit_messaging.memory import InMemoryBroker
+from pykit_messaging.router import MessageRouter
+from pykit_messaging.translator import JsonTranslator
+from pykit_messaging.types import Event, Message
 
 
 def _make_msg(
@@ -257,7 +257,9 @@ class TestHandlerEdgeCases:
                     call_order.append(f"{name}-before")
                     await inner.handle(msg)
                     call_order.append(f"{name}-after")
+
                 return FuncHandler(wrapper)
+
             return middleware
 
         chained = chain_handlers(

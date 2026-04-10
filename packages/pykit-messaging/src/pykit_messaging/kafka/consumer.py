@@ -127,8 +127,7 @@ class KafkaConsumer:
                     headers: dict[str, str] = {}
                     if record.headers:
                         headers = {
-                            (k.decode() if isinstance(k, bytes) else k): v.decode()
-                            for k, v in record.headers
+                            (k.decode() if isinstance(k, bytes) else k): v.decode() for k, v in record.headers
                         }
 
                     msg = Message(

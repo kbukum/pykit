@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-from sqlalchemy import String, Integer, select, text
+from sqlalchemy import Integer, String, select, text
 from sqlalchemy.exc import IntegrityError, NoResultFound, OperationalError
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -115,9 +115,7 @@ class TestConcurrentExecution:
         async def read_list():
             return await repo.list()
 
-        count, exists, items = await asyncio.gather(
-            read_count(), read_exists(), read_list()
-        )
+        count, exists, items = await asyncio.gather(read_count(), read_exists(), read_list())
         assert count == 1
         assert exists is True
         assert len(items) == 1

@@ -7,31 +7,25 @@ Each test exercises at least 2 modules from different layers using real APIs.
 from __future__ import annotations
 
 import asyncio
-import time
-from dataclasses import dataclass, field
 
 import pytest
 
 from pykit_auth import JWTConfig, JWTService
-from pykit_authz import MapChecker, PermissionDeniedError
-from pykit_bootstrap import App, DefaultAppConfig, ServiceConfig, Environment, LoggingConfig
-from pykit_component import Component, Health, HealthStatus, Registry
+from pykit_authz import MapChecker
+from pykit_bootstrap import App, DefaultAppConfig, Environment, LoggingConfig, ServiceConfig
+from pykit_component import Health, HealthStatus, Registry
 from pykit_di import Container, RegistrationMode
 from pykit_errors import AppError, ErrorCode, ErrorResponse, InvalidInputError
 from pykit_logging import get_logger, setup_logging
-from pykit_pipeline import Pipeline, collect, drain, for_each, concat, reduce
+from pykit_pipeline import Pipeline, collect, concat, drain, reduce
 from pykit_provider import RequestResponseFunc
 from pykit_resilience import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitOpenError,
     State,
-    RetryConfig,
-    RetryExhaustedError,
-    retry,
 )
-from pykit_validation import Validator, FieldError
-
+from pykit_validation import Validator
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -382,11 +376,13 @@ class TestAuthAuthz:
         token = jwt_svc.generate({"sub": "user-1", "role": "admin"})
         claims = jwt_svc.validate(token)
 
-        checker = MapChecker({
-            "admin": ["*"],
-            "editor": ["article:read", "article:write"],
-            "viewer": ["article:read"],
-        })
+        checker = MapChecker(
+            {
+                "admin": ["*"],
+                "editor": ["article:read", "article:write"],
+                "viewer": ["article:read"],
+            }
+        )
 
         role = claims["role"]
         assert checker.check(role, "article:delete")  # admin has wildcard
@@ -398,10 +394,12 @@ class TestAuthAuthz:
         token = jwt_svc.generate({"sub": "user-2", "role": "viewer"})
         claims = jwt_svc.validate(token)
 
-        checker = MapChecker({
-            "admin": ["*"],
-            "viewer": ["article:read"],
-        })
+        checker = MapChecker(
+            {
+                "admin": ["*"],
+                "viewer": ["article:read"],
+            }
+        )
 
         role = claims["role"]
         assert checker.check(role, "article:read")
@@ -409,11 +407,13 @@ class TestAuthAuthz:
         assert not checker.check(role, "user:manage")
 
     def test_jwt_roundtrip_preserves_claims(self) -> None:
-        jwt_svc = JWTService(JWTConfig(
-            secret="roundtrip-secret-key",
-            issuer="test-issuer",
-            audience="test-audience",
-        ))
+        jwt_svc = JWTService(
+            JWTConfig(
+                secret="roundtrip-secret-key",
+                issuer="test-issuer",
+                audience="test-audience",
+            )
+        )
 
         original_claims = {"sub": "user-42", "role": "editor", "org": "acme"}
         token = jwt_svc.generate(original_claims)

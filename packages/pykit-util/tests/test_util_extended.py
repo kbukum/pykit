@@ -10,7 +10,6 @@ from pykit_util.parse import mask_secret, parse_bool, parse_size
 from pykit_util.sanitize import is_safe_string, sanitize_env_value, sanitize_string
 from pykit_util.strings import coalesce, slug, truncate
 
-
 # ── collections: chunk ───────────────────────────────────────────────────
 
 
@@ -185,7 +184,7 @@ class TestTruncateExtended:
         assert len(result) == 4
 
     def test_zero_width_characters(self):
-        text = "he\u200Bllo\u200B world is great"
+        text = "he\u200bllo\u200b world is great"
         result = truncate(text, 10)
         assert len(result) <= 10
 
@@ -413,12 +412,12 @@ class TestSanitizeStringExtended:
 
     def test_zero_width_space(self):
         # U+200B is not a control char in C0/C1 range
-        result = sanitize_string("hello\u200Bworld")
+        result = sanitize_string("hello\u200bworld")
         assert "hello" in result
         assert "world" in result
 
     def test_bom_character(self):
-        result = sanitize_string("\uFEFFhello")
+        result = sanitize_string("\ufeffhello")
         assert "hello" in result
 
     def test_cjk_characters(self):
@@ -429,7 +428,7 @@ class TestSanitizeStringExtended:
 
     def test_del_character(self):
         # DEL (0x7F) is in C0/C1 control range
-        assert sanitize_string("hello\x7Fworld") == "helloworld"
+        assert sanitize_string("hello\x7fworld") == "helloworld"
 
     def test_very_long_string(self):
         long = "abcdef\x00" * 10000

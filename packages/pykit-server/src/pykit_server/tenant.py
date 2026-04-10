@@ -9,9 +9,7 @@ from typing import Any
 import grpc
 
 # Context variable to store the current tenant ID
-_tenant_context: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "tenant_id", default=None
-)
+_tenant_context: contextvars.ContextVar[str | None] = contextvars.ContextVar("tenant_id", default=None)
 
 
 @dataclass
@@ -103,9 +101,7 @@ class TenantInterceptor(grpc.aio.ServerInterceptor):
         # Wrap the handler to set tenant context
         original = handler.unary_unary
 
-        async def wrapped_unary_unary(
-            request: Any, context: grpc.aio.ServicerContext[Any, Any]
-        ) -> Any:
+        async def wrapped_unary_unary(request: Any, context: grpc.aio.ServicerContext[Any, Any]) -> Any:
             # Set tenant ID in context var
             token = _tenant_context.set(tenant_id)
             try:
@@ -132,9 +128,7 @@ def get_tenant() -> str | None:
     return _tenant_context.get()
 
 
-def _make_error_handler(
-    status_code: grpc.StatusCode, details: str
-) -> Any:
+def _make_error_handler(status_code: grpc.StatusCode, details: str) -> Any:
     """Create a handler that returns an error response."""
 
     async def error_handler(request: Any, context: grpc.aio.ServicerContext[Any, Any]) -> Any:

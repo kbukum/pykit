@@ -68,11 +68,5 @@ class StreamError:
 
 
 StreamEvent = (
-    ContentDelta
-    | ToolCallDelta
-    | ThinkingDelta
-    | UsageUpdate
-    | MessageStart
-    | MessageComplete
-    | StreamError
+    ContentDelta | ToolCallDelta | ThinkingDelta | UsageUpdate | MessageStart | MessageComplete | StreamError
 )

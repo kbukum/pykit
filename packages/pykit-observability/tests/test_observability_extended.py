@@ -6,7 +6,7 @@ import threading
 import time
 
 import pytest
-from opentelemetry import metrics, trace
+from opentelemetry import trace
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import InMemoryMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -26,7 +26,6 @@ from pykit_observability import (
     get_tracer,
     setup_metrics,
     setup_tracing,
-    trace_operation,
 )
 
 
@@ -37,6 +36,7 @@ def _reset_tracer_provider() -> None:
 
 def _reset_meter_provider() -> None:
     from opentelemetry.metrics import _internal
+
     _internal._METER_PROVIDER = None
     _internal._METER_PROVIDER_SET_ONCE._done = False
 
@@ -299,7 +299,6 @@ class TestSamplingBehavior:
 
 class TestTraceContextPropagation:
     def test_span_context_in_headers(self) -> None:
-        from opentelemetry.context import attach, detach
         from opentelemetry.propagate import inject
 
         exporter = InMemorySpanExporter()
@@ -369,9 +368,8 @@ class TestMultipleOperationContexts:
         outer = OperationContext("outer")
         inner = OperationContext("inner")
 
-        async with outer():
-            async with inner():
-                pass
+        async with outer(), inner():
+            pass
 
         spans = exporter.get_finished_spans()
         assert len(spans) == 2

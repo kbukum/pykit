@@ -4,7 +4,6 @@ type system, security, and composition."""
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -18,9 +17,6 @@ from pykit_provider import (
     Sink,
     StreamProvider,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
 
 # ---------------------------------------------------------------------------
 # Concrete helpers
@@ -217,9 +213,7 @@ class TestErrorHandling:
         ],
         ids=["ValueError", "TypeError", "RuntimeError"],
     )
-    async def test_request_response_func_propagates_errors(
-        self, error: Exception
-    ) -> None:
+    async def test_request_response_func_propagates_errors(self, error: Exception) -> None:
         async def failing(_: str) -> str:
             raise error
 

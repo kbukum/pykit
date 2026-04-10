@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from pykit_observability.exporters import (
-    OtlpExporterConfig,
     OTLP_HTTP_AVAILABLE,
+    OtlpExporterConfig,
     create_metric_exporter,
     create_span_exporter,
     setup_otlp_metrics,

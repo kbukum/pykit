@@ -191,10 +191,12 @@ class TestAgentRun:
         registry = Registry()
         registry.register(add)
 
-        provider = MockProvider([
-            _tool_call_response("tc1", "add", {"a": 2, "b": 3}),
-            _text_response("The sum is 5"),
-        ])
+        provider = MockProvider(
+            [
+                _tool_call_response("tc1", "add", {"a": 2, "b": 3}),
+                _text_response("The sum is 5"),
+            ]
+        )
         agent = Agent(AgentConfig(provider=provider, tools=registry))
         result = await agent.run([user("What is 2+3?")])
         assert result.stop_reason == StopReason.END_TURN
@@ -221,10 +223,12 @@ class TestAgentRun:
     @pytest.mark.asyncio
     async def test_max_budget(self) -> None:
         big_usage = Usage(prompt_tokens=500, completion_tokens=500, total_tokens=1000)
-        provider = MockProvider([
-            _tool_call_response("tc1", "echo", {"text": "x"}, usage=big_usage),
-            _text_response("done"),
-        ])
+        provider = MockProvider(
+            [
+                _tool_call_response("tc1", "echo", {"text": "x"}, usage=big_usage),
+                _text_response("done"),
+            ]
+        )
 
         @tool(description="Echo")
         async def echo(ctx: Context, text: str) -> str:
@@ -240,10 +244,12 @@ class TestAgentRun:
     @pytest.mark.asyncio
     async def test_no_tools_registry(self) -> None:
         # Provider returns a tool call but agent has no tool registry
-        provider = MockProvider([
-            _tool_call_response("tc1", "search", {"q": "test"}),
-            _text_response("Sorry, no tools"),
-        ])
+        provider = MockProvider(
+            [
+                _tool_call_response("tc1", "search", {"q": "test"}),
+                _text_response("Sorry, no tools"),
+            ]
+        )
         agent = Agent(AgentConfig(provider=provider))
         result = await agent.run([user("search")])
         assert result.stop_reason == StopReason.END_TURN
@@ -271,10 +277,12 @@ class TestAgentStream:
         registry = Registry()
         registry.register(echo)
 
-        provider = MockProvider([
-            _tool_call_response("tc1", "echo", {"text": "hello"}),
-            _text_response("echoed"),
-        ])
+        provider = MockProvider(
+            [
+                _tool_call_response("tc1", "echo", {"text": "hello"}),
+                _text_response("echoed"),
+            ]
+        )
         agent = Agent(AgentConfig(provider=provider, tools=registry))
         events = [e async for e in agent.stream([user("echo hello")])]
         types = [type(e).__name__ for e in events]
@@ -375,10 +383,12 @@ class TestAgentHooks:
         registry = Registry()
         registry.register(echo)
 
-        provider = MockProvider([
-            _tool_call_response("tc1", "echo", {"text": "hello"}),
-            _text_response("done"),
-        ])
+        provider = MockProvider(
+            [
+                _tool_call_response("tc1", "echo", {"text": "hello"}),
+                _text_response("done"),
+            ]
+        )
         agent = Agent(AgentConfig(provider=provider, tools=registry, hooks=hooks))
         await agent.run([user("echo")])
         assert "echo" in pre_calls
@@ -399,10 +409,12 @@ class TestAgentHooks:
         registry = Registry()
         registry.register(echo)
 
-        provider = MockProvider([
-            _tool_call_response("tc1", "echo", {"text": "hello"}),
-            _text_response("done"),
-        ])
+        provider = MockProvider(
+            [
+                _tool_call_response("tc1", "echo", {"text": "hello"}),
+                _text_response("done"),
+            ]
+        )
         agent = Agent(AgentConfig(provider=provider, tools=registry, hooks=hooks))
         result = await agent.run([user("echo")])
         # Should still complete since abort only skips the tool call

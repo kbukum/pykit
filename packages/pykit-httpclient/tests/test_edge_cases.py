@@ -14,18 +14,13 @@ from pykit_httpclient.config import AuthConfig, HttpConfig
 from pykit_httpclient.errors import (
     ErrorCode,
     HttpError,
-    auth_error,
     classify_status,
-    connection_error,
     is_retryable,
-    not_found_error,
-    rate_limit_error,
     server_error,
     timeout_error,
     validation_error,
 )
 from pykit_httpclient.types import Request, Response
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -161,6 +156,7 @@ class TestErrorFormatting:
 
     def test_error_inherits_app_error(self):
         from pykit_errors import AppError
+
         e = timeout_error()
         assert isinstance(e, AppError)
 
@@ -225,12 +221,14 @@ class TestClientBodyEncoding:
 
         cfg = HttpConfig(base_url="http://test", timeout=5.0)
         c = HttpClient(cfg, transport=mock_transport(check_ct))
-        resp = await c.request(Request(
-            method="POST",
-            path="/",
-            body="<xml/>",
-            headers={"content-type": "application/xml"},
-        ))
+        resp = await c.request(
+            Request(
+                method="POST",
+                path="/",
+                body="<xml/>",
+                headers={"content-type": "application/xml"},
+            )
+        )
         data = resp.json()
         assert "application/xml" in data["ct"]
 
@@ -257,9 +255,13 @@ class TestClientHeaders:
 
         cfg = HttpConfig(base_url="http://test", headers={"X-Key": "config"})
         c = HttpClient(cfg, transport=mock_transport(check_headers))
-        resp = await c.request(Request(
-            method="GET", path="/", headers={"X-Key": "override"},
-        ))
+        resp = await c.request(
+            Request(
+                method="GET",
+                path="/",
+                headers={"X-Key": "override"},
+            )
+        )
         data = resp.json()
         assert data["x-key"] == "override"
 
@@ -328,17 +330,20 @@ class TestClientAuth:
             auth=AuthConfig(type="bearer", token="config-token"),
         )
         c = HttpClient(cfg, transport=mock_transport(check_auth))
-        resp = await c.request(Request(
-            method="GET",
-            path="/",
-            auth=AuthConfig(type="bearer", token="override-token"),
-        ))
+        resp = await c.request(
+            Request(
+                method="GET",
+                path="/",
+                auth=AuthConfig(type="bearer", token="override-token"),
+            )
+        )
         data = resp.json()
         assert "override-token" in data["auth"]
         assert "config-token" not in data["auth"]
 
     async def test_unknown_auth_type_ignored(self):
         """Unknown auth types should not crash - they're silently ignored."""
+
         def check_auth(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json={"auth": request.headers.get("authorization", "")})
 
@@ -545,6 +550,7 @@ class TestComponentEdgeCases:
 
     async def test_health_before_start(self):
         from pykit_component import HealthStatus
+
         comp = HttpComponent(HttpConfig())
         h = await comp.health()
         assert h.status == HealthStatus.UNHEALTHY
@@ -552,6 +558,7 @@ class TestComponentEdgeCases:
 
     async def test_health_no_base_url(self):
         from pykit_component import HealthStatus
+
         comp = HttpComponent(HttpConfig(base_url=""))
         await comp.start()
         h = await comp.health()
@@ -631,6 +638,7 @@ class TestSecurity:
 
     async def test_header_with_newline_handled(self):
         """Headers with newlines should be rejected or sanitized by httpx."""
+
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200)
 
@@ -638,11 +646,13 @@ class TestSecurity:
         c = HttpClient(cfg, transport=mock_transport(handler))
         # httpx should handle or reject invalid header values
         try:
-            await c.request(Request(
-                method="GET",
-                path="/",
-                headers={"X-Evil": "value\r\nInjected: true"},
-            ))
+            await c.request(
+                Request(
+                    method="GET",
+                    path="/",
+                    headers={"X-Evil": "value\r\nInjected: true"},
+                )
+            )
         except (httpx.InvalidURL, ValueError, httpx.HTTPError):
             pass  # Expected - invalid header rejected
 

@@ -12,7 +12,6 @@ import pytest
 from pykit_di import Container, RegistrationMode
 from pykit_di.container import CircularDependencyError
 
-
 # ---------------------------------------------------------------------------
 # 1. Concurrent resolution of same lazy component from multiple threads
 # ---------------------------------------------------------------------------

@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import UTC
 
 import pytest
 
 from pykit_worker import (
-    Event,
     EventType,
     PoolConfig,
     Task,
@@ -24,7 +22,6 @@ from pykit_worker.event import (
     partial_event,
     progress_event,
 )
-
 
 # ---------------------------------------------------------------------------
 # 1. Task timeout enforcement (task exceeds timeout)

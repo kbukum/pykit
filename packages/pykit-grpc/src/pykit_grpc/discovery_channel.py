@@ -84,9 +84,7 @@ class DiscoveryChannel:
         discovered service target. Subsequent accesses return the cached channel.
         """
         if self._channel is None:
-            raise RuntimeError(
-                "Channel not yet initialized. Call resolve() or refresh() first."
-            )
+            raise RuntimeError("Channel not yet initialized. Call resolve() or refresh() first.")
         return self._channel
 
     async def refresh(self) -> None:

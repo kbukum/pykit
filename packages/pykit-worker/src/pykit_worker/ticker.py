@@ -39,14 +39,14 @@ class TickerWorker:
     """
 
     __slots__ = (
-        "_name",
-        "_interval",
-        "_handler",
-        "_task",
-        "_running",
-        "_run_count",
         "_fail_count",
+        "_handler",
+        "_interval",
         "_last_error",
+        "_name",
+        "_run_count",
+        "_running",
+        "_task",
     )
 
     def __init__(

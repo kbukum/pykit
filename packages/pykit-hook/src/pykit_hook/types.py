@@ -73,6 +73,7 @@ def modify(data: Any, reason: str = "") -> Result:
     """Return a MODIFY result."""
     return Result(action=Action.MODIFY, modified_data=data, reason=reason)
 
+
 # ---------------------------------------------------------------------------
 # Backwards-compatible aliases
 # ---------------------------------------------------------------------------

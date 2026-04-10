@@ -10,7 +10,6 @@ import pytest
 
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
 
-
 # ---------------------------------------------------------------------------
 # Path traversal security
 # ---------------------------------------------------------------------------
@@ -67,10 +66,7 @@ class TestConcurrentOperations:
     async def test_concurrent_uploads(self, store: LocalStorage) -> None:
         """Multiple concurrent uploads should not corrupt each other."""
         n = 20
-        tasks = [
-            store.upload(f"concurrent/{i}.txt", f"content-{i}".encode())
-            for i in range(n)
-        ]
+        tasks = [store.upload(f"concurrent/{i}.txt", f"content-{i}".encode()) for i in range(n)]
         await asyncio.gather(*tasks)
 
         for i in range(n):

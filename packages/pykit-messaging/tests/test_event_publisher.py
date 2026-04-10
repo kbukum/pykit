@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass, field
-
 import pytest
 
 from pykit_messaging.event_publisher import EventPublisher
@@ -17,7 +14,9 @@ class MockProducer:
     def __init__(self) -> None:
         self.events: list[tuple[str, Event]] = []
 
-    async def send(self, topic: str, value: bytes, key: str | None = None, headers: dict[str, str] | None = None) -> None:
+    async def send(
+        self, topic: str, value: bytes, key: str | None = None, headers: dict[str, str] | None = None
+    ) -> None:
         pass
 
     async def send_event(self, topic: str, event: Event) -> None:

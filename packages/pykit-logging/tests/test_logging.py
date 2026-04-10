@@ -57,6 +57,7 @@ class TestLogging:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _json_logger(monkeypatch, *, level="DEBUG", service_name="test-svc"):
     """Configure JSON logging writing to a StringIO buffer. Returns (logger, buf)."""
     buf = io.StringIO()
@@ -74,6 +75,7 @@ def _parse_json(buf):
 # ---------------------------------------------------------------------------
 # configure_logging / setup_logging
 # ---------------------------------------------------------------------------
+
 
 class TestSetupLoggingConfiguration:
     """Tests for setup_logging() with various configurations."""
@@ -151,6 +153,7 @@ class TestSetupLoggingConfiguration:
 # get_logger
 # ---------------------------------------------------------------------------
 
+
 class TestGetLoggerDetailed:
     """Detailed tests for get_logger()."""
 
@@ -183,6 +186,7 @@ class TestGetLoggerDetailed:
 # ---------------------------------------------------------------------------
 # Correlation ID
 # ---------------------------------------------------------------------------
+
 
 class TestCorrelationIdManagement:
     """Tests for correlation ID management."""
@@ -259,6 +263,7 @@ class TestCorrelationIdManagement:
 # add_correlation_id processor (unit)
 # ---------------------------------------------------------------------------
 
+
 class TestAddCorrelationIdProcessor:
     """Unit tests for the add_correlation_id structlog processor."""
 
@@ -290,6 +295,7 @@ class TestAddCorrelationIdProcessor:
 # ---------------------------------------------------------------------------
 # Log level filtering
 # ---------------------------------------------------------------------------
+
 
 class TestLogLevelFiltering:
     """Tests for log level filtering behaviour."""
@@ -345,6 +351,7 @@ class TestLogLevelFiltering:
 # ---------------------------------------------------------------------------
 # JSON output field verification
 # ---------------------------------------------------------------------------
+
 
 class TestJsonOutputFields:
     """Verify JSON output structure and fields."""
@@ -408,6 +415,7 @@ class TestJsonOutputFields:
 # ---------------------------------------------------------------------------
 # Async safety (contextvars)
 # ---------------------------------------------------------------------------
+
 
 class TestAsyncSafety:
     """Tests for async context safety using contextvars."""
@@ -475,6 +483,7 @@ class TestAsyncSafety:
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     """Edge case and boundary tests."""
 
@@ -498,7 +507,7 @@ class TestEdgeCases:
 
     def test_special_characters_in_message(self, monkeypatch) -> None:
         logger, buf = _json_logger(monkeypatch)
-        special = 'quotes "double" and \'single\' & <angle> \\ backslash'
+        special = "quotes \"double\" and 'single' & <angle> \\ backslash"
         logger.info(special)
         assert _parse_json(buf)["event"] == special
 

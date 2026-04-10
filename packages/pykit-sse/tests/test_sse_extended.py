@@ -68,8 +68,7 @@ class TestFilterEdgeCases:
 
         await hub.broadcast(
             SSEEvent(data="active admins"),
-            filter_fn=lambda c: c.metadata.get("role") == "admin"
-            and c.metadata.get("active") is True,
+            filter_fn=lambda c: c.metadata.get("role") == "admin" and c.metadata.get("active") is True,
         )
 
         assert (await c1.receive()).data == "active admins"

@@ -4,12 +4,10 @@ from __future__ import annotations
 
 import os
 import tomllib
-from pathlib import Path
 
 import pytest
 
 from pykit_config import BaseSettings, load_config
-
 
 # ---------------------------------------------------------------------------
 # Original tests (preserved)
@@ -187,8 +185,14 @@ def _clean_app_env(monkeypatch):
             monkeypatch.delenv(key, raising=False)
     # Also clear bare env vars that pydantic-settings reads (prefix="")
     for bare in (
-        "SERVICE_NAME", "ENVIRONMENT", "HOST", "PORT",
-        "LOG_LEVEL", "LOG_FORMAT", "METRICS_PORT", "METRICS_ENABLED",
+        "SERVICE_NAME",
+        "ENVIRONMENT",
+        "HOST",
+        "PORT",
+        "LOG_LEVEL",
+        "LOG_FORMAT",
+        "METRICS_PORT",
+        "METRICS_ENABLED",
     ):
         monkeypatch.delenv(bare, raising=False)
 
@@ -243,11 +247,7 @@ class TestLoadConfigToml:
     def test_toml_overrides_defaults(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
         f = tmp_path / "config.toml"
-        f.write_text(
-            'environment = "production"\n'
-            'log_level = "ERROR"\n'
-            "metrics_enabled = false\n"
-        )
+        f.write_text('environment = "production"\nlog_level = "ERROR"\nmetrics_enabled = false\n')
         s = load_config(BaseSettings, path=f)
         assert s.environment == "production"
         assert s.log_level == "ERROR"
@@ -309,18 +309,14 @@ class TestLoadConfigToml:
         """defaults < TOML < APP_ env vars — all three layers."""
         _clean_app_env(monkeypatch)
         f = tmp_path / "config.toml"
-        f.write_text(
-            'service_name = "toml"\n'
-            "port = 7070\n"
-            'log_level = "WARNING"\n'
-        )
+        f.write_text('service_name = "toml"\nport = 7070\nlog_level = "WARNING"\n')
         # Override only service_name via APP_ env
         monkeypatch.setenv("APP_SERVICE_NAME", "env")
         s = load_config(BaseSettings, path=f)
-        assert s.service_name == "env"       # APP_ env > TOML
-        assert s.port == 7070                 # TOML > default
-        assert s.log_level == "WARNING"       # TOML > default
-        assert s.host == "0.0.0.0"            # default (nothing else set)
+        assert s.service_name == "env"  # APP_ env > TOML
+        assert s.port == 7070  # TOML > default
+        assert s.log_level == "WARNING"  # TOML > default
+        assert s.host == "0.0.0.0"  # default (nothing else set)
 
 
 # ---------------------------------------------------------------------------
@@ -424,11 +420,7 @@ class TestSubclassing:
             max_retries: int = 3
 
         f = tmp_path / "config.toml"
-        f.write_text(
-            'service_name = "sub-svc"\n'
-            'db_host = "toml-db"\n'
-            "max_retries = 5\n"
-        )
+        f.write_text('service_name = "sub-svc"\ndb_host = "toml-db"\nmax_retries = 5\n')
         s = load_config(AppSettings, path=f)
         assert s.service_name == "sub-svc"
         assert s.db_host == "toml-db"

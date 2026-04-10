@@ -100,8 +100,6 @@ class TestCountTokensApprox:
     def test_assistant_message(self) -> None:
         from pykit_llm.types import TextBlock
 
-        msgs: list[Message] = [
-            AssistantMessage(content=[TextBlock(text="response text")])
-        ]
+        msgs: list[Message] = [AssistantMessage(content=[TextBlock(text="response text")])]
         # 13 chars => 13 // 4 = 3
         assert count_tokens_approx(msgs) == 3

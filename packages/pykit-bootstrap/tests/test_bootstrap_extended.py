@@ -18,7 +18,7 @@ from pykit_bootstrap import (
     LoggingConfig,
     ServiceConfig,
 )
-from pykit_component import Component, Registry
+from pykit_component import Registry
 
 # ---------------------------------------------------------------------------
 # Helper — shortcut for creating DefaultAppConfig
@@ -41,6 +41,7 @@ def _cfg(name: str = "svc", **kwargs: object) -> DefaultAppConfig:
 def _make_hook(order: list[str], label: str):
     async def _h() -> None:
         order.append(label)
+
     return _h
 
 
@@ -355,9 +356,7 @@ class TestPartialComponentStartup:
         app = App(_cfg("test"))
 
         app.with_component(_MockComponent("db", order=order))
-        app.with_component(
-            _MockComponent("cache", order=order, start_error=RuntimeError("cache fail"))
-        )
+        app.with_component(_MockComponent("cache", order=order, start_error=RuntimeError("cache fail")))
         app.with_component(_MockComponent("kafka", order=order))
 
         with pytest.raises(RuntimeError, match="cache fail"):
@@ -409,12 +408,7 @@ class TestFluentAPI:
     def test_hook_chaining(self) -> None:
         app = App(_cfg("svc"))
         sentinel = AsyncMock()
-        result = (
-            app.on_configure(sentinel)
-            .on_start(sentinel)
-            .on_ready(sentinel)
-            .on_stop(sentinel)
-        )
+        result = app.on_configure(sentinel).on_start(sentinel).on_ready(sentinel).on_stop(sentinel)
         assert result is app
 
     def test_set_ready_check_chaining(self) -> None:
@@ -488,6 +482,7 @@ class TestLifecycleEdgeCases:
         lc = Lifecycle()
 
         for _ in range(50):
+
             async def hook() -> None:
                 nonlocal count
                 count += 1

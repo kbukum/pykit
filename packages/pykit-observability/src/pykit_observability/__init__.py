@@ -34,4 +34,3 @@ __all__ = [
     "setup_tracing",
     "trace_operation",
 ]
-

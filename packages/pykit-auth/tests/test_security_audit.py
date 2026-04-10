@@ -3,18 +3,18 @@
 from __future__ import annotations
 
 import asyncio
-import re
 import ssl
 import time
 
 import jwt as pyjwt
 import pytest
 
-from pykit_auth import JWTConfig, JWTService, PasswordHasher, HashAlgorithm
+from pykit_auth import HashAlgorithm, JWTConfig, JWTService, PasswordHasher
 from pykit_errors import AppError, InvalidInputError
 
 try:
     from pykit_security.tls import TLSConfig
+
     HAS_SECURITY = True
 except ImportError:
     HAS_SECURITY = False
@@ -90,9 +90,7 @@ class TestErrorSanitization:
 class TestJWTSecurity:
     """JWT algorithm confusion, token validation, and secret handling."""
 
-    def _make_service(
-        self, secret: str = "test-secret-key-minimum-length", **kwargs
-    ) -> JWTService:
+    def _make_service(self, secret: str = "test-secret-key-minimum-length", **kwargs) -> JWTService:
         return JWTService(JWTConfig(secret=secret, **kwargs))
 
     def test_algorithm_confusion_none_rejected(self) -> None:
@@ -161,9 +159,7 @@ class TestJWTSecurity:
         svc = self._make_service(issuer="trusted-issuer")
         # Generate without issuer claim
         payload = {"sub": "user", "exp": int(time.time()) + 3600}
-        token = pyjwt.encode(
-            payload, "test-secret-key-minimum-length", algorithm="HS256"
-        )
+        token = pyjwt.encode(payload, "test-secret-key-minimum-length", algorithm="HS256")
 
         with pytest.raises((InvalidInputError, Exception)):
             svc.validate(token)
@@ -344,7 +340,7 @@ class TestExceptionHandling:
         assert AppError.rate_limited().http_status == 429
 
     def test_backward_compat_subclasses(self) -> None:
-        from pykit_errors import NotFoundError, InvalidInputError, ServiceUnavailableError
+        from pykit_errors import InvalidInputError, NotFoundError, ServiceUnavailableError
 
         assert isinstance(NotFoundError("User"), AppError)
         assert isinstance(InvalidInputError("bad"), AppError)

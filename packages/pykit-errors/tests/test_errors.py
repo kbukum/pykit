@@ -217,7 +217,9 @@ _ALL_HTTP_STATUS_MAP = [
 
 
 class TestErrorCodeHttpStatusAll:
-    @pytest.mark.parametrize("code,expected_status", _ALL_HTTP_STATUS_MAP, ids=lambda v: v if isinstance(v, str) else "")
+    @pytest.mark.parametrize(
+        "code,expected_status", _ALL_HTTP_STATUS_MAP, ids=lambda v: v if isinstance(v, str) else ""
+    )
     def test_http_status_mapping(self, code: ErrorCode, expected_status: int) -> None:
         assert code.http_status == expected_status
 
@@ -253,7 +255,9 @@ _ALL_GRPC_CODE_MAP = [
 
 
 class TestErrorCodeGrpcCodeAll:
-    @pytest.mark.parametrize("code,expected_grpc", _ALL_GRPC_CODE_MAP, ids=lambda v: v if isinstance(v, str) else "")
+    @pytest.mark.parametrize(
+        "code,expected_grpc", _ALL_GRPC_CODE_MAP, ids=lambda v: v if isinstance(v, str) else ""
+    )
     def test_grpc_code_mapping(self, code: ErrorCode, expected_grpc: int) -> None:
         assert code.grpc_code == expected_grpc
 
@@ -278,7 +282,9 @@ _ALL_RETRYABLE_MAP = [(code, code in _RETRYABLE_CODES) for code in ErrorCode]
 
 
 class TestErrorCodeRetryableAll:
-    @pytest.mark.parametrize("code,expected", _ALL_RETRYABLE_MAP, ids=lambda v: v if isinstance(v, str) else "")
+    @pytest.mark.parametrize(
+        "code,expected", _ALL_RETRYABLE_MAP, ids=lambda v: v if isinstance(v, str) else ""
+    )
     def test_is_retryable(self, code: ErrorCode, expected: bool) -> None:
         assert code.is_retryable is expected
 
@@ -286,6 +292,7 @@ class TestErrorCodeRetryableAll:
 # ---------------------------------------------------------------------------
 # AppError convenience constructors — detailed assertions
 # ---------------------------------------------------------------------------
+
 
 class TestAppErrorConstructorsDetailed:
     def test_not_found_with_id(self) -> None:
@@ -430,6 +437,7 @@ class TestAppErrorConstructorsDetailed:
 # Builder chain tests
 # ---------------------------------------------------------------------------
 
+
 class TestBuilderChains:
     def test_with_cause_preserves_cause(self) -> None:
         cause = ValueError("bad value")
@@ -449,19 +457,11 @@ class TestBuilderChains:
         assert err.details["k"] == "v2"
 
     def test_with_details_merges(self) -> None:
-        err = (
-            AppError(ErrorCode.INTERNAL, "fail")
-            .with_detail("a", "1")
-            .with_details({"b": "2", "c": "3"})
-        )
+        err = AppError(ErrorCode.INTERNAL, "fail").with_detail("a", "1").with_details({"b": "2", "c": "3"})
         assert err.details == {"a": "1", "b": "2", "c": "3"}
 
     def test_with_details_overwrites_existing(self) -> None:
-        err = (
-            AppError(ErrorCode.INTERNAL, "fail")
-            .with_detail("a", "old")
-            .with_details({"a": "new"})
-        )
+        err = AppError(ErrorCode.INTERNAL, "fail").with_detail("a", "old").with_details({"a": "new"})
         assert err.details["a"] == "new"
 
     def test_with_retryable_overrides_default(self) -> None:
@@ -496,27 +496,35 @@ class TestBuilderChains:
 # Error properties — query helpers for ALL relevant codes
 # ---------------------------------------------------------------------------
 
+
 class TestErrorProperties:
     @pytest.mark.parametrize("code", [ErrorCode.NOT_FOUND])
     def test_is_not_found_true(self, code: ErrorCode) -> None:
         assert AppError(code, "x").is_not_found is True
 
-    @pytest.mark.parametrize("code", [
-        c for c in ErrorCode if c != ErrorCode.NOT_FOUND
-    ])
+    @pytest.mark.parametrize("code", [c for c in ErrorCode if c != ErrorCode.NOT_FOUND])
     def test_is_not_found_false(self, code: ErrorCode) -> None:
         assert AppError(code, "x").is_not_found is False
 
-    @pytest.mark.parametrize("code", [
-        ErrorCode.UNAUTHORIZED, ErrorCode.TOKEN_EXPIRED, ErrorCode.INVALID_TOKEN,
-    ])
+    @pytest.mark.parametrize(
+        "code",
+        [
+            ErrorCode.UNAUTHORIZED,
+            ErrorCode.TOKEN_EXPIRED,
+            ErrorCode.INVALID_TOKEN,
+        ],
+    )
     def test_is_unauthorized_true(self, code: ErrorCode) -> None:
         assert AppError(code, "x").is_unauthorized is True
 
-    @pytest.mark.parametrize("code", [
-        c for c in ErrorCode
-        if c not in {ErrorCode.UNAUTHORIZED, ErrorCode.TOKEN_EXPIRED, ErrorCode.INVALID_TOKEN}
-    ])
+    @pytest.mark.parametrize(
+        "code",
+        [
+            c
+            for c in ErrorCode
+            if c not in {ErrorCode.UNAUTHORIZED, ErrorCode.TOKEN_EXPIRED, ErrorCode.INVALID_TOKEN}
+        ],
+    )
     def test_is_unauthorized_false(self, code: ErrorCode) -> None:
         assert AppError(code, "x").is_unauthorized is False
 
@@ -524,9 +532,7 @@ class TestErrorProperties:
     def test_is_forbidden_true(self, code: ErrorCode) -> None:
         assert AppError(code, "x").is_forbidden is True
 
-    @pytest.mark.parametrize("code", [
-        c for c in ErrorCode if c != ErrorCode.FORBIDDEN
-    ])
+    @pytest.mark.parametrize("code", [c for c in ErrorCode if c != ErrorCode.FORBIDDEN])
     def test_is_forbidden_false(self, code: ErrorCode) -> None:
         assert AppError(code, "x").is_forbidden is False
 
@@ -557,7 +563,9 @@ _GRPC_STATUS_EXPECTED = [
 
 
 class TestToGrpcStatusAll:
-    @pytest.mark.parametrize("code,expected_grpc_status", _GRPC_STATUS_EXPECTED, ids=lambda v: v.name if hasattr(v, "name") else "")
+    @pytest.mark.parametrize(
+        "code,expected_grpc_status", _GRPC_STATUS_EXPECTED, ids=lambda v: v.name if hasattr(v, "name") else ""
+    )
     def test_grpc_status(self, code: ErrorCode, expected_grpc_status: grpc.StatusCode) -> None:
         err = AppError(code, "test")
         assert err.to_grpc_status() == expected_grpc_status
@@ -572,6 +580,7 @@ class TestToGrpcStatusAll:
 # ---------------------------------------------------------------------------
 # ErrorResponse — comprehensive tests
 # ---------------------------------------------------------------------------
+
 
 class TestErrorResponseComprehensive:
     @pytest.mark.parametrize("code", list(ErrorCode))
@@ -596,14 +605,20 @@ class TestErrorResponseComprehensive:
 
     def test_to_dict_includes_instance_when_set(self) -> None:
         resp = ErrorResponse(
-            type="t", title="T", status=400, detail="d",
+            type="t",
+            title="T",
+            status=400,
+            detail="d",
             instance="/api/v1/users/42",
         )
         assert resp.to_dict()["instance"] == "/api/v1/users/42"
 
     def test_to_dict_includes_extensions_when_set(self) -> None:
         resp = ErrorResponse(
-            type="t", title="T", status=400, detail="d",
+            type="t",
+            title="T",
+            status=400,
+            detail="d",
             extensions={"request_id": "abc-123"},
         )
         assert resp.to_dict()["extensions"] == {"request_id": "abc-123"}
@@ -626,6 +641,7 @@ class TestErrorResponseComprehensive:
 # ---------------------------------------------------------------------------
 # __str__ representation
 # ---------------------------------------------------------------------------
+
 
 class TestAppErrorStr:
     def test_str_without_cause(self) -> None:
@@ -653,6 +669,7 @@ class TestAppErrorStr:
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases:
     def test_empty_string_message(self) -> None:
@@ -708,11 +725,7 @@ class TestEdgeCases:
         assert err.details["count"] == 42
 
     def test_multiple_with_details_calls_accumulate(self) -> None:
-        err = (
-            AppError(ErrorCode.INTERNAL, "fail")
-            .with_details({"a": 1})
-            .with_details({"b": 2})
-        )
+        err = AppError(ErrorCode.INTERNAL, "fail").with_details({"a": 1}).with_details({"b": 2})
         assert err.details == {"a": 1, "b": 2}
 
     def test_http_status_set_on_init(self) -> None:
@@ -724,6 +737,7 @@ class TestEdgeCases:
 # ---------------------------------------------------------------------------
 # Deprecated subclasses
 # ---------------------------------------------------------------------------
+
 
 class TestDeprecatedNotFoundError:
     def test_maps_to_not_found_code(self) -> None:

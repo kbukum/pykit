@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import threading
 import time
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -37,9 +36,7 @@ from pykit_resilience.degradation import (
 class TestCircuitBreakerEdgeCases:
     async def test_half_open_concurrent_probes_exactly_max(self) -> None:
         """Exactly half_open_max_calls probes should be allowed in half-open."""
-        cfg = CircuitBreakerConfig(
-            name="ho-max", max_failures=1, timeout=0.01, half_open_max_calls=3
-        )
+        cfg = CircuitBreakerConfig(name="ho-max", max_failures=1, timeout=0.01, half_open_max_calls=3)
         cb = CircuitBreaker(cfg)
 
         async def fail() -> None:
@@ -72,9 +69,7 @@ class TestCircuitBreakerEdgeCases:
 
     async def test_half_open_single_failure_reopens(self) -> None:
         """A single failure during half-open should reopen the circuit."""
-        cfg = CircuitBreakerConfig(
-            name="ho-fail", max_failures=1, timeout=0.01, half_open_max_calls=3
-        )
+        cfg = CircuitBreakerConfig(name="ho-fail", max_failures=1, timeout=0.01, half_open_max_calls=3)
         cb = CircuitBreaker(cfg)
 
         async def fail() -> None:
@@ -127,9 +122,7 @@ class TestCircuitBreakerEdgeCases:
             (AttributeError, "no attr"),
         ],
     )
-    async def test_non_standard_exception_types(
-        self, exc_class: type[Exception], msg: str
-    ) -> None:
+    async def test_non_standard_exception_types(self, exc_class: type[Exception], msg: str) -> None:
         """Circuit breaker should count failures for any exception type."""
         cfg = CircuitBreakerConfig(name="exc-types", max_failures=1)
         cb = CircuitBreaker(cfg)
@@ -178,9 +171,7 @@ class TestCircuitBreakerEdgeCases:
 
     async def test_very_short_timeout_transitions_quickly(self) -> None:
         """Extremely short timeout should transition OPEN→HALF_OPEN almost immediately."""
-        cfg = CircuitBreakerConfig(
-            name="fast-to", max_failures=1, timeout=0.001
-        )
+        cfg = CircuitBreakerConfig(name="fast-to", max_failures=1, timeout=0.001)
         cb = CircuitBreaker(cfg)
 
         async def fail() -> None:
@@ -222,9 +213,7 @@ class TestCircuitBreakerEdgeCases:
             await asyncio.sleep(0.001)
             return counter
 
-        results = await asyncio.gather(
-            *[cb.execute(inc) for _ in range(50)]
-        )
+        results = await asyncio.gather(*[cb.execute(inc) for _ in range(50)])
         assert len(results) == 50
         assert cb.state == State.CLOSED
         assert cb.failures == 0
@@ -338,9 +327,7 @@ class TestRetryEdgeCases:
             (KeyError, False),
         ],
     )
-    async def test_retry_if_selective_filter(
-        self, exc_class: type[Exception], should_retry: bool
-    ) -> None:
+    async def test_retry_if_selective_filter(self, exc_class: type[Exception], should_retry: bool) -> None:
         """retry_if should only retry matching exception types."""
         calls = 0
 
@@ -489,9 +476,7 @@ class TestBulkheadEdgeCases:
             await barrier.wait()
             return idx
 
-        results = await asyncio.gather(
-            *[bh.execute(lambda i=i: task(i)) for i in range(5)]
-        )
+        results = await asyncio.gather(*[bh.execute(lambda i=i: task(i)) for i in range(5)])
         assert sorted(results) == [0, 1, 2, 3, 4]
         assert bh.available == 5
         assert bh.in_use == 0
@@ -908,9 +893,7 @@ class TestMultiPatternIntegration:
         tasks = [asyncio.create_task(bh.execute(guarded)) for _ in range(10)]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        total_rate_limited = sum(
-            1 for r in results if isinstance(r, RateLimitedError)
-        )
+        total_rate_limited = sum(1 for r in results if isinstance(r, RateLimitedError))
         total_success = sum(1 for r in results if r == 1)
 
         assert total_success + total_rate_limited == 10
@@ -934,9 +917,7 @@ class TestMultiPatternIntegration:
 
         async def pipeline() -> str:
             await rl.wait()
-            return await bh.execute(
-                lambda: cb.execute(lambda: retry(service, retry_cfg))
-            )
+            return await bh.execute(lambda: cb.execute(lambda: retry(service, retry_cfg)))
 
         results = await asyncio.gather(*[pipeline() for _ in range(10)])
         assert all(r == "ok" for r in results)
@@ -947,9 +928,7 @@ class TestMultiPatternIntegration:
         dm = DegradationManager()
         callback = dm.on_circuit_breaker_state_change("api")
 
-        cfg = CircuitBreakerConfig(
-            name="api", max_failures=2, timeout=0.01, on_state_change=callback
-        )
+        cfg = CircuitBreakerConfig(name="api", max_failures=2, timeout=0.01, on_state_change=callback)
         cb = CircuitBreaker(cfg)
 
         # Phase 1: failures degrade the service
@@ -979,9 +958,7 @@ class TestMultiPatternIntegration:
         dm = DegradationManager()
         callback = dm.on_circuit_breaker_state_change("load-svc")
 
-        cfg = CircuitBreakerConfig(
-            name="load", max_failures=5, timeout=0.02, on_state_change=callback
-        )
+        cfg = CircuitBreakerConfig(name="load", max_failures=5, timeout=0.02, on_state_change=callback)
         cb = CircuitBreaker(cfg)
 
         fail_count = 0

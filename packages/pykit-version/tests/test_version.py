@@ -467,9 +467,7 @@ class TestRunGitEdgeCases:
         assert info.is_dirty is False
 
     def test_git_returns_empty_on_nonzero_exit(self) -> None:
-        fake_result = subprocess.CompletedProcess(
-            args=["git"], returncode=1, stdout="", stderr="fatal"
-        )
+        fake_result = subprocess.CompletedProcess(args=["git"], returncode=1, stdout="", stderr="fatal")
         with patch(
             "pykit_version.version.subprocess.run",
             return_value=fake_result,

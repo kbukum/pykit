@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
@@ -18,7 +17,6 @@ from pykit_discovery import (
     ServiceInstance,
     StaticProvider,
 )
-
 
 # ── ServiceInstance extended ─────────────────────────────────────────
 
@@ -113,9 +111,7 @@ class TestStaticProviderExtended:
             inst = ServiceInstance(id=f"c{i}", name="svc", host="h", port=80 + i)
             await provider.register(inst)
 
-        results = await asyncio.gather(
-            *[provider.discover("svc") for _ in range(20)]
-        )
+        results = await asyncio.gather(*[provider.discover("svc") for _ in range(20)])
         for result in results:
             assert len(result) == 10
 
@@ -259,10 +255,7 @@ class TestLargeScale:
         assert len(result) == 500
 
     def test_round_robin_many_instances(self) -> None:
-        instances = [
-            ServiceInstance(id=f"s{i}", name="svc", host="h", port=80 + i)
-            for i in range(100)
-        ]
+        instances = [ServiceInstance(id=f"s{i}", name="svc", host="h", port=80 + i) for i in range(100)]
         rr = RoundRobinStrategy()
         # Pick all 100, then verify wrap-around
         ids = [rr.select(instances).id for _ in range(200)]

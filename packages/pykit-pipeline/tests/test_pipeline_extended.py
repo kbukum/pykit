@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from typing import Any
 
 import pytest
 
 from pykit_pipeline import Pipeline, PipelineIterator, collect, concat, drain, for_each, reduce
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -528,9 +527,7 @@ class TestLargeStreams:
     async def test_large_chain(self) -> None:
         n = 10_000
         result = await collect(
-            Pipeline.from_list(list(range(n)))
-            .map(lambda x: x * 2)
-            .filter(lambda x: x % 4 == 0)
+            Pipeline.from_list(list(range(n))).map(lambda x: x * 2).filter(lambda x: x % 4 == 0)
         )
         assert len(result) == n // 2
 
@@ -624,7 +621,11 @@ class TestFromFnReuse:
         assert len(calls) == 2
 
     async def test_from_fn_with_operators(self) -> None:
-        p = Pipeline.from_fn(lambda: TrackingIterator([1, 2, 3])).map(lambda x: x + 10).filter(lambda x: x > 11)
+        p = (
+            Pipeline.from_fn(lambda: TrackingIterator([1, 2, 3]))
+            .map(lambda x: x + 10)
+            .filter(lambda x: x > 11)
+        )
         r1 = await collect(p)
         r2 = await collect(p)
         assert r1 == [12, 13]
@@ -641,8 +642,8 @@ class TestComplexChains:
         tapped: list[int] = []
         p = (
             Pipeline.from_list([1, 2, 3, 4, 5])
-            .map(lambda x: x * 2)        # [2, 4, 6, 8, 10]
-            .filter(lambda x: x > 4)     # [6, 8, 10]
+            .map(lambda x: x * 2)  # [2, 4, 6, 8, 10]
+            .filter(lambda x: x > 4)  # [6, 8, 10]
             .tap(lambda x: tapped.append(x))
             .flat_map(lambda x: SubIter([x, x + 1]))  # [6,7, 8,9, 10,11]
         )
@@ -667,11 +668,7 @@ class TestComplexChains:
         assert await collect(p) == [1, -1, 10, -10, 2, -2, 20, -20]
 
     async def test_reduce_after_complex_chain(self) -> None:
-        p = (
-            Pipeline.from_list([1, 2, 3, 4, 5])
-            .filter(lambda x: x % 2 == 0)
-            .map(lambda x: x * 10)
-        )
+        p = Pipeline.from_list([1, 2, 3, 4, 5]).filter(lambda x: x % 2 == 0).map(lambda x: x * 10)
         total = reduce(p, 0, lambda a, x: a + x)
         assert await collect(total) == [60]  # (2*10) + (4*10)
 
@@ -920,7 +917,7 @@ class TestParametrized:
             ([1, 2, 3], lambda x: x * 2, [2, 4, 6]),
             ([1, 2, 3], lambda x: x + 10, [11, 12, 13]),
             ([1, 2, 3], lambda x: -x, [-1, -2, -3]),
-            ([1, 2, 3], lambda x: x ** 2, [1, 4, 9]),
+            ([1, 2, 3], lambda x: x**2, [1, 4, 9]),
         ],
         ids=["double", "add10", "negate", "square"],
     )
@@ -998,9 +995,7 @@ class TestMiscRegression:
         assert await collect(p) == [1, 2, 3, 4]
 
     async def test_flat_map_with_varying_sizes(self) -> None:
-        p = Pipeline.from_list([1, 2, 3]).flat_map(
-            lambda x: SubIter(list(range(x)))
-        )
+        p = Pipeline.from_list([1, 2, 3]).flat_map(lambda x: SubIter(list(range(x))))
         # x=1 -> [0], x=2 -> [0,1], x=3 -> [0,1,2]
         assert await collect(p) == [0, 0, 1, 0, 1, 2]
 

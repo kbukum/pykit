@@ -14,17 +14,13 @@ Covers:
 
 from __future__ import annotations
 
-import re
 import time
-from dataclasses import FrozenInstanceError
-from typing import Optional
 
 import pytest
 from pydantic import BaseModel, Field
 
 from pykit_errors import InvalidInputError
 from pykit_validation import FieldError, Validator, validate_model
-
 
 # ===========================================================================
 # FieldError dataclass properties
@@ -154,11 +150,11 @@ class TestMaxLengthParametrized:
     @pytest.mark.parametrize(
         "value, max_len, expect_error",
         [
-            ("abc", 3, False),   # exact boundary
-            ("ab", 3, False),    # under
-            ("abcd", 3, True),   # over by 1
-            ("", 0, False),      # empty with 0 limit
-            ("a", 0, True),      # 1 char with 0 limit
+            ("abc", 3, False),  # exact boundary
+            ("ab", 3, False),  # under
+            ("abcd", 3, True),  # over by 1
+            ("", 0, False),  # empty with 0 limit
+            ("a", 0, True),  # 1 char with 0 limit
         ],
         ids=["exact", "under", "over", "empty_zero", "one_char_zero"],
     )
@@ -206,10 +202,10 @@ class TestRangeCheckParametrized:
         "value, lo, hi, expect_error",
         [
             (10, 1, 100, False),
-            (1, 1, 100, False),     # low boundary
-            (100, 1, 100, False),   # high boundary
-            (0, 1, 100, True),      # below
-            (101, 1, 100, True),    # above
+            (1, 1, 100, False),  # low boundary
+            (100, 1, 100, False),  # high boundary
+            (0, 1, 100, True),  # below
+            (101, 1, 100, True),  # above
             (-5, -10, 10, False),
             (0.5, 0.0, 1.0, False),
             (1.01, 0.0, 1.0, True),
@@ -308,8 +304,8 @@ class TestOneOfParametrized:
         [
             ("a", ["a", "b", "c"], False),
             ("d", ["a", "b", "c"], True),
-            ("A", ["a", "b", "c"], True),   # case-sensitive
-            ("", ["a", "b"], False),          # empty skipped
+            ("A", ["a", "b", "c"], True),  # case-sensitive
+            ("", ["a", "b"], False),  # empty skipped
         ],
     )
     def test_one_of_values(self, value: str, allowed: list[str], expect_error: bool):
@@ -528,8 +524,8 @@ class _NestedModel(BaseModel):
 
 class _OptionalFieldsModel(BaseModel):
     name: str
-    bio: Optional[str] = None
-    age: Optional[int] = None
+    bio: str | None = None
+    age: int | None = None
 
 
 class _StrictModel(BaseModel):
@@ -869,8 +865,8 @@ class _EmptyModel(BaseModel):
 
 
 class _AllOptionalModel(BaseModel):
-    x: Optional[str] = None
-    y: Optional[int] = None
+    x: str | None = None
+    y: int | None = None
 
 
 class _DefaultValueModel(BaseModel):

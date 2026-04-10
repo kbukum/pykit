@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
 
 import pytest
 
@@ -16,7 +15,6 @@ from pykit_stateful import (
     SizeTrigger,
     TimeTrigger,
 )
-
 
 # ---------------------------------------------------------------------------
 # Store protocol conformance
@@ -248,9 +246,7 @@ class TestMultipleTriggers:
         time_trigger: TimeTrigger[int] = TimeTrigger(interval=10.0)  # very long
 
         cfg = AccumulatorConfig(max_size=100)
-        acc: Accumulator[int] = Accumulator(
-            cfg, on_flush, triggers=[size_trigger, time_trigger]
-        )
+        acc: Accumulator[int] = Accumulator(cfg, on_flush, triggers=[size_trigger, time_trigger])
 
         await acc.push(1)
         assert flushed == []
@@ -268,9 +264,7 @@ class TestMultipleTriggers:
         time_trigger: TimeTrigger[int] = TimeTrigger(interval=0.03)
 
         cfg = AccumulatorConfig(max_size=100)
-        acc: Accumulator[int] = Accumulator(
-            cfg, on_flush, triggers=[size_trigger, time_trigger]
-        )
+        acc: Accumulator[int] = Accumulator(cfg, on_flush, triggers=[size_trigger, time_trigger])
 
         await acc.push(1)
         assert flushed == []

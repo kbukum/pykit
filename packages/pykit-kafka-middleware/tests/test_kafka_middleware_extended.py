@@ -28,7 +28,6 @@ from pykit_kafka_middleware.tracing import (
 )
 from pykit_messaging.types import Message
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -55,9 +54,7 @@ def _make_msg(
 def _get_sample_value(name: str, labels: dict[str, str]) -> float | None:
     for metric in REGISTRY.collect():
         for sample in metric.samples:
-            if sample.name == name and all(
-                sample.labels.get(k) == v for k, v in labels.items()
-            ):
+            if sample.name == name and all(sample.labels.get(k) == v for k, v in labels.items()):
                 return sample.value
     return None
 
@@ -80,9 +77,7 @@ class TestCalculateBackoff:
         assert abs(_calculate_backoff(3, cfg) - 0.4) < 1e-9
 
     def test_max_backoff_cap(self) -> None:
-        cfg = RetryMiddlewareConfig(
-            initial_backoff=1.0, max_backoff=2.0, jitter=0.0, backoff_factor=10.0
-        )
+        cfg = RetryMiddlewareConfig(initial_backoff=1.0, max_backoff=2.0, jitter=0.0, backoff_factor=10.0)
         result = _calculate_backoff(5, cfg)
         assert result <= 2.0
 
@@ -99,9 +94,7 @@ class TestCalculateBackoff:
 
     @pytest.mark.parametrize("factor", [1.0, 1.5, 2.0, 3.0])
     def test_various_backoff_factors(self, factor: float) -> None:
-        cfg = RetryMiddlewareConfig(
-            initial_backoff=0.1, jitter=0.0, backoff_factor=factor, max_backoff=100.0
-        )
+        cfg = RetryMiddlewareConfig(initial_backoff=0.1, jitter=0.0, backoff_factor=factor, max_backoff=100.0)
         result = _calculate_backoff(3, cfg)
         expected = 0.1 * math.pow(factor, 2)
         assert abs(result - expected) < 1e-9
@@ -171,9 +164,7 @@ class TestRetryHandlerExtended:
         async def on_exhausted(msg: Message, err: Exception) -> None:
             errors.append(str(err))
 
-        cfg = RetryMiddlewareConfig(
-            max_attempts=2, initial_backoff=0.01, on_exhausted=on_exhausted
-        )
+        cfg = RetryMiddlewareConfig(max_attempts=2, initial_backoff=0.01, on_exhausted=on_exhausted)
         wrapped = RetryHandler(handler, cfg)
         with pytest.raises(RuntimeError):
             await wrapped(_make_msg())
@@ -272,9 +263,7 @@ class TestDeadLetterExtended:
 
 class TestDeadLetterEnvelopeDataclass:
     def test_default_fields(self) -> None:
-        env = DeadLetterEnvelope(
-            original_topic="t", error="e", retry_count=0, timestamp="now"
-        )
+        env = DeadLetterEnvelope(original_topic="t", error="e", retry_count=0, timestamp="now")
         assert env.headers == {}
         assert env.payload == ""
 
@@ -310,22 +299,19 @@ class TestInstrumentHandlerExtended:
         topic, group = "incr-test-topic", "incr-test-group"
         wrapped = InstrumentHandler(topic, group, handler)
 
-        before = _get_sample_value(
-            "kafka_consumer_messages_total", {"topic": topic, "group": group}
-        )
+        before = _get_sample_value("kafka_consumer_messages_total", {"topic": topic, "group": group})
 
         await wrapped(_make_msg())
         await wrapped(_make_msg())
 
-        after = _get_sample_value(
-            "kafka_consumer_messages_total", {"topic": topic, "group": group}
-        )
+        after = _get_sample_value("kafka_consumer_messages_total", {"topic": topic, "group": group})
         assert after is not None
         increment = after - (before or 0.0)
         assert increment >= 2.0
 
     async def test_error_still_records_message_count(self) -> None:
         """Even when handler errors, the message counter should be incremented (in finally)."""
+
         async def handler(msg: Message) -> None:
             raise RuntimeError("fail")
 
@@ -336,12 +322,8 @@ class TestInstrumentHandlerExtended:
             await wrapped(_make_msg())
 
         # Both messages_total and errors_total should be incremented
-        msg_val = _get_sample_value(
-            "kafka_consumer_messages_total", {"topic": topic, "group": group}
-        )
-        err_val = _get_sample_value(
-            "kafka_consumer_errors_total", {"topic": topic, "group": group}
-        )
+        msg_val = _get_sample_value("kafka_consumer_messages_total", {"topic": topic, "group": group})
+        err_val = _get_sample_value("kafka_consumer_errors_total", {"topic": topic, "group": group})
         assert msg_val is not None and msg_val >= 1.0
         assert err_val is not None and err_val >= 1.0
 
@@ -350,14 +332,10 @@ class TestInstrumentHandlerExtended:
             pass
 
         topic, group = "custom-pfx-topic", "custom-pfx-group"
-        wrapped = InstrumentHandler(
-            topic, group, handler, metric_prefix="my_broker"
-        )
+        wrapped = InstrumentHandler(topic, group, handler, metric_prefix="my_broker")
         await wrapped(_make_msg())
 
-        val = _get_sample_value(
-            "my_broker_messages_total", {"topic": topic, "group": group}
-        )
+        val = _get_sample_value("my_broker_messages_total", {"topic": topic, "group": group})
         assert val is not None and val >= 1.0
 
         dur = _get_sample_value(
@@ -503,9 +481,7 @@ class TestRetryWithDeadLetter:
         async def failing_handler(msg: Message) -> None:
             raise RuntimeError("always fails")
 
-        cfg = RetryMiddlewareConfig(
-            max_attempts=3, initial_backoff=0.01, on_exhausted=on_exhausted
-        )
+        cfg = RetryMiddlewareConfig(max_attempts=3, initial_backoff=0.01, on_exhausted=on_exhausted)
         wrapped = RetryHandler(failing_handler, cfg)
 
         with pytest.raises(RuntimeError):

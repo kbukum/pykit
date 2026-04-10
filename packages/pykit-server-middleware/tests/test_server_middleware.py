@@ -7,11 +7,10 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-from prometheus_client import CollectorRegistry, REGISTRY
+from prometheus_client import REGISTRY
 
 from pykit_server_middleware.prometheus import PrometheusMiddleware
 from pykit_server_middleware.tracing import TracingMiddleware
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -21,9 +20,7 @@ from pykit_server_middleware.tracing import TracingMiddleware
 def _get_sample_value(name: str, labels: dict[str, str]) -> float | None:
     for metric in REGISTRY.collect():
         for sample in metric.samples:
-            if sample.name == name and all(
-                sample.labels.get(k) == v for k, v in labels.items()
-            ):
+            if sample.name == name and all(sample.labels.get(k) == v for k, v in labels.items()):
                 return sample.value
     return None
 
@@ -52,6 +49,7 @@ async def _app_status(status: int):
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": status, "headers": []})
         await send({"type": "http.response.body", "body": b""})
+
     return app
 
 
@@ -329,9 +327,7 @@ class TestTracingExtended:
             ("PATCH", "/settings"),
         ],
     )
-    async def test_multiple_methods_and_paths(
-        self, tracer_exporter, method: str, path: str
-    ) -> None:
+    async def test_multiple_methods_and_paths(self, tracer_exporter, method: str, path: str) -> None:
         app = TracingMiddleware(_simple_app)
         await app(_make_scope(method=method, path=path), _receive, lambda m: _noop())
 

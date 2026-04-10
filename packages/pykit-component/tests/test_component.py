@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from pykit_component import Component, Describable, Description, Health, HealthStatus, Registry
+from pykit_component import Component, Description, Health, HealthStatus, Registry
 
 # ---------------------------------------------------------------------------
 # Helpers

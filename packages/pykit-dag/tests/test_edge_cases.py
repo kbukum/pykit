@@ -11,7 +11,6 @@ import pytest
 from pykit_dag import Engine, EngineConfig, FailurePolicy, Graph, NodeStatus
 from pykit_dag.graph import CycleError
 
-
 # ---------------------------------------------------------------------------
 # Test helpers
 # ---------------------------------------------------------------------------
@@ -105,7 +104,16 @@ class TestComplexTopologies:
         g.add_node(AdderNode(name="f", dependencies=["d"]))
         g.add_node(AdderNode(name="g", dependencies=["e", "f"]))
 
-        for src, dst in [("a","b"),("a","c"),("b","d"),("c","d"),("d","e"),("d","f"),("e","g"),("f","g")]:
+        for src, dst in [
+            ("a", "b"),
+            ("a", "c"),
+            ("b", "d"),
+            ("c", "d"),
+            ("d", "e"),
+            ("d", "f"),
+            ("e", "g"),
+            ("f", "g"),
+        ]:
             g.add_edge(src, dst)
 
         result = await Engine().execute(g)

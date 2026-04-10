@@ -5,8 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pykit_component import Health, HealthStatus
-from pykit_discovery import DiscoveryServer, Registry, ServiceInstance
-
+from pykit_discovery import DiscoveryServer, ServiceInstance
 
 # --- Mock classes for testing ---
 

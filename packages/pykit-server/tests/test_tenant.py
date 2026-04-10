@@ -111,7 +111,7 @@ class TestTenantInterceptor:
         # Result should be an error handler (created by _make_error_handler)
         assert result is not None
         # It should have unary_unary method
-        assert hasattr(result, 'unary_unary')
+        assert hasattr(result, "unary_unary")
 
     @pytest.mark.asyncio
     async def test_missing_tenant_with_fallback(self) -> None:

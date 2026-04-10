@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from pykit_messaging.handler import FuncHandler, MessageHandlerProtocol
-from pykit_messaging.middleware.retry import RetryConfig, RetryHandler, retry
-from pykit_messaging.middleware.metrics import MetricsHandler, instrument
+from pykit_messaging.handler import FuncHandler
 from pykit_messaging.middleware.dead_letter import DeadLetterConfig, DeadLetterProducer
+from pykit_messaging.middleware.metrics import MetricsHandler
+from pykit_messaging.middleware.retry import RetryConfig, RetryHandler
 from pykit_messaging.middleware.stack import StackBuilder
 from pykit_messaging.types import Message
 

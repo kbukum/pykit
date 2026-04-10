@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
 from prometheus_client import REGISTRY
 
 from pykit_metrics import MetricsCollector
@@ -14,9 +13,7 @@ from pykit_metrics.prometheus import start_metrics_server
 def _get_sample_value(name: str, labels: dict[str, str]) -> float | None:
     for metric in REGISTRY.collect():
         for sample in metric.samples:
-            if sample.name == name and all(
-                sample.labels.get(k) == v for k, v in labels.items()
-            ):
+            if sample.name == name and all(sample.labels.get(k) == v for k, v in labels.items()):
                 return sample.value
     return None
 
@@ -150,7 +147,7 @@ class TestHistogramBuckets:
     def test_bucket_boundaries_present(self) -> None:
         mc = MetricsCollector("bucket_svc")
         mc.observe_request("/B", "OK", 0.001)  # fast
-        mc.observe_request("/B", "OK", 5.0)    # slow
+        mc.observe_request("/B", "OK", 5.0)  # slow
 
         # Check that the 0.005 bucket captured the fast request
         val_005 = _get_sample_value(
@@ -189,12 +186,8 @@ class TestActiveRequests:
         mc.active_requests.labels(method="/A").inc()
         mc.active_requests.labels(method="/B").inc()
 
-        val_a = _get_sample_value(
-            "active_ind_svc_grpc_active_requests_total", {"method": "/A"}
-        )
-        val_b = _get_sample_value(
-            "active_ind_svc_grpc_active_requests_total", {"method": "/B"}
-        )
+        val_a = _get_sample_value("active_ind_svc_grpc_active_requests_total", {"method": "/A"})
+        val_b = _get_sample_value("active_ind_svc_grpc_active_requests_total", {"method": "/B"})
         assert val_a is not None and val_a >= 2.0
         assert val_b is not None and val_b >= 1.0
 

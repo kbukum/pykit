@@ -5,15 +5,11 @@ from __future__ import annotations
 import dataclasses
 from datetime import UTC, datetime
 
-import pytest
-
 from pykit_workload import (
     DeployRequest,
     DeployResult,
     ExecProvider,
     ExecResult,
-    ListFilter,
-    LogOptions,
     Manager,
     NetworkConfig,
     PortMapping,
@@ -22,8 +18,6 @@ from pykit_workload import (
     VolumeMount,
     WaitResult,
     WorkloadConfig,
-    WorkloadEvent,
-    WorkloadInfo,
     WorkloadStats,
     WorkloadStatus,
     WorkloadStatusInfo,
@@ -32,7 +26,6 @@ from pykit_workload import (
     parse_cpu,
     parse_memory,
 )
-
 
 # ---------------------------------------------------------------------------
 # DeployRequest edge cases
@@ -145,9 +138,7 @@ class TestResourceConfigEdgeCases:
         assert rc.memory_request == ""
 
     def test_all_fields_populated(self) -> None:
-        rc = ResourceConfig(
-            cpu_limit="2", cpu_request="500m", memory_limit="1g", memory_request="256m"
-        )
+        rc = ResourceConfig(cpu_limit="2", cpu_request="500m", memory_limit="1g", memory_request="256m")
         assert rc.cpu_limit == "2"
         assert rc.memory_request == "256m"
 
@@ -306,9 +297,7 @@ class TestWorkloadStatusInfoEdgeCases:
         assert info.stopped_at == now
 
     def test_with_restarts(self) -> None:
-        info = WorkloadStatusInfo(
-            id="1", name="web", image="nginx", status="running", restarts=5
-        )
+        info = WorkloadStatusInfo(id="1", name="web", image="nginx", status="running", restarts=5)
         assert info.restarts == 5
 
     def test_error_state(self) -> None:

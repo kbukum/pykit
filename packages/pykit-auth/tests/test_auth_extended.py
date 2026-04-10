@@ -60,11 +60,7 @@ class TestJWTTokenFormats:
         parts = token.split(".")
         payload = json.loads(base64.urlsafe_b64decode(parts[1] + "=="))
         payload["role"] = "admin"
-        tampered_payload = (
-            base64.urlsafe_b64encode(json.dumps(payload).encode())
-            .rstrip(b"=")
-            .decode()
-        )
+        tampered_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b"=").decode()
         tampered = f"{parts[0]}.{tampered_payload}.{parts[2]}"
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate(tampered)
