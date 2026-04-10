@@ -60,6 +60,22 @@ class Registry:
                 if q in t.definition.name.lower() or q in t.definition.description.lower()
             ]
 
+    def filter_by_execution_hint(self, hint: str) -> list[Definition]:
+        """Return tools whose annotations match the given execution_hint.
+
+        An empty *hint* on annotations is treated as ``"backend"`` for
+        backward compatibility, so ``filter_by_execution_hint("backend")``
+        also returns tools that never set the field.
+        """
+        with self._lock:
+            results: list[Definition] = []
+            for t in self._tools.values():
+                ann = t.definition.annotations
+                effective = (ann.execution_hint or "backend") if ann else "backend"
+                if effective == hint:
+                    results.append(t.definition)
+            return results
+
     async def call(self, name: str, ctx: Context, input_data: dict[str, Any]) -> Result:
         """Call a tool by name. Raises KeyError if not found."""
         tool = self.get(name)

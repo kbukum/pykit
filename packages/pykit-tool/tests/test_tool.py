@@ -382,6 +382,55 @@ class TestRegistry:
         results = reg.search("xyz")
         assert len(results) == 0
 
+    def test_filter_by_execution_hint_explicit(self):
+        @tool(description="UI tool", annotations=Annotations(execution_hint="ui"))
+        async def ui_tool(x: int) -> int:
+            return x
+
+        @tool(description="Backend tool", annotations=Annotations(execution_hint="backend"))
+        async def backend_tool(x: int) -> int:
+            return x
+
+        @tool(description="Hybrid tool", annotations=Annotations(execution_hint="hybrid"))
+        async def hybrid_tool(x: int) -> int:
+            return x
+
+        reg = Registry()
+        reg.register(ui_tool.as_callable())
+        reg.register(backend_tool.as_callable())
+        reg.register(hybrid_tool.as_callable())
+
+        assert [d.name for d in reg.filter_by_execution_hint("ui")] == ["ui_tool"]
+        assert [d.name for d in reg.filter_by_execution_hint("backend")] == ["backend_tool"]
+        assert [d.name for d in reg.filter_by_execution_hint("hybrid")] == ["hybrid_tool"]
+
+    def test_filter_by_execution_hint_default_is_backend(self):
+        """Tools with no annotations or empty execution_hint are treated as backend."""
+
+        @tool(description="No annotations")
+        async def plain(x: int) -> int:
+            return x
+
+        @tool(description="Empty hint", annotations=Annotations(execution_hint=""))
+        async def empty_hint(x: int) -> int:
+            return x
+
+        @tool(description="UI tool", annotations=Annotations(execution_hint="ui"))
+        async def ui_tool(x: int) -> int:
+            return x
+
+        reg = Registry()
+        reg.register(plain.as_callable())
+        reg.register(empty_hint.as_callable())
+        reg.register(ui_tool.as_callable())
+
+        backend = reg.filter_by_execution_hint("backend")
+        names = {d.name for d in backend}
+        assert names == {"plain", "empty_hint"}
+
+        ui = reg.filter_by_execution_hint("ui")
+        assert [d.name for d in ui] == ["ui_tool"]
+
     @pytest.mark.asyncio
     async def test_call_batch(self):
         @tool(description="Double", read_only=True)
@@ -562,3 +611,18 @@ class TestAnnotations:
         assert a.destructive_hint is None
         assert a.category == ""
         assert a.tags == []
+        assert a.execution_hint == ""
+
+    def test_execution_hint_values(self):
+        for hint in ("ui", "backend", "hybrid"):
+            a = Annotations(execution_hint=hint)
+            assert a.execution_hint == hint
+
+    def test_execution_hint_in_dataclass_fields(self):
+        """execution_hint should round-trip through dataclasses.asdict."""
+        import dataclasses
+
+        a = Annotations(title="X", execution_hint="hybrid", category="nav")
+        d = dataclasses.asdict(a)
+        assert d["execution_hint"] == "hybrid"
+        assert d["title"] == "X"

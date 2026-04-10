@@ -18,6 +18,11 @@ class Annotations:
         open_world_hint: True if the tool interacts with external systems.
         category: Grouping category for UI.
         tags: Freeform tags for filtering.
+        execution_hint: How the frontend should handle the tool result.
+            ``"ui"`` — tool only validates/extracts params; frontend drives the action.
+            ``"backend"`` — tool executes a real operation; result is authoritative.
+            ``"hybrid"`` — tool executes backend AND frontend should refresh/navigate.
+            Empty string defaults to ``"backend"`` for backward compatibility.
     """
 
     title: str = ""
@@ -27,6 +32,7 @@ class Annotations:
     open_world_hint: bool | None = None
     category: str = ""
     tags: list[str] = field(default_factory=list)
+    execution_hint: str = ""
 
 
 @dataclass(frozen=True)
