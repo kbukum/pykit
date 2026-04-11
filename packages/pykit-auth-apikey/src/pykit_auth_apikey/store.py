@@ -1,0 +1,23 @@
+"""Store protocol for API key persistence."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Protocol, runtime_checkable
+
+from pykit_auth_apikey.apikey import Key
+
+
+@runtime_checkable
+class Store(Protocol):
+    """Persistence contract for API keys. Consumers implement with their DB."""
+
+    async def create(self, key: Key) -> None: ...
+    async def get_by_hash(self, key_hash: str) -> Key: ...
+    async def get_by_id(self, key_id: str) -> Key: ...
+    async def update_last_used(self, key_id: str) -> None: ...
+    async def set_grace_period(
+        self, key_id: str, grace_ends_at: datetime, rotated_by_id: str
+    ) -> None: ...
+    async def set_active(self, key_id: str, active: bool) -> None: ...
+    async def delete(self, key_id: str) -> None: ...
