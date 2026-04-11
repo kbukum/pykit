@@ -48,6 +48,13 @@ class KafkaProducer:
                 await self._producer.start()
                 return
             except Exception:
+                # Clean up the failed producer to avoid "Unclosed AIOKafkaProducer" warnings
+                if self._producer is not None:
+                    try:
+                        await self._producer.stop()
+                    except Exception:
+                        pass
+                    self._producer = None
                 if attempt == _MAX_START_RETRIES:
                     logger.error(
                         "Kafka producer failed to start after %d attempts",
