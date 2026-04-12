@@ -9,6 +9,13 @@ from pykit_discovery.config import (
     StaticEndpoint,
 )
 from pykit_discovery.consul import ConsulProvider
+from pykit_discovery.factory import (
+    ProviderFactory,
+    ProviderPair,
+    create_provider,
+    init_builtin,
+    register_provider,
+)
 from pykit_discovery.protocols import Discovery, Registry, Watcher
 from pykit_discovery.server import DiscoveryServer
 from pykit_discovery.static import StaticProvider
@@ -30,6 +37,8 @@ __all__ = [
     "HealthConfig",
     "LeastConnectionsStrategy",
     "LoadBalancer",
+    "ProviderFactory",
+    "ProviderPair",
     "RandomStrategy",
     "RegistrationConfig",
     "Registry",
@@ -38,5 +47,8 @@ __all__ = [
     "StaticEndpoint",
     "StaticProvider",
     "Watcher",
+    "create_provider",
+    "init_builtin",
+    "register_provider",
 ]
 __version__ = "0.1.0"

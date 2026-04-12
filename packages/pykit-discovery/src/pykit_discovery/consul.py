@@ -62,7 +62,6 @@ class ConsulProvider:
         try:
             resp = await self._client.put("/v1/agent/service/register", json=payload)
             resp.raise_for_status()
-            logger.info("registered service %s (%s)", instance.name, instance.id)
         except httpx.HTTPError as exc:
             logger.warning("failed to register service %s: %s", instance.id, exc)
             raise

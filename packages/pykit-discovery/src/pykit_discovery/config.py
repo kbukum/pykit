@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any
 
 from pykit_discovery.types import ServiceInstance
 
@@ -12,6 +13,9 @@ class RegistrationConfig:
     """Self-registration settings."""
 
     enabled: bool = False
+    required: bool = True
+    max_retries: int = 3
+    retry_interval: str = "2s"
     service_name: str = ""
     service_id: str = ""
     service_address: str = ""
@@ -22,6 +26,20 @@ class RegistrationConfig:
     def effective_id(self) -> str:
         """Return service_id, falling back to service_name."""
         return self.service_id or self.service_name
+
+    def retry_seconds(self) -> float:
+        """Parse retry_interval as seconds."""
+        s = self.retry_interval.strip()
+        if s.endswith("ms"):
+            return float(s[:-2]) / 1000
+        if s.endswith("s"):
+            return float(s[:-1])
+        if s.endswith("m"):
+            return float(s[:-1]) * 60
+        try:
+            return float(s)
+        except ValueError:
+            return 2.0
 
 
 @dataclass(frozen=True)
@@ -68,6 +86,10 @@ class DiscoveryConfig:
 
     enabled: bool = False
     provider: str = "static"
+    addr: str = ""
+    scheme: str = "http"
+    token: str = ""
+    provider_options: dict[str, Any] = field(default_factory=dict)
     registration: RegistrationConfig = field(default_factory=RegistrationConfig)
     health: HealthConfig = field(default_factory=HealthConfig)
     cache_ttl: str = "30s"
