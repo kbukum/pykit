@@ -123,14 +123,14 @@ class TestTLSMinVersionEnforcement:
 class TestCertificateLoadingEdgeCases:
     @needs_cryptography
     def test_load_ca_file(self, self_signed_certs):
-        ca_path, cert_path, key_path = self_signed_certs
+        ca_path, _cert_path, _key_path = self_signed_certs
         cfg = TLSConfig(ca_file=ca_path, skip_verify=True)
         ctx = cfg.build()
         assert isinstance(ctx, ssl.SSLContext)
 
     @needs_cryptography
     def test_load_cert_and_key(self, self_signed_certs):
-        ca_path, cert_path, key_path = self_signed_certs
+        _ca_path, cert_path, key_path = self_signed_certs
         cfg = TLSConfig(cert_file=cert_path, key_file=key_path, skip_verify=True)
         ctx = cfg.build()
         assert isinstance(ctx, ssl.SSLContext)
@@ -155,7 +155,7 @@ class TestCertificateLoadingEdgeCases:
 
     def test_nonexistent_ca_file_raises_on_build(self):
         cfg = TLSConfig(ca_file="/nonexistent/ca.pem", skip_verify=True)
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             cfg.build()
 
     def test_nonexistent_cert_file_raises_on_build(self):
@@ -164,7 +164,7 @@ class TestCertificateLoadingEdgeCases:
             key_file="/nonexistent/key.pem",
             skip_verify=True,
         )
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             cfg.build()
 
     def test_invalid_pem_content_raises(self, tmp_path: Path):
@@ -340,7 +340,7 @@ class TestPermissionErrors:
         os.chmod(no_read, 0o000)
         try:
             cfg = TLSConfig(ca_file=str(no_read), skip_verify=True)
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 cfg.build()
         finally:
             os.chmod(no_read, stat.S_IRUSR | stat.S_IWUSR)
@@ -353,7 +353,7 @@ class TestPermissionErrors:
         os.chmod(no_read, 0o000)
         try:
             cfg = TLSConfig(cert_file=str(no_read), key_file=key_path, skip_verify=True)
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: B017
                 cfg.build()
         finally:
             os.chmod(no_read, stat.S_IRUSR | stat.S_IWUSR)

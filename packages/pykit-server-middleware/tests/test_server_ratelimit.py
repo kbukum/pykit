@@ -106,7 +106,7 @@ class TestRateLimitMiddleware:
 
         for _ in range(5):
             sent: list[dict] = []
-            await app(_make_scope(), _receive, lambda m: _collect(sent, m))
+            await app(_make_scope(), _receive, lambda m, s=sent: _collect(s, m))
             assert sent[0]["status"] == 200
 
         sent = []
@@ -143,7 +143,7 @@ class TestRateLimitMiddleware:
             # Exhaust limit for /path-a
             for _ in range(2):
                 sent: list[dict] = []
-                await app(_make_scope(path="/path-a"), _receive, lambda m: _collect(sent, m))
+                await app(_make_scope(path="/path-a"), _receive, lambda m, s=sent: _collect(s, m))
                 assert sent[0]["status"] == 200
 
             # /path-a now blocked
@@ -176,7 +176,7 @@ class TestRateLimitMiddleware:
                 await app(
                     _make_scope(client=("10.0.0.1", 8000)),
                     _receive,
-                    lambda m: _collect(sent, m),
+                    lambda m, s=sent: _collect(s, m),
                 )
                 assert sent[0]["status"] == 200
 
@@ -194,7 +194,7 @@ class TestRateLimitMiddleware:
                 await app(
                     _make_scope(state={"tier": "premium"}),
                     _receive,
-                    lambda m: _collect(sent, m),
+                    lambda m, s=sent: _collect(s, m),
                 )
                 assert sent[0]["status"] == 200
         finally:
@@ -233,7 +233,7 @@ class TestCleanup:
             assert "stale-key" in rl._buckets
 
             # Override time to make bucket stale
-            original_now = rl._now_func
+            _original_now = rl._now_func
             rl._now_func = lambda: time.time() + 1.0
 
             # Start cleanup and wait for it to run

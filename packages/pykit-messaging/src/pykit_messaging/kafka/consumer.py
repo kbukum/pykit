@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import Any
 
@@ -77,10 +78,8 @@ class KafkaConsumer:
         topics_str = ", ".join(self._config.topics) if self._config.topics else "(none)"
         # Silently close old consumer
         if self._consumer is not None:
-            try:
+            with contextlib.suppress(Exception):
                 await self._consumer.stop()
-            except Exception:
-                pass
             self._consumer = None
 
         backoff = 1.0
@@ -142,10 +141,8 @@ class KafkaConsumer:
                     await handler(msg)
 
                     # Manual commit after successful processing
-                    try:
+                    with contextlib.suppress(KafkaError):
                         await self._consumer.commit()
-                    except KafkaError:
-                        pass  # will retry on next message
 
             except (KafkaConnectionError, KafkaError) as e:
                 if self._stopped:

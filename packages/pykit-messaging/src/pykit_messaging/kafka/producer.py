@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import logging
 from typing import Any
@@ -50,10 +51,8 @@ class KafkaProducer:
             except Exception:
                 # Clean up the failed producer to avoid "Unclosed AIOKafkaProducer" warnings
                 if self._producer is not None:
-                    try:
+                    with contextlib.suppress(Exception):
                         await self._producer.stop()
-                    except Exception:
-                        pass
                     self._producer = None
                 if attempt == _MAX_START_RETRIES:
                     logger.error(

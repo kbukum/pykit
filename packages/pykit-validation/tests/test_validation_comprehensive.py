@@ -419,7 +419,7 @@ class TestValidateTerminal:
 
     def test_error_is_exception_subclass(self):
         v = Validator().required("name", "")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             v.validate()
 
     def test_single_error_no_semicolon(self):

@@ -162,8 +162,11 @@ class TestStopHookErrors:
 
         app.on_stop(failing_stop)
 
-        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock), pytest.raises(RuntimeError, match="hook error"):
-                await app.run()
+        with (
+            patch.object(app, "_wait_for_signal", new_callable=AsyncMock),
+            pytest.raises(RuntimeError, match="hook error"),
+        ):
+            await app.run()
 
         # Components should still stop (via finally) even after hook error
         assert "db:start" in order

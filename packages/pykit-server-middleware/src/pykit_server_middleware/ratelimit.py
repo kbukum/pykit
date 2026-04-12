@@ -186,7 +186,7 @@ class RateLimitMiddleware:
 
         if not allowed:
             retry_hdr = str(math.ceil(retry_after)).encode("latin-1")
-            headers = rl_headers + [(b"retry-after", retry_hdr), (b"content-type", b"application/json")]
+            headers = [*rl_headers, (b"retry-after", retry_hdr), (b"content-type", b"application/json")]
             body = json.dumps({"error": "rate limit exceeded"}).encode("utf-8")
             await send(
                 {

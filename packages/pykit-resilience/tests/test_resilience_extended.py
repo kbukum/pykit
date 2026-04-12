@@ -241,7 +241,7 @@ class TestCircuitBreakerEdgeCases:
 
         # Run enough iterations to cycle the breaker
         for _ in range(10):
-            try:
+            try:  # noqa: SIM105
                 await cb.execute(flaky)
             except (RuntimeError, CircuitOpenError):
                 pass

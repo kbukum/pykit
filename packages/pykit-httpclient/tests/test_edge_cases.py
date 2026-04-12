@@ -645,7 +645,7 @@ class TestSecurity:
         cfg = HttpConfig(base_url="http://test")
         c = HttpClient(cfg, transport=mock_transport(handler))
         # httpx should handle or reject invalid header values
-        try:
+        try:  # noqa: SIM105
             await c.request(
                 Request(
                     method="GET",
@@ -662,7 +662,7 @@ class TestSecurity:
         c = HttpClient(cfg, transport=transport)
         await c.close()
         # After close, client should raise on usage
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             await c.get("/")
 
 

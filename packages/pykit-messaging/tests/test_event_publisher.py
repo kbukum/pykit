@@ -59,7 +59,7 @@ async def test_publish_keyed_sets_subject() -> None:
 
     await publisher.publish_keyed("orders", "order.placed", {"id": "123"}, key="order-123")
 
-    topic, event = mock.events[0]
+    _topic, event = mock.events[0]
     assert event.subject == "order-123"
     assert event.type == "order.placed"
     assert event.source == "order-svc"

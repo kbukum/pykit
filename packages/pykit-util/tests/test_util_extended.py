@@ -153,7 +153,7 @@ class TestGroupByExtended:
 
 class TestFirstExtended:
     def test_none_values_in_iterable(self):
-        assert first([None, None, 42]) == None  # first returns None (first item)
+        assert first([None, None, 42]) is None  # first returns None (first item)
 
     def test_predicate_with_none(self):
         assert first([None, None, 42], predicate=lambda x: x is not None) == 42
@@ -266,7 +266,7 @@ class TestCoalesceExtended:
         assert coalesce(0, 0, 42) == 42
 
     def test_false_is_falsy(self):
-        assert coalesce(False, True) == True
+        assert coalesce(False, True)
 
     def test_empty_list_is_falsy(self):
         assert coalesce([], [1, 2]) == [1, 2]

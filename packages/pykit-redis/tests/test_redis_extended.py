@@ -143,7 +143,7 @@ class TestTTLEdgeCases:
         """TTL=0 passed as ex=0 is invalid for Redis SET EX command."""
         store: TypedStore[dict] = TypedStore(client, key_prefix="ttl")
         # Redis rejects ex=0 as "invalid expire time"
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             await store.save("k1", {"v": 1}, ttl=0)
 
     async def test_ttl_none_no_expiry(self, client: RedisClient) -> None:

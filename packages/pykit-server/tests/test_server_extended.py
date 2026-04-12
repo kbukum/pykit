@@ -281,9 +281,10 @@ class TestSignalHandling:
         # Trigger the signal handler for SIGTERM
         loop.call_soon(lambda: loop.remove_signal_handler(signal.SIGTERM))
         # Instead, directly trigger stop via the shutdown event mechanism
-        asyncio.create_task(s.stop())
+        stop_task = asyncio.create_task(s.stop())
         await asyncio.wait_for(s._shutdown_event.wait(), timeout=5.0)
         assert s._shutdown_event.is_set()
+        stop_task.cancel()
 
 
 # ---------------------------------------------------------------------------
@@ -310,16 +311,15 @@ class TestRun:
     async def test_run_blocks_until_shutdown(self) -> None:
         s = BaseServer(host="127.0.0.1", port=50167)
 
-        with patch.object(s, "start", new_callable=AsyncMock):
-            with patch.object(s, "_install_signal_handlers"):
-                # Schedule shutdown after a short delay
-                async def trigger():
-                    await asyncio.sleep(0.1)
-                    s._shutdown_event.set()
+        with patch.object(s, "start", new_callable=AsyncMock), patch.object(s, "_install_signal_handlers"):
+            # Schedule shutdown after a short delay
+            async def trigger():
+                await asyncio.sleep(0.1)
+                s._shutdown_event.set()
 
-                task = asyncio.create_task(trigger())
-                await asyncio.wait_for(s.run(), timeout=5.0)
-                await task
+            task = asyncio.create_task(trigger())
+            await asyncio.wait_for(s.run(), timeout=5.0)
+            await task
 
 
 # ---------------------------------------------------------------------------

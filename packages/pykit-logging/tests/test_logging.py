@@ -114,7 +114,7 @@ class TestSetupLoggingConfiguration:
         with __import__("contextlib").suppress(json.JSONDecodeError):
             json.loads(output.strip())
             # If valid JSON, auto resolved to json — fail
-            assert False, "auto format should resolve to console, not json"  # pragma: no cover
+            raise AssertionError("auto format should resolve to console, not json")  # pragma: no cover
 
     def test_log_level_debug(self, monkeypatch) -> None:
         logger, buf = _json_logger(monkeypatch, level="DEBUG")
@@ -570,7 +570,7 @@ class TestEdgeCases:
         logger, buf = _json_logger(monkeypatch)
         logger.info("first")
         logger.info("second")
-        lines = [l for l in buf.getvalue().strip().splitlines() if l.strip()]
+        lines = [line for line in buf.getvalue().strip().splitlines() if line.strip()]
         assert len(lines) == 2
         assert json.loads(lines[0])["event"] == "first"
         assert json.loads(lines[1])["event"] == "second"

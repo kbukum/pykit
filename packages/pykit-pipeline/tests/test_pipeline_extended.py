@@ -106,7 +106,6 @@ class TestMapErrorHandling:
 
     async def test_map_exception_after_successful_items(self) -> None:
         """Exception on third element; first two would succeed."""
-        results: list[int] = []
 
         def transform(x: int) -> int:
             if x == 3:
@@ -453,7 +452,6 @@ class TestEmptyPipelines:
         assert await collect(Pipeline.from_list([]).filter(lambda x: True)) == []
 
     async def test_tap_on_empty(self) -> None:
-        called = False
         p = Pipeline.from_list([]).tap(lambda x: None)
         assert await collect(p) == []
 
@@ -748,7 +746,7 @@ class TestReduceExtended:
         p = reduce(
             Pipeline.from_list([1, 2, 3]),
             [],
-            lambda acc, x: acc + [x * 2],
+            lambda acc, x: [*acc, x * 2],
         )
         assert await collect(p) == [[2, 4, 6]]
 

@@ -6,6 +6,15 @@
 
 > Standalone Python infrastructure library mirroring **gokit** (Go) and **rskit** (Rust).
 
+## Architecture Overview
+
+pykit is a **uv workspace** with a facade package and 50+ independent sub-packages under `packages/`:
+
+- **Facade package** (`pykit`) — lazy-loading re-export of all sub-packages. Import only what you need or use the facade.
+- **Sub-packages** (`pykit-{name}`) — each has its own `pyproject.toml`, installs independently. Dependencies flow strictly downward.
+- **Layered design** — Foundation → Core → Data & Flow → Infrastructure → Specialist. Lower layers never import higher layers.
+- **Python idioms** — Protocol classes, async/await, Pydantic models, structlog logging.
+
 ## Quick Start
 
 ```bash
@@ -96,9 +105,16 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 | Package | Description |
 |---------|-------------|
 | `pykit-llm` | LLM client abstraction and prompt management |
+| `pykit-llm-providers` | LLM provider implementations — OpenAI, Anthropic, Gemini |
 | `pykit-triton` | Triton Inference Server client |
 | `pykit-embedding` | Text and vector embedding utilities |
 | `pykit-vector-store` | Vector store abstraction for similarity search |
+| `pykit-agent` | Agentic loop — LLM orchestration, tool execution, context management |
+| `pykit-tool` | Tool definitions, auto-wiring, registry, and middleware |
+| `pykit-hook` | Generic event hook system for lifecycle handler registration |
+| `pykit-mcp` | Model Context Protocol server and client bridge |
+| `pykit-schema` | JSON Schema generation and validation from Python types |
+| `pykit-explain` | Structured explanation generation from analysis signals via LLM |
 
 **Platform**
 
@@ -123,6 +139,138 @@ pykit is a **uv workspace** with independent packages under `packages/`:
 - **Python idioms**: Protocol, async/await, Pydantic, structlog
 - **Strict layering**: lower layers never import higher layers
 - **Zero unnecessary coupling**: each package declares only its real dependencies
+
+## Usage Examples
+
+### Config + Logging
+
+```python
+from pykit_config import ServiceConfig, load_config
+from pykit_logging import setup_logging, get_logger
+
+config = load_config(ServiceConfig, config_file="config.yml")
+setup_logging(config)
+log = get_logger("my-service")
+log.info("service configured", env=config.environment)
+```
+
+### Resilience Patterns
+
+```python
+from pykit_resilience import retry, CircuitBreaker
+
+cb = CircuitBreaker(max_failures=5, timeout=30.0)
+
+@retry(max_attempts=3, backoff=0.1)
+async def call_external():
+    async with cb:
+        return await httpx.get("https://api.example.com/data")
+```
+
+### Agent Loop
+
+```python
+from pykit_agent import Agent, AgentConfig
+from pykit_tool import Registry
+
+registry = Registry()
+registry.register(weather_tool)
+
+agent = Agent(llm_provider, registry, config=AgentConfig(max_turns=10))
+result = await agent.run("What's the weather in Berlin?")
+print(result.events)
+```
+
+### LLM Chat Completion
+
+```python
+from pykit_llm import LLMProvider, Request, Message
+
+provider = LLMProvider(dialect="openai", model="gpt-4", api_key=os.getenv("OPENAI_API_KEY"))
+resp = await provider.chat_completion(Request(
+    messages=[Message(role="user", content="Explain circuit breakers")],
+))
+print(resp.content)
+```
+
+### Messaging
+
+```python
+from pykit_messaging import Producer, Consumer
+
+producer = Producer(config)
+await producer.publish("events", key="user-123", value=payload)
+
+consumer = Consumer(config, group="my-group")
+consumer.subscribe("events", handler=process_event)
+await consumer.start()
+```
+
+### Object Storage
+
+```python
+from pykit_storage import Storage
+
+store = Storage(config)
+await store.put("uploads/report.pdf", data)
+content = await store.get("uploads/report.pdf")
+```
+
+## Cross-Kit Comparison
+
+pykit, [gokit](https://github.com/kbukum/gokit) (Go), and [rskit](https://github.com/kbukum/rskit) (Rust) share the same module structure and design philosophy. The table below shows capability coverage across all three kits.
+
+| Capability | gokit | rskit | pykit |
+|---|---|---|---|
+| Errors | ✅ `errors` | ✅ `rskit-errors` | ✅ `pykit-errors` |
+| Config | ✅ `config` | ✅ `rskit-config` | ✅ `pykit-config` |
+| Logging | ✅ `logger` | ✅ `rskit-logging` | ✅ `pykit-logging` |
+| Validation | ✅ `validation` | ✅ `rskit-validation` | ✅ `pykit-validation` |
+| Encryption | ✅ `encryption` | ✅ `rskit-encryption` | ✅ `pykit-encryption` |
+| Utilities | ✅ `util` | ❌ | ✅ `pykit-util` |
+| Version | ✅ `version` | ❌ | ✅ `pykit-version` |
+| Media | ✅ `media` | ✅ `rskit-media` | ✅ `pykit-media` |
+| Security | ✅ `security` | ❌ | ✅ `pykit-security` |
+| DI | ✅ `di` | ✅ `rskit-di` | ✅ `pykit-di` |
+| Component | ✅ `component` | ❌ | ✅ `pykit-component` |
+| Bootstrap | ✅ `bootstrap` | ✅ `rskit-bootstrap` | ✅ `pykit-bootstrap` |
+| Provider | ✅ `provider` | ✅ `rskit-provider` | ✅ `pykit-provider` |
+| Resilience | ✅ `resilience` | ✅ `rskit-resilience` | ✅ `pykit-resilience` |
+| Observability | ✅ `observability` | ✅ `rskit-observability` | ✅ `pykit-observability` |
+| Pipeline | ✅ `pipeline` | ✅ `rskit-pipeline` | ✅ `pykit-pipeline` |
+| DAG | ✅ `dag` | ✅ `rskit-dag` | ✅ `pykit-dag` |
+| Worker | ✅ `worker` | ✅ `rskit-worker` | ✅ `pykit-worker` |
+| SSE | ✅ `sse` | ✅ `rskit-sse` | ✅ `pykit-sse` |
+| Stateful | ✅ `stateful` | ❌ | ✅ `pykit-stateful` |
+| Auth | ✅ `auth` | ✅ `rskit-auth` | ✅ `pykit-auth` |
+| Authz | ✅ `authz` | ✅ `rskit-authz` | ✅ `pykit-authz` |
+| Database | ✅ `database` | ✅ `rskit-database` | ✅ `pykit-database` |
+| Redis / Cache | ✅ `redis` | ✅ `rskit-cache` | ✅ `pykit-redis` |
+| Storage / File | ✅ `storage` | ✅ `rskit-file` | ✅ `pykit-storage` |
+| Messaging | ✅ `messaging` | ✅ `rskit-messaging` | ✅ `pykit-messaging` |
+| HTTP Client | ✅ `httpclient` | ✅ `rskit-httpclient` | ✅ `pykit-httpclient` |
+| Server | ✅ `server` | ✅ `rskit-http`, `rskit-server` | ✅ `pykit-server` |
+| gRPC Client | ✅ `grpc` | ✅ `rskit-grpc-client` | ✅ `pykit-grpc` |
+| Connect | ✅ `connect` | ❌ | ❌ |
+| Discovery | ✅ `discovery` | ✅ `rskit-discovery` | ✅ `pykit-discovery` |
+| Process | ✅ `process` | ✅ `rskit-process` | ✅ `pykit-process` |
+| Workload | ✅ `workload` | ❌ | ✅ `pykit-workload` |
+| Test Utilities | ✅ `testutil` | ✅ `rskit-testutil` | ✅ `pykit-testutil` |
+| LLM | ✅ `llm` | ✅ `rskit-llm` | ✅ `pykit-llm` |
+| LLM Providers | ❌ | ✅ `rskit-llm-providers` | ✅ `pykit-llm-providers` |
+| Agent | ✅ `agent` | ✅ `rskit-agent` | ✅ `pykit-agent` |
+| Tool | ✅ `tool` | ✅ `rskit-tool` | ✅ `pykit-tool` |
+| MCP | ✅ `mcp` | ✅ `rskit-mcp` | ✅ `pykit-mcp` |
+| Hook | ✅ `hook` | ✅ `rskit-hook` | ✅ `pykit-hook` |
+| Schema | ✅ `schema` | ✅ `rskit-schema` | ✅ `pykit-schema` |
+| Explain | ✅ `explain` | ✅ `rskit-explain` | ✅ `pykit-explain` |
+| Bench | ✅ `bench` | ✅ `rskit-bench` | ✅ `pykit-bench` |
+| Dataset | ❌ | ✅ `rskit-dataset` | ✅ `pykit-dataset` |
+| Embedding | ✅ `embedding` | ✅ `rskit-embedding` | ✅ `pykit-embedding` |
+| Vector Store | ✅ `vectorstore` | ✅ `rskit-vector-store` | ✅ `pykit-vector-store` |
+| Inference | ❌ | ✅ `rskit-inference` | ✅ `pykit-triton` |
+| CLI | ❌ | ✅ `rskit-cli` | ❌ |
+| Metrics | ❌ | ❌ | ✅ `pykit-metrics` |
 
 ## Contributing
 

@@ -370,7 +370,7 @@ class TestSecurity:
     def test_fernet_key_derivation(self) -> None:
         """Fernet key must be base64url of SHA-256 hash."""
         enc = FernetEncryptor("my-key")
-        expected = base64.urlsafe_b64encode(hashlib.sha256(b"my-key").digest())
+        _expected = base64.urlsafe_b64encode(hashlib.sha256(b"my-key").digest())
         assert enc._fernet._signing_key + enc._fernet._encryption_key == hashlib.sha256(b"my-key").digest()
 
     def test_ciphertext_reveals_no_plaintext_prefix(self) -> None:
@@ -466,12 +466,12 @@ class TestEdgeCases:
 class TestCrossAlgorithm:
     def test_aesgcm_ciphertext_fails_with_fernet(self) -> None:
         ct = AESGCMEncryptor("key").encrypt("data")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             FernetEncryptor("key").decrypt(ct)
 
     def test_fernet_ciphertext_fails_with_aesgcm(self) -> None:
         ct = FernetEncryptor("key").encrypt("data")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             AESGCMEncryptor("key").decrypt(ct)
 
 
