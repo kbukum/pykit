@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import io
-import json
-import sys
 from typing import Any
 
 import structlog
@@ -12,10 +10,10 @@ import structlog
 from pykit_logging.masking import DefaultMasker, MaskingConfig, masking_processor
 from pykit_logging.setup import setup_logging
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_event_dict(**kwargs: Any) -> dict[str, Any]:
     """Build a minimal structlog event_dict for processor tests."""
@@ -25,6 +23,7 @@ def _make_event_dict(**kwargs: Any) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Field-name masking
 # ---------------------------------------------------------------------------
+
 
 class TestFieldNameMasking:
     """Ensure that values for known sensitive field names are fully replaced."""
@@ -114,6 +113,7 @@ class TestFieldNameCaseInsensitivity:
 # Value-pattern masking
 # ---------------------------------------------------------------------------
 
+
 class TestValuePatternMasking:
     """Regex-based value patterns applied regardless of key name."""
 
@@ -187,6 +187,7 @@ class TestValuePatternMasking:
 # Config: custom field names / patterns / disabled
 # ---------------------------------------------------------------------------
 
+
 class TestCustomConfig:
     def test_custom_field_names(self) -> None:
         cfg = MaskingConfig(field_names=("x_custom_secret",))
@@ -218,6 +219,7 @@ class TestCustomConfig:
 # Non-sensitive data passes through unchanged
 # ---------------------------------------------------------------------------
 
+
 class TestPassthrough:
     def test_plain_text(self) -> None:
         m = DefaultMasker()
@@ -236,6 +238,7 @@ class TestPassthrough:
 # ---------------------------------------------------------------------------
 # masking_processor with structlog event_dict
 # ---------------------------------------------------------------------------
+
 
 class TestMaskingProcessor:
     def test_masks_sensitive_key(self) -> None:
@@ -279,6 +282,7 @@ class TestMaskingProcessor:
 # ---------------------------------------------------------------------------
 # Full pipeline: setup_logging → log → verify masking
 # ---------------------------------------------------------------------------
+
 
 class TestFullPipeline:
     def test_json_output_masks_password(self) -> None:

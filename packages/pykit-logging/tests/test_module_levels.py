@@ -12,6 +12,7 @@ from pykit_logging.module_levels import ModuleLevelsConfig, module_levels_proces
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_event_dict(**kwargs: Any) -> dict[str, Any]:
     """Build a minimal structlog event_dict for processor tests."""
     return kwargs

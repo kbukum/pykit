@@ -15,6 +15,7 @@ from pykit_logging.sampling import LogSampler, SamplingConfig, sampling_processo
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_event_dict(**kwargs: Any) -> dict[str, Any]:
     """Build a minimal structlog event_dict for processor tests."""
     return kwargs

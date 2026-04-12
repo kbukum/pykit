@@ -38,7 +38,7 @@ def _get_otel_modules() -> dict[str, Any]:
         ImportError: If OpenTelemetry SDK packages are not installed.
     """
     try:
-        from opentelemetry import trace  # noqa: TC002
+        from opentelemetry import trace
         from opentelemetry.sdk._logs import LoggerProvider as _LoggerProvider
         from opentelemetry.sdk._logs import LogRecord
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, SimpleLogRecordProcessor
@@ -74,8 +74,7 @@ def _get_grpc_exporter() -> Any:
         from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
     except ImportError as exc:
         msg = (
-            "gRPC OTLP exporter is required. "
-            "Install with: pip install opentelemetry-exporter-otlp-proto-grpc"
+            "gRPC OTLP exporter is required. Install with: pip install opentelemetry-exporter-otlp-proto-grpc"
         )
         raise ImportError(msg) from exc
     return OTLPLogExporter
@@ -94,8 +93,7 @@ def _get_http_exporter() -> Any:
         from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
     except ImportError as exc:
         msg = (
-            "HTTP OTLP exporter is required. "
-            "Install with: pip install opentelemetry-exporter-otlp-proto-http"
+            "HTTP OTLP exporter is required. Install with: pip install opentelemetry-exporter-otlp-proto-http"
         )
         raise ImportError(msg) from exc
     return OTLPLogExporter
@@ -184,7 +182,7 @@ class OTLPLogBridge:
                 trace_id = span_ctx.trace_id
                 span_id = span_ctx.span_id
                 trace_flags = span_ctx.trace_flags
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
 
         record = self._otel["LogRecord"](
@@ -202,7 +200,7 @@ class OTLPLogBridge:
         """Gracefully shutdown, flushing pending logs."""
         try:
             self._provider.shutdown()
-        except Exception:  # noqa: BLE001
+        except Exception:
             logging.getLogger(__name__).debug("Error during OTLP bridge shutdown", exc_info=True)
 
     # -- internals ------------------------------------------------------------
@@ -217,10 +215,7 @@ class OTLPLogBridge:
         Returns:
             An exporter instance.
         """
-        if config.protocol == "http":
-            exporter_cls = _get_http_exporter()
-        else:
-            exporter_cls = _get_grpc_exporter()
+        exporter_cls = _get_http_exporter() if config.protocol == "http" else _get_grpc_exporter()
 
         return exporter_cls(
             endpoint=config.endpoint,
@@ -274,7 +269,7 @@ def otlp_processor(bridge: OTLPLogBridge) -> structlog.types.Processor:
 
         try:
             bridge.emit(level, str(message), extra)
-        except Exception:  # noqa: BLE001
+        except Exception:
             logging.getLogger(__name__).debug("OTLP emit failed", exc_info=True)
 
         return event_dict

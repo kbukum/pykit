@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-import importlib
 import sys
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from pykit_logging.otlp import (
+    _SEVERITY_MAP,
     OTLPConfig,
     OTLPLogBridge,
-    _SEVERITY_MAP,
     _sanitize_attributes,
     otlp_processor,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers — build a fake OTel module graph that ``_get_otel_modules`` finds
@@ -77,7 +74,9 @@ def _patch_otel(otel_mocks: dict[str, MagicMock], protocol: str = "grpc"):
     """Context-manager that patches both ``_get_otel_modules`` and the exporter."""
     exporter = _mock_grpc_exporter() if protocol == "grpc" else _mock_http_exporter()
     exporter_path = (
-        "pykit_logging.otlp._get_grpc_exporter" if protocol == "grpc" else "pykit_logging.otlp._get_http_exporter"
+        "pykit_logging.otlp._get_grpc_exporter"
+        if protocol == "grpc"
+        else "pykit_logging.otlp._get_http_exporter"
     )
     return (
         patch("pykit_logging.otlp._get_otel_modules", return_value=otel_mocks),
@@ -159,7 +158,7 @@ class TestOTLPLogBridge:
     """Tests for ``OTLPLogBridge`` creation and methods."""
 
     def test_creation_grpc(self, otel_mocks: dict[str, MagicMock]) -> None:
-        p1, p2, exporter_cls = _patch_otel(otel_mocks, "grpc")
+        p1, p2, _exporter_cls = _patch_otel(otel_mocks, "grpc")
         with p1, p2:
             bridge = OTLPLogBridge(
                 config=OTLPConfig(enabled=True),
@@ -313,23 +312,26 @@ class TestMissingDependencies:
     def test_get_otel_modules_raises_import_error(self) -> None:
         from pykit_logging.otlp import _get_otel_modules
 
-        with patch.dict(sys.modules, {"opentelemetry.sdk._logs": None}):
-            with pytest.raises(ImportError, match="OpenTelemetry SDK is required"):
-                _get_otel_modules()
+        with patch.dict(sys.modules, {"opentelemetry.sdk._logs": None}), pytest.raises(
+            ImportError, match="OpenTelemetry SDK is required"
+        ):
+            _get_otel_modules()
 
     def test_get_grpc_exporter_raises_import_error(self) -> None:
         from pykit_logging.otlp import _get_grpc_exporter
 
-        with patch.dict(sys.modules, {"opentelemetry.exporter.otlp.proto.grpc._log_exporter": None}):
-            with pytest.raises(ImportError, match="gRPC OTLP exporter is required"):
-                _get_grpc_exporter()
+        with patch.dict(
+            sys.modules, {"opentelemetry.exporter.otlp.proto.grpc._log_exporter": None}
+        ), pytest.raises(ImportError, match="gRPC OTLP exporter is required"):
+            _get_grpc_exporter()
 
     def test_get_http_exporter_raises_import_error(self) -> None:
         from pykit_logging.otlp import _get_http_exporter
 
-        with patch.dict(sys.modules, {"opentelemetry.exporter.otlp.proto.http._log_exporter": None}):
-            with pytest.raises(ImportError, match="HTTP OTLP exporter is required"):
-                _get_http_exporter()
+        with patch.dict(
+            sys.modules, {"opentelemetry.exporter.otlp.proto.http._log_exporter": None}
+        ), pytest.raises(ImportError, match="HTTP OTLP exporter is required"):
+            _get_http_exporter()
 
 
 # =====================================================================

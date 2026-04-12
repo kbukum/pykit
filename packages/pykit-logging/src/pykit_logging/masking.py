@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 import structlog
@@ -25,24 +25,26 @@ class Masker(Protocol):
         ...
 
 
-_DEFAULT_FIELD_NAMES: frozenset[str] = frozenset({
-    "password",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "api-key",
-    "authorization",
-    "auth_token",
-    "access_token",
-    "refresh_token",
-    "private_key",
-    "ssn",
-    "credit_card",
-    "card_number",
-    "cvv",
-    "pin",
-})
+_DEFAULT_FIELD_NAMES: frozenset[str] = frozenset(
+    {
+        "password",
+        "secret",
+        "token",
+        "api_key",
+        "apikey",
+        "api-key",
+        "authorization",
+        "auth_token",
+        "access_token",
+        "refresh_token",
+        "private_key",
+        "ssn",
+        "credit_card",
+        "card_number",
+        "cvv",
+        "pin",
+    }
+)
 
 
 def _mask_credit_card(match: re.Match[str]) -> str:
