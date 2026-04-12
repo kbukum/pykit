@@ -10,6 +10,11 @@ from typing import Any
 
 import structlog
 
+from pykit_logging.masking import DefaultMasker, MaskingConfig, masking_processor
+from pykit_logging.module_levels import ModuleLevelsConfig, module_levels_processor
+from pykit_logging.otlp import OTLPConfig, OTLPLogBridge, otlp_processor
+from pykit_logging.sampling import SamplingConfig, sampling_processor
+
 # Correlation ID for request tracing
 correlation_id_var: ContextVar[str] = ContextVar("correlation_id", default="")
 
@@ -34,11 +39,46 @@ def add_correlation_id(logger: Any, method_name: str, event_dict: dict[str, Any]
     return event_dict
 
 
+def schema_normalizer(service_name: str, environment: str = "development") -> structlog.types.Processor:
+    """Create a processor that adds standard service fields to every log entry.
+
+    Ensures every log entry carries the unified schema fields shared across
+    gokit, rskit, and pykit.
+
+    Args:
+        service_name: The name of the service emitting logs.
+        environment: Deployment environment (e.g. ``"production"``, ``"development"``).
+
+    Returns:
+        A structlog processor function.
+    """
+
+    def _processor(
+        logger: Any,
+        method_name: str,
+        event_dict: dict[str, Any],
+    ) -> dict[str, Any]:
+        event_dict["service"] = service_name
+        event_dict["environment"] = environment
+        return event_dict
+
+    return _processor  # type: ignore[return-value]
+
+
+# Module-level OTLP bridge for graceful shutdown
+_otlp_bridge: OTLPLogBridge | None = None
+
+
 def setup_logging(
     *,
     level: str = "INFO",
     log_format: str = "auto",
     service_name: str = "pykit",
+    masking: MaskingConfig | None = None,
+    sampling: SamplingConfig | None = None,
+    module_levels: dict[str, str] | None = None,
+    environment: str = "development",
+    otlp: OTLPConfig | None = None,
 ) -> None:
     """Configure structured logging for the application.
 
@@ -46,9 +86,18 @@ def setup_logging(
         level: Log level (DEBUG, INFO, WARNING, ERROR).
         log_format: "json" for production, "console" for development, "auto" to detect.
         service_name: Added to every log entry.
+        masking: Masking configuration. Defaults to ``MaskingConfig(enabled=True)``.
+        sampling: Sampling configuration. ``None`` disables sampling.
+        module_levels: Per-module log level overrides, e.g. ``{"aiokafka": "CRITICAL"}``.
+        environment: Deployment environment label added to every log entry.
+        otlp: OTLP export configuration. ``None`` disables OTLP export.
     """
+    global _otlp_bridge  # noqa: PLW0603
     if log_format == "auto":
         log_format = "console"
+
+    if masking is None:
+        masking = MaskingConfig()
 
     # Configure standard logging to suppress noisy third-party libraries
     log_level = getattr(logging, level.upper(), logging.INFO)
@@ -66,9 +115,27 @@ def setup_logging(
         structlog.contextvars.merge_contextvars,
         add_correlation_id,  # type: ignore[list-item]
         structlog.processors.add_log_level,
+        schema_normalizer(service_name, environment),  # type: ignore[arg-type]
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
     ]
+
+    if module_levels:
+        shared_processors.append(
+            module_levels_processor(ModuleLevelsConfig(levels=module_levels)),  # type: ignore[arg-type]
+        )
+
+    if sampling and sampling.enabled:
+        shared_processors.append(sampling_processor(sampling))  # type: ignore[arg-type]
+
+    if masking.enabled:
+        shared_processors.append(masking_processor(DefaultMasker(masking)))  # type: ignore[arg-type]
+
+    # OTLP bridge — inserted AFTER masking so exported logs are already masked
+    if otlp and otlp.enabled:
+        bridge = OTLPLogBridge(config=otlp, service_name=service_name, environment=environment)
+        shared_processors.append(otlp_processor(bridge))  # type: ignore[arg-type]
+        _otlp_bridge = bridge
 
     if log_format == "json":
         renderer: structlog.types.Processor = structlog.processors.JSONRenderer()
@@ -86,6 +153,14 @@ def setup_logging(
         logger_factory=structlog.PrintLoggerFactory(file=sys.stderr),
         cache_logger_on_first_use=True,
     )
+
+
+def shutdown_logging() -> None:
+    """Shutdown OTLP bridge gracefully. Call before process exit."""
+    global _otlp_bridge  # noqa: PLW0603
+    if _otlp_bridge is not None:
+        _otlp_bridge.shutdown()
+        _otlp_bridge = None
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
