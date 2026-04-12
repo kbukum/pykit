@@ -45,40 +45,21 @@ class TestPromptBuilder:
         assert result == "You are an AI."
 
     def test_multiple_sections(self) -> None:
-        result = (
-            PromptBuilder()
-            .section("role", "You are a coder.")
-            .section("rules", "Be concise.")
-            .build()
-        )
+        result = PromptBuilder().section("role", "You are a coder.").section("rules", "Be concise.").build()
         assert result == "You are a coder.\n\nBe concise."
 
     def test_custom_separator(self) -> None:
         result = (
-            PromptBuilder()
-            .separator("\n---\n")
-            .section("a", "Section A")
-            .section("b", "Section B")
-            .build()
+            PromptBuilder().separator("\n---\n").section("a", "Section A").section("b", "Section B").build()
         )
         assert result == "Section A\n---\nSection B"
 
     def test_section_if_true(self) -> None:
-        result = (
-            PromptBuilder()
-            .section("base", "Base")
-            .section_if(True, "extra", "Extra")
-            .build()
-        )
+        result = PromptBuilder().section("base", "Base").section_if(True, "extra", "Extra").build()
         assert result == "Base\n\nExtra"
 
     def test_section_if_false(self) -> None:
-        result = (
-            PromptBuilder()
-            .section("base", "Base")
-            .section_if(False, "extra", "Extra")
-            .build()
-        )
+        result = PromptBuilder().section("base", "Base").section_if(False, "extra", "Extra").build()
         assert result == "Base"
 
     def test_empty_builder(self) -> None:

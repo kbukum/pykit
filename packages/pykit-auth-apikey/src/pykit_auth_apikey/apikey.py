@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 @dataclass
@@ -23,18 +23,14 @@ class Key:
     grace_ends_at: datetime | None = None
     rotated_by_id: str = ""
     last_used_at: datetime | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def is_expired_past_grace(self) -> bool:
         """Return True if the key is expired and beyond its grace period."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         if self.grace_ends_at is not None and now > self.grace_ends_at:
             return True
-        if (
-            self.expires_at is not None
-            and now > self.expires_at
-            and self.grace_ends_at is None
-        ):
+        if self.expires_at is not None and now > self.expires_at and self.grace_ends_at is None:
             return True
         return False
 

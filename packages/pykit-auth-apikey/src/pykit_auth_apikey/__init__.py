@@ -20,8 +20,8 @@ from pykit_auth_apikey.rotation import (
 from pykit_auth_apikey.store import Store
 
 __all__ = [
-    "APIKeyMiddleware",
     "DEFAULT_GRACE_PERIOD",
+    "APIKeyMiddleware",
     "GenerateResult",
     "Key",
     "KeyValidationError",

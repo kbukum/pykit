@@ -5,8 +5,8 @@ from __future__ import annotations
 from pykit_server_middleware.prometheus import PrometheusMiddleware
 from pykit_server_middleware.ratelimit import (
     RateLimitConfig,
-    RateLimitMiddleware,
     RateLimiter,
+    RateLimitMiddleware,
     ip_based_key,
     user_based_key,
 )

@@ -10,8 +10,8 @@ import pytest
 
 from pykit_server_middleware.ratelimit import (
     RateLimitConfig,
-    RateLimitMiddleware,
     RateLimiter,
+    RateLimitMiddleware,
     ip_based_key,
     user_based_key,
 )

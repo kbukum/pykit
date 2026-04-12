@@ -8,7 +8,7 @@ import math
 import threading
 import time
 from collections.abc import Awaitable, Callable, MutableMapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 Scope = MutableMapping[str, Any]
@@ -51,7 +51,7 @@ class RateLimitConfig:
 class _TokenBucket:
     """Classic token-bucket rate limiter (thread-safe)."""
 
-    __slots__ = ("_mu", "tokens", "max_tokens", "refill_rate", "last_refill", "last_access")
+    __slots__ = ("_mu", "last_access", "last_refill", "max_tokens", "refill_rate", "tokens")
 
     def __init__(self, rpm: int, now: float) -> None:
         self._mu = threading.Lock()
@@ -143,9 +143,7 @@ class RateLimiter:
                 return
             now = self._now_func()
             with self._lock:
-                stale_keys = [
-                    k for k, b in self._buckets.items() if b.is_stale(now, self.cfg.bucket_ttl)
-                ]
+                stale_keys = [k for k, b in self._buckets.items() if b.is_stale(now, self.cfg.bucket_ttl)]
                 for k in stale_keys:
                     del self._buckets[k]
 
