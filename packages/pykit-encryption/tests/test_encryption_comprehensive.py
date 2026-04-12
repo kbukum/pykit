@@ -73,7 +73,7 @@ def algorithm(request: pytest.FixtureRequest) -> Algorithm:
 
 
 class TestParametrizedRoundTrips:
-    """Encrypt→decrypt must be identity for every algorithm × plaintext × key."""
+    """Encrypt->decrypt must be identity for every algorithm x plaintext x key."""
 
     @pytest.mark.parametrize("plaintext", PLAINTEXTS, ids=[f"pt{i}" for i in range(len(PLAINTEXTS))])
     def test_roundtrip_all_plaintexts(self, encryptor_cls: type, plaintext: str) -> None:
@@ -131,7 +131,7 @@ class TestWrongKey:
 
     def test_wrong_key_via_factory(self, algorithm: Algorithm) -> None:
         ct = new_encryptor("right", algorithm).encrypt("payload")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             new_encryptor("wrong", algorithm).decrypt(ct)
 
 
@@ -193,12 +193,12 @@ class TestTamperedCiphertext:
 
     def test_completely_invalid_base64(self, encryptor_cls: type) -> None:
         enc = encryptor_cls("key")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             enc.decrypt("!!!not-valid-base64!!!")
 
     def test_empty_ciphertext_string(self, encryptor_cls: type) -> None:
         enc = encryptor_cls("key")
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # noqa: B017
             enc.decrypt("")
 
 
@@ -272,7 +272,7 @@ class TestFactoryProtocol:
             assert algo in _REGISTRY, f"{algo} missing from registry"
 
     def test_registry_classes_conform_to_protocol(self) -> None:
-        for algo, cls in _REGISTRY.items():
+        for _algo, cls in _REGISTRY.items():
             instance = cls("test-key")  # type: ignore[call-arg]
             assert isinstance(instance, Encryptor), f"{cls.__name__} does not conform to Encryptor protocol"
 

@@ -30,9 +30,11 @@ class Key:
         now = datetime.now(UTC)
         if self.grace_ends_at is not None and now > self.grace_ends_at:
             return True
-        if self.expires_at is not None and now > self.expires_at and self.grace_ends_at is None:
-            return True
-        return False
+        return (
+            self.expires_at is not None
+            and now > self.expires_at
+            and self.grace_ends_at is None
+        )
 
 
 @dataclass(frozen=True)

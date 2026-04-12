@@ -372,7 +372,7 @@ class TestNestedConfiguration:
         _clean_app_env(monkeypatch)
 
         class DbSettings(BaseSettings):
-            db: dict = {}
+            db: dict = {}  # noqa: RUF012
 
         monkeypatch.setenv("APP_DB__HOST", "pg.local")
         monkeypatch.setenv("APP_DB__PORT", "5432")

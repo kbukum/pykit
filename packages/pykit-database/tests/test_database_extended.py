@@ -1,4 +1,4 @@
-"""Extended tests for pykit-database – edge cases, concurrency, and isolation."""
+"""Extended tests for pykit-database - edge cases, concurrency, and isolation."""
 
 from __future__ import annotations
 

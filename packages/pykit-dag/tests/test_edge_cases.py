@@ -410,7 +410,7 @@ class TestLargeGraphs:
         assert result.states["root"].result == 1
         for name in middle_names:
             assert result.states[name].result == 1
-        # Sink sums all 48 middle nodes: 48 × 1 = 48
+        # Sink sums all 48 middle nodes: 48 x 1 = 48
         assert result.states["sink"].result == 48
 
 

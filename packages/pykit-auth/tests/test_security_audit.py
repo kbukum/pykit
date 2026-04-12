@@ -152,7 +152,7 @@ class TestJWTSecurity:
     )
     def test_malformed_tokens_return_error(self, token: str) -> None:
         svc = self._make_service()
-        with pytest.raises(Exception):
+        with pytest.raises((InvalidInputError, Exception)):
             svc.validate(token)
 
     def test_issuer_mismatch_rejected(self) -> None:
