@@ -133,9 +133,16 @@ def setup_logging(
 
     # OTLP bridge — inserted AFTER masking so exported logs are already masked
     if otlp and otlp.enabled:
-        bridge = OTLPLogBridge(config=otlp, service_name=service_name, environment=environment)
-        shared_processors.append(otlp_processor(bridge))  # type: ignore[arg-type]
-        _otlp_bridge = bridge
+        try:
+            bridge = OTLPLogBridge(config=otlp, service_name=service_name, environment=environment)
+            shared_processors.append(otlp_processor(bridge))  # type: ignore[arg-type]
+            _otlp_bridge = bridge
+        except ImportError:
+            logging.getLogger(__name__).warning(
+                "OTLP log export requested but dependencies are not installed. "
+                "Install with: pip install pykit-logging[otlp] — "
+                "falling back to stdout-only logging."
+            )
 
     if log_format == "json":
         renderer: structlog.types.Processor = structlog.processors.JSONRenderer()
