@@ -17,6 +17,7 @@ from pykit_discovery.factory import (
     register_provider,
 )
 from pykit_discovery.protocols import Discovery, Registry, Watcher
+from pykit_discovery.resolve import resolve_addr
 from pykit_discovery.server import DiscoveryServer
 from pykit_discovery.static import StaticProvider
 from pykit_discovery.strategy import (
@@ -50,5 +51,6 @@ __all__ = [
     "create_provider",
     "init_builtin",
     "register_provider",
+    "resolve_addr",
 ]
 __version__ = "0.1.0"
