@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import BinaryIO, Protocol, runtime_checkable
 
 
@@ -32,3 +32,10 @@ class Storage(Protocol):
     async def list(self, prefix: str = "") -> list[FileInfo]: ...
 
     async def url(self, path: str) -> str: ...
+
+
+@runtime_checkable
+class SignedURLProvider(Protocol):
+    """Optionally implemented by storage backends that support presigned URLs."""
+
+    async def signed_url(self, path: str, expiry: timedelta) -> str: ...

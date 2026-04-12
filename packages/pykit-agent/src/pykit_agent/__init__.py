@@ -1,6 +1,7 @@
 """pykit-agent — Agent loop with tool execution, hooks, and context management."""
 
 from pykit_agent.agent import Agent, AgentConfig
+from pykit_agent.command import Command, CommandRegistry, register_builtins
 from pykit_agent.hooks import (
     EVENT_ON_ERROR,
     EVENT_POST_LLM_CALL,
@@ -17,6 +18,8 @@ from pykit_agent.hooks import (
     TurnEnd,
     TurnStart,
 )
+from pykit_agent.memory import InMemoryStore, Memory, SlidingWindowMemory
+from pykit_agent.prompt import PromptBuilder, PromptTemplate
 from pykit_agent.types import (
     AgentEvent,
     AgentResult,
@@ -45,16 +48,23 @@ __all__ = [
     "AgentConfig",
     "AgentEvent",
     "AgentResult",
+    "Command",
+    "CommandRegistry",
     "CompleteEvent",
     "ContextCompactedEvent",
     "ContextExceededError",
     "ContextStrategy",
     "FailStrategy",
+    "InMemoryStore",
+    "Memory",
     "OnError",
     "PostLLMCall",
     "PostToolCall",
     "PreLLMCall",
     "PreToolCall",
+    "PromptBuilder",
+    "PromptTemplate",
+    "SlidingWindowMemory",
     "StopReason",
     "ToolCompleteEvent",
     "ToolExecutingEvent",
@@ -63,4 +73,5 @@ __all__ = [
     "TurnEnd",
     "TurnStart",
     "TurnStartEvent",
+    "register_builtins",
 ]
