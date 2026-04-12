@@ -19,20 +19,40 @@ def _has_custom_method(obj: object, name: str) -> bool:
     return False
 
 
-def load_config[T](config_cls: type[T], path: str | Path = "config.toml") -> T:
+def load_config[T](config_cls: type[T], path: str | Path = "config.toml", profile: str | None = None) -> T:
     """Load configuration from TOML file and environment variables.
 
-    Priority: env vars > TOML file > defaults.
+    Priority: env vars > .env > profile env > TOML file > defaults.
     Environment variables use ``APP_`` prefix with ``__`` for nesting.
 
     Args:
         config_cls: The configuration class to instantiate.
         path: Path to the TOML config file. Ignored if it does not exist.
+        profile: Configuration profile name (e.g., "development", "docker").
+                 If None, no profile is loaded.
+                 If empty string, reads from ENVIRONMENT env var.
 
     Returns:
         An instance of *config_cls* populated from file and env.
     """
     import tomllib
+
+    # 0. Load profile env file first (lowest priority among env sources)
+    if profile is not None:
+        if not profile:
+            profile = os.environ.get("ENVIRONMENT", "")
+        if profile:
+            profile_paths = [
+                Path(f"./config/profiles/{profile}.env"),
+                Path(f"../config/profiles/{profile}.env"),
+                Path(f"../../config/profiles/{profile}.env"),
+            ]
+            for p in profile_paths:
+                if p.exists():
+                    from dotenv import load_dotenv
+
+                    load_dotenv(p, override=False)
+                    break
 
     data: dict[str, Any] = {}
     config_path = Path(path)

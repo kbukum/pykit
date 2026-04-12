@@ -40,12 +40,12 @@ def demo_config() -> None:
     # Simulate environment variables (in production these come from .env / k8s)
     os.environ["SERVICE_NAME"] = "order-service"
     os.environ["ENVIRONMENT"] = "staging"
-    os.environ["PORT"] = "8080"
+    os.environ["SERVICE_PORT"] = "8080"
     os.environ["LOG_LEVEL"] = "DEBUG"
 
     settings = BaseSettings()
     print(f"\nConfig → service={settings.service_name}, env={settings.environment}")
-    print(f"         port={settings.port}, log_level={settings.log_level}")
+    print(f"         port={settings.service_port}, log_level={settings.log_level}")
     print(f"         is_production={settings.is_production}")
 
 

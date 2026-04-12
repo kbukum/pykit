@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Protocol, runtime_checkable
 
 from pykit_discovery.types import ServiceInstance
@@ -21,3 +22,14 @@ class Registry(Protocol):
     async def register(self, instance: ServiceInstance) -> None: ...
 
     async def deregister(self, instance_id: str) -> None: ...
+
+
+@runtime_checkable
+class Watcher(Protocol):
+    """Optional extension for continuous service monitoring.
+
+    Implementations yield updated instance lists whenever service
+    membership changes, enabling live reconnection without polling.
+    """
+
+    def watch(self, service_name: str) -> AsyncIterator[list[ServiceInstance]]: ...

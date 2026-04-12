@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+from typing import Any, Self
+
 from pydantic import Field
 from pydantic_settings import BaseSettings as PydanticBaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -13,6 +17,7 @@ class BaseSettings(PydanticBaseSettings):
     Supports:
     - Environment variables (highest priority)
     - .env files
+    - Profile-specific env files (config/profiles/{profile}.env)
     - TOML config files (lowest priority)
 
     Subclass and add service-specific fields.
@@ -27,12 +32,42 @@ class BaseSettings(PydanticBaseSettings):
     # Common settings for all services
     service_name: str = "pykit-service"
     environment: str = Field(default="development", description="development | staging | production")
-    host: str = "0.0.0.0"
-    port: int = 50051
+    service_address: str = "0.0.0.0"
+    service_port: int = 50051
     log_level: str = "INFO"
     log_format: str = Field(default="auto", description="auto | json | console")
     metrics_port: int = 9090
     metrics_enabled: bool = True
+
+    @classmethod
+    def with_profile(cls, profile: str | None = None, **kwargs: Any) -> Self:
+        """Create settings with profile-specific env file loading.
+
+        Args:
+            profile: Profile name (e.g., "development", "docker", "staging").
+                     If None, reads from ENVIRONMENT env var.
+            **kwargs: Additional keyword arguments passed to the constructor.
+
+        Returns:
+            Settings instance with profile env file loaded.
+        """
+        if profile is None:
+            profile = os.environ.get("ENVIRONMENT", "")
+
+        if profile:
+            profile_paths = [
+                Path(f"./config/profiles/{profile}.env"),
+                Path(f"../config/profiles/{profile}.env"),
+                Path(f"../../config/profiles/{profile}.env"),
+            ]
+            for path in profile_paths:
+                if path.exists():
+                    from dotenv import load_dotenv
+
+                    load_dotenv(path, override=False)
+                    break
+
+        return cls(**kwargs)
 
     @property
     def is_production(self) -> bool:

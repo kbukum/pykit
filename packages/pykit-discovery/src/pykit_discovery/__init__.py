@@ -1,8 +1,15 @@
 """pykit-discovery — service discovery and load balancing."""
 
 from pykit_discovery.component import DiscoveryComponent
+from pykit_discovery.config import (
+    DiscoveredService,
+    DiscoveryConfig,
+    HealthConfig,
+    RegistrationConfig,
+    StaticEndpoint,
+)
 from pykit_discovery.consul import ConsulProvider
-from pykit_discovery.protocols import Discovery, Registry
+from pykit_discovery.protocols import Discovery, Registry, Watcher
 from pykit_discovery.server import DiscoveryServer
 from pykit_discovery.static import StaticProvider
 from pykit_discovery.strategy import (
@@ -15,15 +22,21 @@ from pykit_discovery.types import ServiceInstance
 
 __all__ = [
     "ConsulProvider",
+    "DiscoveredService",
     "Discovery",
     "DiscoveryComponent",
+    "DiscoveryConfig",
     "DiscoveryServer",
+    "HealthConfig",
     "LeastConnectionsStrategy",
     "LoadBalancer",
     "RandomStrategy",
+    "RegistrationConfig",
     "Registry",
     "RoundRobinStrategy",
     "ServiceInstance",
+    "StaticEndpoint",
     "StaticProvider",
+    "Watcher",
 ]
 __version__ = "0.1.0"

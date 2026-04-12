@@ -19,8 +19,8 @@ class TestBaseSettings:
         settings = BaseSettings()
         assert settings.service_name == "pykit-service"
         assert settings.environment == "development"
-        assert settings.host == "0.0.0.0"
-        assert settings.port == 50051
+        assert settings.service_address == "0.0.0.0"
+        assert settings.service_port == 50051
         assert settings.log_level == "INFO"
         assert settings.metrics_port == 9090
         assert settings.metrics_enabled is True
@@ -37,16 +37,16 @@ class TestBaseSettings:
 
     def test_env_override(self, monkeypatch: object) -> None:
         os.environ["SERVICE_NAME"] = "test-service"
-        os.environ["PORT"] = "8080"
+        os.environ["SERVICE_PORT"] = "8080"
         os.environ["ENVIRONMENT"] = "production"
         try:
             settings = BaseSettings()
             assert settings.service_name == "test-service"
-            assert settings.port == 8080
+            assert settings.service_port == 8080
             assert settings.is_production is True
         finally:
             del os.environ["SERVICE_NAME"]
-            del os.environ["PORT"]
+            del os.environ["SERVICE_PORT"]
             del os.environ["ENVIRONMENT"]
 
     def test_subclass(self) -> None:
@@ -72,8 +72,8 @@ class TestBaseSettingsDefaults:
         settings = BaseSettings()
         assert settings.service_name == "pykit-service"
         assert settings.environment == "development"
-        assert settings.host == "0.0.0.0"
-        assert settings.port == 50051
+        assert settings.service_address == "0.0.0.0"
+        assert settings.service_port == 50051
         assert settings.log_level == "INFO"
         assert settings.log_format == "auto"
         assert settings.metrics_port == 9090
@@ -83,8 +83,8 @@ class TestBaseSettingsDefaults:
         settings = BaseSettings()
         assert isinstance(settings.service_name, str)
         assert isinstance(settings.environment, str)
-        assert isinstance(settings.host, str)
-        assert isinstance(settings.port, int)
+        assert isinstance(settings.service_address, str)
+        assert isinstance(settings.service_port, int)
         assert isinstance(settings.log_level, str)
         assert isinstance(settings.log_format, str)
         assert isinstance(settings.metrics_port, int)
@@ -123,15 +123,15 @@ class TestBaseSettingsEnvOverride:
         assert s.environment == "production"
         assert s.is_production is True
 
-    def test_host(self, monkeypatch) -> None:
-        monkeypatch.setenv("HOST", "127.0.0.1")
-        assert BaseSettings().host == "127.0.0.1"
+    def test_service_address(self, monkeypatch) -> None:
+        monkeypatch.setenv("SERVICE_ADDRESS", "127.0.0.1")
+        assert BaseSettings().service_address == "127.0.0.1"
 
-    def test_port_string_to_int(self, monkeypatch) -> None:
-        monkeypatch.setenv("PORT", "8080")
+    def test_service_port_string_to_int(self, monkeypatch) -> None:
+        monkeypatch.setenv("SERVICE_PORT", "8080")
         s = BaseSettings()
-        assert s.port == 8080
-        assert isinstance(s.port, int)
+        assert s.service_port == 8080
+        assert isinstance(s.service_port, int)
 
     def test_log_level(self, monkeypatch) -> None:
         monkeypatch.setenv("LOG_LEVEL", "DEBUG")
@@ -163,12 +163,12 @@ class TestBaseSettingsEnvOverride:
 
     def test_multiple_overrides_at_once(self, monkeypatch) -> None:
         monkeypatch.setenv("SERVICE_NAME", "multi")
-        monkeypatch.setenv("PORT", "9999")
+        monkeypatch.setenv("SERVICE_PORT", "9999")
         monkeypatch.setenv("ENVIRONMENT", "staging")
         monkeypatch.setenv("LOG_LEVEL", "WARNING")
         s = BaseSettings()
         assert s.service_name == "multi"
-        assert s.port == 9999
+        assert s.service_port == 9999
         assert s.environment == "staging"
         assert s.log_level == "WARNING"
 
@@ -187,8 +187,8 @@ def _clean_app_env(monkeypatch):
     for bare in (
         "SERVICE_NAME",
         "ENVIRONMENT",
-        "HOST",
-        "PORT",
+        "SERVICE_ADDRESS",
+        "SERVICE_PORT",
         "LOG_LEVEL",
         "LOG_FORMAT",
         "METRICS_PORT",
@@ -203,10 +203,10 @@ class TestLoadConfigToml:
     def test_load_from_valid_toml(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
         f = tmp_path / "config.toml"
-        f.write_text('service_name = "toml-service"\nport = 7070\n')
+        f.write_text('service_name = "toml-service"\nservice_port = 7070\n')
         s = load_config(BaseSettings, path=f)
         assert s.service_name == "toml-service"
-        assert s.port == 7070
+        assert s.service_port == 7070
 
     def test_load_from_custom_path(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
@@ -227,7 +227,7 @@ class TestLoadConfigToml:
         _clean_app_env(monkeypatch)
         s = load_config(BaseSettings, path=tmp_path / "nope.toml")
         assert s.service_name == "pykit-service"
-        assert s.port == 50051
+        assert s.service_port == 50051
 
     def test_invalid_toml_raises_error(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
@@ -242,7 +242,7 @@ class TestLoadConfigToml:
         f.write_text("")
         s = load_config(BaseSettings, path=f)
         assert s.service_name == "pykit-service"
-        assert s.port == 50051
+        assert s.service_port == 50051
 
     def test_toml_overrides_defaults(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
@@ -254,7 +254,7 @@ class TestLoadConfigToml:
         assert s.metrics_enabled is False
         # unset fields keep defaults
         assert s.service_name == "pykit-service"
-        assert s.port == 50051
+        assert s.service_port == 50051
 
     def test_toml_all_fields(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
@@ -262,8 +262,8 @@ class TestLoadConfigToml:
         f.write_text(
             'service_name = "full"\n'
             'environment = "staging"\n'
-            'host = "10.0.0.1"\n'
-            "port = 3000\n"
+            'service_address = "10.0.0.1"\n'
+            "service_port = 3000\n"
             'log_level = "WARNING"\n'
             'log_format = "json"\n'
             "metrics_port = 8888\n"
@@ -272,8 +272,8 @@ class TestLoadConfigToml:
         s = load_config(BaseSettings, path=f)
         assert s.service_name == "full"
         assert s.environment == "staging"
-        assert s.host == "10.0.0.1"
-        assert s.port == 3000
+        assert s.service_address == "10.0.0.1"
+        assert s.service_port == 3000
         assert s.log_level == "WARNING"
         assert s.log_format == "json"
         assert s.metrics_port == 8888
@@ -283,20 +283,20 @@ class TestLoadConfigToml:
         """Precedence: defaults < TOML < APP_ env vars."""
         _clean_app_env(monkeypatch)
         f = tmp_path / "config.toml"
-        f.write_text('service_name = "toml-name"\nport = 7070\n')
+        f.write_text('service_name = "toml-name"\nservice_port = 7070\n')
         monkeypatch.setenv("APP_SERVICE_NAME", "env-name")
-        monkeypatch.setenv("APP_PORT", "9999")
+        monkeypatch.setenv("APP_SERVICE_PORT", "9999")
         s = load_config(BaseSettings, path=f)
         assert s.service_name == "env-name"
-        assert s.port == 9999
+        assert s.service_port == 9999
 
     def test_app_env_without_toml(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
         monkeypatch.setenv("APP_SERVICE_NAME", "env-only")
-        monkeypatch.setenv("APP_PORT", "1234")
+        monkeypatch.setenv("APP_SERVICE_PORT", "1234")
         s = load_config(BaseSettings, path=tmp_path / "nope.toml")
         assert s.service_name == "env-only"
-        assert s.port == 1234
+        assert s.service_port == 1234
 
     def test_default_path_is_config_toml(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
@@ -309,14 +309,14 @@ class TestLoadConfigToml:
         """defaults < TOML < APP_ env vars — all three layers."""
         _clean_app_env(monkeypatch)
         f = tmp_path / "config.toml"
-        f.write_text('service_name = "toml"\nport = 7070\nlog_level = "WARNING"\n')
+        f.write_text('service_name = "toml"\nservice_port = 7070\nlog_level = "WARNING"\n')
         # Override only service_name via APP_ env
         monkeypatch.setenv("APP_SERVICE_NAME", "env")
         s = load_config(BaseSettings, path=f)
         assert s.service_name == "env"  # APP_ env > TOML
-        assert s.port == 7070  # TOML > default
+        assert s.service_port == 7070  # TOML > default
         assert s.log_level == "WARNING"  # TOML > default
-        assert s.host == "0.0.0.0"  # default (nothing else set)
+        assert s.service_address == "0.0.0.0"  # default (nothing else set)
 
 
 # ---------------------------------------------------------------------------
@@ -481,14 +481,14 @@ class TestHooks:
         _clean_app_env(monkeypatch)
 
         class StrictSettings(BaseSettings):
-            port: int = 50051
+            service_port: int = 50051
 
             def validate(self) -> None:
-                if self.port <= 0:
+                if self.service_port <= 0:
                     raise ValueError("Port must be positive")
 
         f = tmp_path / "config.toml"
-        f.write_text("port = -1\n")
+        f.write_text("service_port = -1\n")
         with pytest.raises(ValueError, match="Port must be positive"):
             load_config(StrictSettings, path=f)
 
@@ -555,19 +555,19 @@ class TestEdgeCases:
         monkeypatch.setenv("SERVICE_NAME", "日本語サービス")
         assert BaseSettings().service_name == "日本語サービス"
 
-    def test_port_zero(self) -> None:
-        assert BaseSettings(port=0).port == 0
+    def test_service_port_zero(self) -> None:
+        assert BaseSettings(service_port=0).service_port == 0
 
-    def test_port_zero_env(self, monkeypatch) -> None:
-        monkeypatch.setenv("PORT", "0")
-        assert BaseSettings().port == 0
+    def test_service_port_zero_env(self, monkeypatch) -> None:
+        monkeypatch.setenv("SERVICE_PORT", "0")
+        assert BaseSettings().service_port == 0
 
-    def test_negative_port_in_toml(self, tmp_path, monkeypatch) -> None:
+    def test_negative_service_port_in_toml(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
         f = tmp_path / "config.toml"
-        f.write_text("port = -1\n")
+        f.write_text("service_port = -1\n")
         s = load_config(BaseSettings, path=f)
-        assert s.port == -1
+        assert s.service_port == -1
 
     def test_boolean_true_variants(self, monkeypatch) -> None:
         for val in ("true", "True", "TRUE", "1", "yes", "on"):
@@ -587,9 +587,9 @@ class TestEdgeCases:
         assert load_config(BaseSettings, path=f).service_name == "large"
 
     def test_constructor_override(self) -> None:
-        s = BaseSettings(service_name="ctor", port=1234, environment="staging")
+        s = BaseSettings(service_name="ctor", service_port=1234, environment="staging")
         assert s.service_name == "ctor"
-        assert s.port == 1234
+        assert s.service_port == 1234
         assert s.environment == "staging"
 
     def test_extra_fields_ignored_in_constructor(self) -> None:
@@ -606,8 +606,8 @@ class TestEdgeCases:
         assert not hasattr(s, "unknown_field")
 
     def test_int_parsing_from_env(self, monkeypatch) -> None:
-        monkeypatch.setenv("PORT", "65535")
-        assert BaseSettings().port == 65535
+        monkeypatch.setenv("SERVICE_PORT", "65535")
+        assert BaseSettings().service_port == 65535
 
     def test_toml_with_comments_and_whitespace(self, tmp_path, monkeypatch) -> None:
         _clean_app_env(monkeypatch)
@@ -616,8 +616,8 @@ class TestEdgeCases:
             "# Top-level comment\n\n"
             '  service_name = "commented"  # inline\n\n'
             "# Another comment\n"
-            "port = 4040\n"
+            "service_port = 4040\n"
         )
         s = load_config(BaseSettings, path=f)
         assert s.service_name == "commented"
-        assert s.port == 4040
+        assert s.service_port == 4040
