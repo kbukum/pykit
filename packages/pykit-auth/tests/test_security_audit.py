@@ -90,7 +90,7 @@ class TestErrorSanitization:
 class TestJWTSecurity:
     """JWT algorithm confusion, token validation, and secret handling."""
 
-    def _make_service(self, secret: str = "test-secret-key-minimum-length", **kwargs) -> JWTService:
+    def _make_service(self, secret: str = "test-secret-key-minimum-length-for-hs256", **kwargs) -> JWTService:
         return JWTService(JWTConfig(secret=secret, **kwargs))
 
     def test_algorithm_confusion_none_rejected(self) -> None:
@@ -108,7 +108,11 @@ class TestJWTSecurity:
 
         # Create token with HS384
         payload = {"sub": "user", "exp": int(time.time()) + 3600}
-        token = pyjwt.encode(payload, "test-secret-key-minimum-length", algorithm="HS384")
+        token = pyjwt.encode(
+            payload,
+            "test-secret-key-minimum-length-for-hs256-and-also-long-enough-for-hs384",
+            algorithm="HS384",
+        )
 
         with pytest.raises((InvalidInputError, Exception)):
             svc_hs256.validate(token)
@@ -121,15 +125,15 @@ class TestJWTSecurity:
             svc.validate(token)
 
     def test_wrong_secret_rejected(self) -> None:
-        svc1 = self._make_service(secret="secret-key-one-for-service")
-        svc2 = self._make_service(secret="secret-key-two-for-service")
+        svc1 = self._make_service(secret="secret-key-one-for-service-long-enough-for-hs256")
+        svc2 = self._make_service(secret="secret-key-two-for-service-long-enough-for-hs256")
 
         token = svc1.generate({"sub": "user"})
         with pytest.raises((InvalidInputError, Exception)):
             svc2.validate(token)
 
     def test_parse_error_does_not_leak_secret(self) -> None:
-        secret = "my-ultra-secret-key-that-must-not-leak"
+        secret = "my-ultra-secret-key-that-must-not-leak-and-is-long-enough"
         svc = self._make_service(secret=secret)
 
         with pytest.raises(Exception) as exc_info:
@@ -159,7 +163,7 @@ class TestJWTSecurity:
         svc = self._make_service(issuer="trusted-issuer")
         # Generate without issuer claim
         payload = {"sub": "user", "exp": int(time.time()) + 3600}
-        token = pyjwt.encode(payload, "test-secret-key-minimum-length", algorithm="HS256")
+        token = pyjwt.encode(payload, "test-secret-key-minimum-length-for-hs256", algorithm="HS256")
 
         with pytest.raises((InvalidInputError, Exception)):
             svc.validate(token)
@@ -270,7 +274,7 @@ class TestAsyncSafety:
 
     @pytest.mark.asyncio
     async def test_jwt_in_concurrent_tasks(self) -> None:
-        svc = JWTService(JWTConfig(secret="concurrent-test-secret-key"))
+        svc = JWTService(JWTConfig(secret="concurrent-test-secret-key-long-enough-for-hs256"))
 
         async def generate_and_validate(i: int) -> None:
             token = svc.generate({"sub": f"user-{i}"})
@@ -282,7 +286,7 @@ class TestAsyncSafety:
 
     @pytest.mark.asyncio
     async def test_cancelled_task_no_resource_leak(self) -> None:
-        svc = JWTService(JWTConfig(secret="cancellation-test-secret1"))
+        svc = JWTService(JWTConfig(secret="cancellation-test-secret1-long-enough-for-hs256"))
 
         async def slow_validation() -> None:
             await asyncio.sleep(0.01)

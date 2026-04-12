@@ -18,15 +18,17 @@ from pykit_errors import InvalidInputError
 
 class TestJWTAlgorithmMismatch:
     def test_hs256_token_rejected_by_hs384_validator(self) -> None:
-        svc_gen = JWTService(JWTConfig(secret="shared-secret", algorithm="HS256"))
-        svc_val = JWTService(JWTConfig(secret="shared-secret", algorithm="HS384"))
+        secret = "shared-secret-key-that-is-long-enough-for-hs384-algorithm!!"
+        svc_gen = JWTService(JWTConfig(secret=secret, algorithm="HS256"))
+        svc_val = JWTService(JWTConfig(secret=secret, algorithm="HS384"))
         token = svc_gen.generate({"sub": "u"})
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc_val.validate(token)
 
     def test_hs512_token_rejected_by_hs256_validator(self) -> None:
-        svc_gen = JWTService(JWTConfig(secret="shared-secret", algorithm="HS512"))
-        svc_val = JWTService(JWTConfig(secret="shared-secret", algorithm="HS256"))
+        secret = "shared-secret-key-that-is-long-enough-for-hs512-algorithm-minimum-64b!!"
+        svc_gen = JWTService(JWTConfig(secret=secret, algorithm="HS512"))
+        svc_val = JWTService(JWTConfig(secret=secret, algorithm="HS256"))
         token = svc_gen.generate({"sub": "u"})
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc_val.validate(token)
@@ -39,22 +41,22 @@ class TestJWTAlgorithmMismatch:
 
 class TestJWTTokenFormats:
     def test_empty_string_rejected(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate("")
 
     def test_whitespace_rejected(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate("   ")
 
     def test_no_dots_rejected(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate("nodots")
 
     def test_tampered_payload(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "user-1", "role": "user"})
         # Tamper with the payload segment
         parts = token.split(".")
@@ -73,34 +75,34 @@ class TestJWTTokenFormats:
 
 class TestJWTClaimsEdgeCases:
     def test_empty_claims_dict(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({})
         claims = svc.validate(token)
         assert "exp" in claims
         assert "iat" in claims
 
     def test_large_payload(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         big_data = {"key": "x" * 50000}
         token = svc.generate(big_data)
         claims = svc.validate(token)
         assert len(claims["key"]) == 50000
 
     def test_special_characters_in_claims(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "用户", "emoji": "🔑", "html": "<b>&amp;</b>"})
         claims = svc.validate(token)
         assert claims["sub"] == "用户"
         assert claims["emoji"] == "🔑"
 
     def test_negative_ttl_expires_immediately(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u"}, expires_in=-10)
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate(token)
 
     def test_zero_ttl(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u"}, expires_in=0)
         # 0-second TTL means exp == iat, should be expired by now
         with pytest.raises(InvalidInputError, match="invalid token"):
@@ -114,13 +116,13 @@ class TestJWTClaimsEdgeCases:
 
 class TestJWTDecodeUnverified:
     def test_corrupted_token(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         with pytest.raises(InvalidInputError, match="cannot decode"):
             svc.decode_unverified("x.y.z")
 
     def test_wrong_secret_still_decodes(self) -> None:
-        svc_a = JWTService(JWTConfig(secret="secret-a"))
-        svc_b = JWTService(JWTConfig(secret="secret-b"))
+        svc_a = JWTService(JWTConfig(secret="test-secret-a-key-minimum-32-bytes!"))
+        svc_b = JWTService(JWTConfig(secret="test-secret-b-key-minimum-32-bytes!"))
         token = svc_a.generate({"sub": "u", "role": "admin"})
         claims = svc_b.decode_unverified(token)
         assert claims["sub"] == "u"
@@ -133,6 +135,7 @@ class TestJWTDecodeUnverified:
 
 
 class TestJWTConfigEdgeCases:
+    @pytest.mark.filterwarnings("ignore::jwt.warnings.InsecureKeyLengthWarning")
     def test_empty_secret_still_signs(self) -> None:
         # PyJWT allows empty secret for HS256 — this is a known behavior
         svc = JWTService(JWTConfig(secret=""))
@@ -140,7 +143,7 @@ class TestJWTConfigEdgeCases:
         assert token  # it generates, but should this be allowed?
 
     def test_no_issuer_audience_optional(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u"})
         claims = svc.validate(token)
         assert "iss" not in claims
@@ -263,7 +266,7 @@ class TestConcurrency:
         assert len(set(results)) == len(results)
 
     def test_concurrent_jwt_generate_validate(self) -> None:
-        svc = JWTService(JWTConfig(secret="concurrent-secret"))
+        svc = JWTService(JWTConfig(secret="concurrent-secret-key-at-least-32b!"))
         errors: list[Exception] = []
 
         def gen_and_validate(i: int) -> None:

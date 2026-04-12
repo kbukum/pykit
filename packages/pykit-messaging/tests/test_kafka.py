@@ -282,6 +282,7 @@ class TestConsumer:
 
             async def handler(msg: Message) -> None:
                 received.append(msg)
+                consumer._stopped = True
 
             await consumer.consume(handler)
             assert len(received) == 1
@@ -297,6 +298,7 @@ class TestConsumer:
     async def test_subscribe(self) -> None:
         with patch("pykit_messaging.kafka.consumer.AIOKafkaConsumer") as MockConsumer:
             mock_instance = AsyncMock()
+            mock_instance.subscribe = MagicMock()
             MockConsumer.return_value = mock_instance
 
             consumer = KafkaConsumer(KafkaConfig(topics=["t1"]))
@@ -355,6 +357,7 @@ class TestConsumer:
 
             async def handler(e: Event) -> None:
                 received.append(e)
+                consumer._stopped = True
 
             await consumer.consume_events(handler)
             assert len(received) == 1

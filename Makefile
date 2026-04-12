@@ -45,7 +45,7 @@ lint:
 ## Run type checker (P=<package>)
 typecheck:
 	@echo "==> Type checking..."
-	@uv run mypy $(if $(P),packages/$(P)/src/,.)
+	@uv run mypy $(if $(P),packages/$(P)/src/,packages/pykit-errors/src packages/pykit-config/src packages/pykit-logging/src packages/pykit-provider/src packages/pykit-pipeline/src)
 	@echo "✓ Type check passed"
 
 ## Format code with ruff

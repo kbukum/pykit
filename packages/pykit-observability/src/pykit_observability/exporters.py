@@ -80,7 +80,9 @@ def create_span_exporter(config: OtlpExporterConfig) -> SpanExporter:
         kwargs["headers"] = config.headers
 
     if config.compression:
-        kwargs["compression"] = config.compression
+        from opentelemetry.exporter.otlp.proto.http import Compression
+
+        kwargs["compression"] = Compression.Gzip
 
     # http/json is default for OTLPSpanExporter; no explicit protocol param needed
     return OTLPSpanExporter(**kwargs)
@@ -114,7 +116,9 @@ def create_metric_exporter(config: OtlpExporterConfig) -> MetricExporter:
         kwargs["headers"] = config.headers
 
     if config.compression:
-        kwargs["compression"] = config.compression
+        from opentelemetry.exporter.otlp.proto.http import Compression
+
+        kwargs["compression"] = Compression.Gzip
 
     return OTLPMetricExporter(**kwargs)
 
@@ -178,7 +182,7 @@ def setup_otlp_metrics(
 
     resource = Resource.create({"service.name": service_name})
     exporter = create_metric_exporter(config)
-    reader = PeriodicExportingMetricReader(exporter, interval_millis=60000)
+    reader = PeriodicExportingMetricReader(exporter, export_interval_millis=60000)
 
     provider = MeterProvider(resource=resource, metric_readers=[reader])
 

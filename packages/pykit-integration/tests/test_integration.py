@@ -371,7 +371,7 @@ class TestAuthAuthz:
     """JWT claims feed authorization checker."""
 
     def test_jwt_claims_feed_authz(self) -> None:
-        jwt_svc = JWTService(JWTConfig(secret="integration-test-secret-key"))
+        jwt_svc = JWTService(JWTConfig(secret="integration-test-secret-key-long-enough-for-hs256"))
 
         token = jwt_svc.generate({"sub": "user-1", "role": "admin"})
         claims = jwt_svc.validate(token)
@@ -389,7 +389,7 @@ class TestAuthAuthz:
         assert checker.check(role, "user:manage")
 
     def test_jwt_claims_feed_authz_restricted_role(self) -> None:
-        jwt_svc = JWTService(JWTConfig(secret="test-secret-key-12345"))
+        jwt_svc = JWTService(JWTConfig(secret="test-secret-key-12345-long-enough-for-hs256"))
 
         token = jwt_svc.generate({"sub": "user-2", "role": "viewer"})
         claims = jwt_svc.validate(token)
@@ -409,7 +409,7 @@ class TestAuthAuthz:
     def test_jwt_roundtrip_preserves_claims(self) -> None:
         jwt_svc = JWTService(
             JWTConfig(
-                secret="roundtrip-secret-key",
+                secret="roundtrip-secret-key-long-enough-for-hs256",
                 issuer="test-issuer",
                 audience="test-audience",
             )
@@ -424,7 +424,7 @@ class TestAuthAuthz:
         assert decoded["org"] == "acme"
 
     def test_expired_token_rejected(self) -> None:
-        jwt_svc = JWTService(JWTConfig(secret="expired-secret-key"))
+        jwt_svc = JWTService(JWTConfig(secret="expired-secret-key-long-enough-for-hs256-algo"))
         token = jwt_svc.generate({"sub": "user-1"}, expires_in=-1)
 
         with pytest.raises(InvalidInputError):

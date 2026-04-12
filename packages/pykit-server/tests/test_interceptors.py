@@ -191,6 +191,7 @@ class TestErrorHandlingInterceptor:
 
         ctx.abort.assert_awaited_once_with(grpc.StatusCode.NOT_FOUND, str(app_err))
 
+    @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.asyncio
     async def test_unexpected_error_aborts_internal(self) -> None:
         original = AsyncMock(side_effect=ValueError("unexpected"))

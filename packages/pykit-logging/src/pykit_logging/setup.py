@@ -115,27 +115,27 @@ def setup_logging(
         structlog.contextvars.merge_contextvars,
         add_correlation_id,  # type: ignore[list-item]
         structlog.processors.add_log_level,
-        schema_normalizer(service_name, environment),  # type: ignore[arg-type]
+        schema_normalizer(service_name, environment),
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
     ]
 
     if module_levels:
         shared_processors.append(
-            module_levels_processor(ModuleLevelsConfig(levels=module_levels)),  # type: ignore[arg-type]
+            module_levels_processor(ModuleLevelsConfig(levels=module_levels)),
         )
 
     if sampling and sampling.enabled:
-        shared_processors.append(sampling_processor(sampling))  # type: ignore[arg-type]
+        shared_processors.append(sampling_processor(sampling))
 
     if masking.enabled:
-        shared_processors.append(masking_processor(DefaultMasker(masking)))  # type: ignore[arg-type]
+        shared_processors.append(masking_processor(DefaultMasker(masking)))
 
     # OTLP bridge — inserted AFTER masking so exported logs are already masked
     if otlp and otlp.enabled:
         try:
             bridge = OTLPLogBridge(config=otlp, service_name=service_name, environment=environment)
-            shared_processors.append(otlp_processor(bridge))  # type: ignore[arg-type]
+            shared_processors.append(otlp_processor(bridge))
             _otlp_bridge = bridge
         except ImportError:
             print(

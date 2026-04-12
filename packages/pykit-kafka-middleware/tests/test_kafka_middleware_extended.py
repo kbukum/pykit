@@ -430,7 +430,7 @@ class TestTracingHandlerExtended:
         await wrapped(_make_msg())
 
         spans = tracer_exporter.get_finished_spans()
-        assert spans[0].instrumentation_info.name == "my.consumer"
+        assert spans[0].instrumentation_scope.name == "my.consumer"
 
     async def test_exception_recorded_in_span(self, tracer_exporter) -> None:
         async def handler(msg: Message) -> None:

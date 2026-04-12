@@ -247,7 +247,7 @@ class TestTracingExtended:
 
         spans = tracer_exporter.get_finished_spans()
         assert len(spans) == 1
-        assert spans[0].instrumentation_info.name == "my.api"
+        assert spans[0].instrumentation_scope.name == "my.api"
 
     async def test_4xx_not_marked_as_error(self, tracer_exporter) -> None:
         async def not_found_app(scope, receive, send):

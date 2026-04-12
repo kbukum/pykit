@@ -14,7 +14,7 @@ from pykit_errors import InvalidInputError
 
 class TestJWTServiceRoundtrip:
     def test_generate_and_validate(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "user-1"})
         claims = svc.validate(token)
         assert claims["sub"] == "user-1"
@@ -22,14 +22,14 @@ class TestJWTServiceRoundtrip:
         assert "iat" in claims
 
     def test_custom_claims_preserved(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u", "role": "admin", "tenant": "acme"})
         claims = svc.validate(token)
         assert claims["role"] == "admin"
         assert claims["tenant"] == "acme"
 
     def test_custom_ttl(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u"}, expires_in=60)
         claims = svc.validate(token)
         assert claims["exp"] - claims["iat"] == 60
@@ -37,22 +37,24 @@ class TestJWTServiceRoundtrip:
 
 class TestJWTServiceIssuerAudience:
     def test_issuer_audience_encoded(self) -> None:
-        svc = JWTService(JWTConfig(secret="s", issuer="myapp", audience="web"))
+        svc = JWTService(
+            JWTConfig(secret="test-secret-key-at-least-32-bytes!!", issuer="myapp", audience="web")
+        )
         token = svc.generate({"sub": "u"})
         claims = svc.validate(token)
         assert claims["iss"] == "myapp"
         assert claims["aud"] == "web"
 
     def test_wrong_issuer_rejected(self) -> None:
-        svc_gen = JWTService(JWTConfig(secret="s", issuer="app-a"))
-        svc_val = JWTService(JWTConfig(secret="s", issuer="app-b"))
+        svc_gen = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", issuer="app-a"))
+        svc_val = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", issuer="app-b"))
         token = svc_gen.generate({"sub": "u"})
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc_val.validate(token)
 
     def test_wrong_audience_rejected(self) -> None:
-        svc_gen = JWTService(JWTConfig(secret="s", audience="mobile"))
-        svc_val = JWTService(JWTConfig(secret="s", audience="web"))
+        svc_gen = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", audience="mobile"))
+        svc_val = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", audience="web"))
         token = svc_gen.generate({"sub": "u"})
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc_val.validate(token)
@@ -60,19 +62,19 @@ class TestJWTServiceIssuerAudience:
 
 class TestJWTServiceErrors:
     def test_expired_token(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u"}, expires_in=-1)
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate(token)
 
     def test_invalid_token_string(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc.validate("not-a-jwt")
 
     def test_wrong_secret(self) -> None:
-        svc_a = JWTService(JWTConfig(secret="secret-a"))
-        svc_b = JWTService(JWTConfig(secret="secret-b"))
+        svc_a = JWTService(JWTConfig(secret="test-secret-a-key-minimum-32-bytes!"))
+        svc_b = JWTService(JWTConfig(secret="test-secret-b-key-minimum-32-bytes!"))
         token = svc_a.generate({"sub": "u"})
         with pytest.raises(InvalidInputError, match="invalid token"):
             svc_b.validate(token)
@@ -80,14 +82,14 @@ class TestJWTServiceErrors:
 
 class TestJWTServiceDecodeUnverified:
     def test_decode_without_verification(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         token = svc.generate({"sub": "u", "debug": True})
         claims = svc.decode_unverified(token)
         assert claims["sub"] == "u"
         assert claims["debug"] is True
 
     def test_decode_unverified_bad_token(self) -> None:
-        svc = JWTService(JWTConfig(secret="s"))
+        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
         with pytest.raises(InvalidInputError, match="cannot decode"):
             svc.decode_unverified("garbage")
 

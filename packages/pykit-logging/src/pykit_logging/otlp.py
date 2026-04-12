@@ -39,8 +39,8 @@ def _get_otel_modules() -> dict[str, Any]:
     """
     try:
         from opentelemetry import trace
+        from opentelemetry._logs import LogRecord
         from opentelemetry.sdk._logs import LoggerProvider as _LoggerProvider
-        from opentelemetry.sdk._logs import LogRecord
         from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, SimpleLogRecordProcessor
         from opentelemetry.sdk.resources import Resource
     except ImportError as exc:
@@ -71,7 +71,9 @@ def _get_grpc_exporter() -> Any:
         ImportError: If the gRPC exporter package is not installed.
     """
     try:
-        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+        from opentelemetry.exporter.otlp.proto.grpc._log_exporter import (  # type: ignore[import-not-found]
+            OTLPLogExporter,
+        )
     except ImportError as exc:
         msg = (
             "gRPC OTLP exporter is required. Install with: pip install opentelemetry-exporter-otlp-proto-grpc"
@@ -199,7 +201,7 @@ class OTLPLogBridge:
     def shutdown(self) -> None:
         """Gracefully shutdown, flushing pending logs."""
         try:
-            self._provider.shutdown()
+            self._provider.shutdown()  # type: ignore[no-untyped-call]
         except Exception:
             logging.getLogger(__name__).debug("Error during OTLP bridge shutdown", exc_info=True)
 

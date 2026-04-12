@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel as _PydanticBaseModel
 
@@ -33,7 +34,7 @@ def load_config[T](config_cls: type[T], path: str | Path = "config.toml") -> T:
     """
     import tomllib
 
-    data: dict = {}
+    data: dict[str, Any] = {}
     config_path = Path(path)
 
     # 1. Load from TOML file if it exists
@@ -57,10 +58,10 @@ def load_config[T](config_cls: type[T], path: str | Path = "config.toml") -> T:
 
     # 4. Call apply_defaults if available
     if _has_custom_method(config, "apply_defaults"):
-        config.apply_defaults()
+        config.apply_defaults()  # type: ignore[attr-defined]
 
     # 5. Call validate if available (skip pydantic's own classmethod)
     if _has_custom_method(config, "validate"):
-        config.validate()
+        config.validate()  # type: ignore[attr-defined]
 
     return config

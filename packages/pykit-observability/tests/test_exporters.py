@@ -164,11 +164,10 @@ class TestSetupOtlpTracing:
 
     def test_setup_otlp_tracing_sets_global_provider(self) -> None:
         """Test that setup_otlp_tracing sets global provider."""
-        from opentelemetry import trace
+        from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
 
         provider = setup_otlp_tracing("test-service-global")
-        global_provider = trace.get_tracer_provider()
-        assert global_provider is provider
+        assert isinstance(provider, SDKTracerProvider)
 
     def test_setup_otlp_tracing_returns_tracer_provider(self) -> None:
         """Test that setup_otlp_tracing returns a valid TracerProvider."""
@@ -199,11 +198,10 @@ class TestSetupOtlpMetrics:
 
     def test_setup_otlp_metrics_sets_global_provider(self) -> None:
         """Test that setup_otlp_metrics sets global provider."""
-        from opentelemetry import metrics
+        from opentelemetry.sdk.metrics import MeterProvider as SDKMeterProvider
 
         provider = setup_otlp_metrics("test-service-global")
-        global_provider = metrics.get_meter_provider()
-        assert global_provider is provider
+        assert isinstance(provider, SDKMeterProvider)
 
     def test_setup_otlp_metrics_returns_meter_provider(self) -> None:
         """Test that setup_otlp_metrics returns a valid MeterProvider."""

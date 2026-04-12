@@ -361,6 +361,8 @@ class TestInterceptors:
         with patch("pykit_server.base.grpc.aio.server") as mock_server_fn:
             mock_srv = AsyncMock()
             mock_srv.add_insecure_port = MagicMock()
+            mock_srv.add_generic_rpc_handlers = MagicMock()
+            mock_srv.add_registered_method_handlers = MagicMock()
             mock_srv.start = AsyncMock()
             mock_server_fn.return_value = mock_srv
 
