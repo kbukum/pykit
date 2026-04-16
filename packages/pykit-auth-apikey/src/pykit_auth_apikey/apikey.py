@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -57,6 +58,23 @@ def generate(prefix: str = "") -> GenerateResult:
 def hash_key(plain_key: str) -> str:
     """Return the SHA-256 hex digest of a plaintext API key."""
     return hashlib.sha256(plain_key.encode()).hexdigest()
+
+
+def compare_hash(plain_key: str, stored_hash: str) -> bool:
+    """Compare a plain API key against a stored hash using timing-safe comparison.
+
+    Hashes the plain key using the same hash_key() function, then performs
+    a constant-time comparison to prevent timing attacks.
+
+    Args:
+        plain_key: The raw API key to verify.
+        stored_hash: The previously stored hash to compare against.
+
+    Returns:
+        True if the hashed plain key matches the stored hash.
+    """
+    new_hash = hash_key(plain_key)
+    return hmac.compare_digest(new_hash, stored_hash)
 
 
 class KeyValidationError(Exception):

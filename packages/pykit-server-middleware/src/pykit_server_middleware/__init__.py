@@ -10,6 +10,13 @@ from pykit_server_middleware.ratelimit import (
     ip_based_key,
     user_based_key,
 )
+from pykit_server_middleware.tenant import (
+    TenantConfig,
+    TenantMiddleware,
+    get_tenant,
+    require_tenant,
+    set_tenant,
+)
 from pykit_server_middleware.tracing import TracingMiddleware
 
 __all__ = [
@@ -17,7 +24,12 @@ __all__ = [
     "RateLimitConfig",
     "RateLimitMiddleware",
     "RateLimiter",
+    "TenantConfig",
+    "TenantMiddleware",
     "TracingMiddleware",
+    "get_tenant",
     "ip_based_key",
+    "require_tenant",
+    "set_tenant",
     "user_based_key",
 ]
