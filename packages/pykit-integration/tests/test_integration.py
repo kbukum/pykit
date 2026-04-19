@@ -15,7 +15,7 @@ from pykit_authz import MapChecker
 from pykit_bootstrap import App, DefaultAppConfig, Environment, LoggingConfig, ServiceConfig
 from pykit_component import Health, HealthStatus, Registry
 from pykit_di import Container, RegistrationMode
-from pykit_errors import AppError, ErrorCode, ErrorResponse, InvalidInputError
+from pykit_errors import AppError, ErrorCode, InvalidInputError, ProblemDetail
 from pykit_logging import get_logger, setup_logging
 from pykit_pipeline import Pipeline, collect, concat, drain, reduce
 from pykit_provider import RequestResponseFunc
@@ -431,18 +431,18 @@ class TestAuthAuthz:
             jwt_svc.validate(token)
 
 
-# ─── 7. Errors → HTTP Response (RFC 7807) ───────────────────────────────────
+# ─── 7. Errors → HTTP Response (RFC 9457) ───────────────────────────────────
 
 
 class TestErrorsHTTPResponse:
-    """AppError produces correct HTTP status codes and RFC 7807 body."""
+    """AppError produces correct HTTP status codes and RFC 9457 ProblemDetail body."""
 
-    def test_not_found_produces_404_rfc7807(self) -> None:
+    def test_not_found_produces_404_rfc9457(self) -> None:
         err = AppError.not_found("user", "user-123")
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.status == 404
-        assert response.title == "NOT_FOUND"
+        assert response.title == "Not Found"
         assert "not-found" in response.type
 
         body = response.to_dict()
@@ -451,44 +451,44 @@ class TestErrorsHTTPResponse:
         assert "title" in body
         assert "detail" in body
 
-    def test_invalid_input_produces_422_rfc7807(self) -> None:
+    def test_invalid_input_produces_422_rfc9457(self) -> None:
         err = AppError.invalid_input("email", "invalid format")
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.status == 422
-        assert response.title == "INVALID_INPUT"
+        assert response.title == "Invalid Input"
 
-    def test_unauthorized_produces_401_rfc7807(self) -> None:
+    def test_unauthorized_produces_401_rfc9457(self) -> None:
         err = AppError.unauthorized("missing credentials")
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.status == 401
-        assert response.title == "UNAUTHORIZED"
+        assert response.title == "Unauthorized"
 
-    def test_forbidden_produces_403_rfc7807(self) -> None:
+    def test_forbidden_produces_403_rfc9457(self) -> None:
         err = AppError.forbidden("insufficient permissions")
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.status == 403
-        assert response.title == "FORBIDDEN"
+        assert response.title == "Forbidden"
 
-    def test_service_unavailable_produces_503_rfc7807(self) -> None:
+    def test_service_unavailable_produces_503_rfc9457(self) -> None:
         err = AppError.service_unavailable("database")
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.status == 503
-        assert response.title == "SERVICE_UNAVAILABLE"
+        assert response.title == "Service Unavailable"
 
-    def test_internal_produces_500_rfc7807(self) -> None:
+    def test_internal_produces_500_rfc9457(self) -> None:
         err = AppError.internal(ValueError("unexpected"))
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.status == 500
-        assert response.title == "INTERNAL_ERROR"
+        assert response.title == "Internal Error"
 
-    def test_rfc7807_type_url_format(self) -> None:
+    def test_rfc9457_type_url_format(self) -> None:
         err = AppError(ErrorCode.TOKEN_EXPIRED, "token has expired")
-        response = ErrorResponse.from_app_error(err)
+        response = ProblemDetail.from_app_error(err)
 
         assert response.type.startswith("https://pykit.dev/errors/")
         assert "token-expired" in response.type

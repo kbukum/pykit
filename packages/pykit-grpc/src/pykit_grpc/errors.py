@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
+
 import grpc
 
-from pykit_errors import AppError, InvalidInputError, NotFoundError, ServiceUnavailableError
+from pykit_errors import AppError, InvalidInputError, NotFoundError, ProblemDetail, ServiceUnavailableError
 from pykit_errors.base import TimeoutError as AppTimeoutError
 from pykit_errors.codes import ErrorCode
 
@@ -74,3 +76,23 @@ def app_error_to_grpc_status(app_error: AppError) -> tuple[grpc.StatusCode, str]
         pass
 
     return grpc.StatusCode.INTERNAL, str(app_error)
+
+
+def app_error_to_grpc_trailing_metadata(app_error: AppError, instance: str = "") -> tuple[tuple[str, bytes]]:
+    """Return gRPC trailing metadata containing an RFC 9457 ProblemDetail.
+
+    Embeds a JSON-encoded :class:`~pykit_errors.ProblemDetail` in the binary
+    metadata key ``x-error-details-bin`` so that clients can reconstruct rich
+    error context beyond the gRPC status code and message.
+
+    Args:
+        app_error: The application error to serialize.
+        instance: Optional URI reference identifying this specific occurrence.
+
+    Returns:
+        A one-element tuple of ``(key, value)`` pairs suitable for passing to
+        ``grpc.ServicerContext.set_trailing_metadata``.
+    """
+    pd = ProblemDetail.from_app_error(app_error, instance=instance)
+    payload = json.dumps(pd.to_dict(), separators=(",", ":")).encode()
+    return (("x-error-details-bin", payload),)

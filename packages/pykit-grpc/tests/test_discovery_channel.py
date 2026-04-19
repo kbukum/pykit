@@ -388,6 +388,7 @@ async def test_discovery_channel_refresh_after_close():
 # Helpers for background-resolve / watcher tests
 # ---------------------------------------------------------------------------
 
+
 class MockWatcher:
     """A watcher that yields instance lists from a queue."""
 
@@ -438,6 +439,7 @@ def _make_instance(host: str = "localhost", port: int = 50051, healthy: bool = T
 # ---------------------------------------------------------------------------
 # Background resolve tests — polling mode
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_background_poll_detects_target_change():
@@ -512,6 +514,7 @@ async def test_background_poll_survives_transient_errors():
 # Background resolve tests — watcher mode
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_background_watch_detects_target_change():
     """Watcher-based background resolve should swap channel on update."""
@@ -564,6 +567,7 @@ async def test_explicit_watcher_overrides_auto_detect():
 # Context manager auto-start tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_context_manager_starts_background_resolve():
     """async with should automatically start the background resolve task."""
@@ -584,6 +588,7 @@ async def test_context_manager_starts_background_resolve():
 # close() cancels background task
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_close_cancels_background_task():
     """close() must cancel the background resolve task."""
@@ -603,6 +608,7 @@ async def test_close_cancels_background_task():
 # ---------------------------------------------------------------------------
 # start_background_resolve idempotency
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_start_background_resolve_idempotent():
@@ -625,6 +631,7 @@ async def test_start_background_resolve_idempotent():
 # ---------------------------------------------------------------------------
 # get_channel() tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_get_channel_initializes_when_not_ready():
@@ -675,8 +682,8 @@ async def test_get_channel_re_resolves_on_transient_failure():
         patch.object(dc._channel, "get_state", return_value=grpc.ChannelConnectivity.TRANSIENT_FAILURE),
         patch.object(dc._channel, "close", new_callable=AsyncMock),
     ):
-            ch = await dc.get_channel()
-            assert ch is not None
+        ch = await dc.get_channel()
+        assert ch is not None
 
     await dc.close()
 
@@ -684,6 +691,7 @@ async def test_get_channel_re_resolves_on_transient_failure():
 # ---------------------------------------------------------------------------
 # resolve_interval parameter
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_resolve_interval_parameter():
@@ -708,6 +716,7 @@ async def test_default_resolve_interval():
 # ---------------------------------------------------------------------------
 # Watcher protocol test
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_watcher_protocol_is_runtime_checkable():

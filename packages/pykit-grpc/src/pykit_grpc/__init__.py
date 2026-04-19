@@ -6,7 +6,11 @@ from pykit_grpc.channel import GrpcChannel
 from pykit_grpc.component import GrpcComponent
 from pykit_grpc.config import GrpcConfig
 from pykit_grpc.discovery_channel import DiscoveryChannel
-from pykit_grpc.errors import app_error_to_grpc_status, grpc_error_to_app_error
+from pykit_grpc.errors import (
+    app_error_to_grpc_status,
+    app_error_to_grpc_trailing_metadata,
+    grpc_error_to_app_error,
+)
 
 __all__ = [
     "DiscoveryChannel",
@@ -14,5 +18,6 @@ __all__ = [
     "GrpcComponent",
     "GrpcConfig",
     "app_error_to_grpc_status",
+    "app_error_to_grpc_trailing_metadata",
     "grpc_error_to_app_error",
 ]

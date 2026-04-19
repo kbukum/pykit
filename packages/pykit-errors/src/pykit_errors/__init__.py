@@ -10,14 +10,16 @@ from pykit_errors.base import (
     TimeoutError,
 )
 from pykit_errors.codes import ErrorCode
-from pykit_errors.response import ErrorResponse
+from pykit_errors.response import ProblemDetail, get_type_base_uri, set_type_base_uri
 
 __all__ = [
     "AppError",
     "ErrorCode",
-    "ErrorResponse",
     "InvalidInputError",
     "NotFoundError",
+    "ProblemDetail",
     "ServiceUnavailableError",
     "TimeoutError",
+    "get_type_base_uri",
+    "set_type_base_uri",
 ]

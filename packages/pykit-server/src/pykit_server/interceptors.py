@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import time
 from typing import Any
 
@@ -86,7 +87,20 @@ class ErrorHandlingInterceptor(aio.ServerInterceptor):
             try:
                 return await original(request, context)
             except AppError as exc:
-                await context.abort(exc.to_grpc_status(), str(exc))
+                error_details = json.dumps(
+                    {
+                        "code": exc.code.value,
+                        "message": exc.message,
+                        "retryable": exc.retryable,
+                        "details": exc.details if exc.details else {},
+                    }
+                )
+                context.set_trailing_metadata(
+                    [
+                        ("x-error-details-bin", error_details.encode("utf-8")),
+                    ]
+                )
+                await context.abort(exc.to_grpc_status(), exc.message)
             except Exception as exc:
                 self.logger.exception("Unhandled error in gRPC handler", error=str(exc))
                 await context.abort(grpc.StatusCode.INTERNAL, "Internal server error")
@@ -133,3 +147,4 @@ class MetricsInterceptor(aio.ServerInterceptor):
             request_deserializer=handler.request_deserializer,
             response_serializer=handler.response_serializer,
         )
+

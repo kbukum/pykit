@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import grpc
@@ -15,6 +16,7 @@ from pykit_grpc import (
     GrpcComponent,
     GrpcConfig,
     app_error_to_grpc_status,
+    app_error_to_grpc_trailing_metadata,
     grpc_error_to_app_error,
 )
 
@@ -118,6 +120,48 @@ class TestAppErrorToGrpcStatus:
         code, msg = app_error_to_grpc_status(AppError(ErrorCode.INTERNAL, "boom"))
         assert code == grpc.StatusCode.INTERNAL
         assert "boom" in msg
+
+
+# ── Trailing metadata with ProblemDetail ───────────────────────────────
+
+
+class TestAppErrorToGrpcTrailingMetadata:
+    def test_returns_x_error_details_bin(self) -> None:
+        err = AppError.not_found("User", "u-1")
+        metadata = app_error_to_grpc_trailing_metadata(err)
+        assert len(metadata) == 1
+        key, value = metadata[0]
+        assert key == "x-error-details-bin"
+        assert isinstance(value, bytes)
+
+    def test_payload_is_valid_problem_detail_json(self) -> None:
+        err = AppError.not_found("User", "u-1")
+        _, payload = app_error_to_grpc_trailing_metadata(err)[0]
+        body = json.loads(payload)
+        assert body["type"] == "https://pykit.dev/errors/not-found"
+        assert body["title"] == "Not Found"
+        assert body["status"] == 404
+        assert body["code"] == "NOT_FOUND"
+        assert body["retryable"] is False
+        assert "detail" in body
+
+    def test_instance_embedded_when_provided(self) -> None:
+        err = AppError.not_found("User", "u-1")
+        _, payload = app_error_to_grpc_trailing_metadata(err, instance="/users/u-1")[0]
+        body = json.loads(payload)
+        assert body["instance"] == "/users/u-1"
+
+    def test_instance_omitted_when_empty(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "oops")
+        _, payload = app_error_to_grpc_trailing_metadata(err)[0]
+        body = json.loads(payload)
+        assert "instance" not in body
+
+    def test_details_embedded(self) -> None:
+        err = AppError.not_found("Widget", "w-99")
+        _, payload = app_error_to_grpc_trailing_metadata(err)[0]
+        body = json.loads(payload)
+        assert body["details"] == {"resource": "Widget"}
 
 
 # ── Channel (mocked grpc.aio) ──────────────────────────────────────────

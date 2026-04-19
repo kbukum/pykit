@@ -8,11 +8,13 @@ import pytest
 from pykit_errors import (
     AppError,
     ErrorCode,
-    ErrorResponse,
     InvalidInputError,
     NotFoundError,
+    ProblemDetail,
     ServiceUnavailableError,
     TimeoutError,
+    get_type_base_uri,
+    set_type_base_uri,
 )
 
 
@@ -155,40 +157,115 @@ class TestServiceUnavailableError:
         assert "connection refused" in str(err)
 
 
-class TestErrorResponse:
+class TestProblemDetail:
     def test_from_app_error(self) -> None:
         err = AppError.not_found("User", "abc")
-        resp = ErrorResponse.from_app_error(err)
-        assert resp.type == "https://pykit.dev/errors/not-found"
-        assert resp.title == "NOT_FOUND"
-        assert resp.status == 404
-        assert resp.detail == err.message
+        pd = ProblemDetail.from_app_error(err)
+        assert pd.type == "https://pykit.dev/errors/not-found"
+        assert pd.title == "Not Found"
+        assert pd.status == 404
+        assert pd.detail == err.message
+        assert pd.code == "NOT_FOUND"
+        assert pd.retryable is False
+        assert pd.instance == ""
+        assert pd.details == {"resource": "User"}
 
-    def test_to_dict(self) -> None:
-        resp = ErrorResponse(
-            type="https://pykit.dev/errors/internal-error",
-            title="INTERNAL_ERROR",
-            status=500,
-            detail="An unexpected error occurred.",
-        )
-        d = resp.to_dict()
-        assert d["type"] == "https://pykit.dev/errors/internal-error"
-        assert d["status"] == 500
+    def test_from_app_error_with_instance(self) -> None:
+        err = AppError.not_found("User", "abc")
+        pd = ProblemDetail.from_app_error(err, instance="/api/v1/users/abc")
+        assert pd.instance == "/api/v1/users/abc"
+
+    def test_from_app_error_retryable(self) -> None:
+        err = AppError.service_unavailable("triton")
+        pd = ProblemDetail.from_app_error(err)
+        assert pd.retryable is True
+        assert pd.code == "SERVICE_UNAVAILABLE"
+        assert pd.title == "Service Unavailable"
+
+    def test_from_app_error_internal_error_code(self) -> None:
+        err = AppError.internal(ValueError("boom"))
+        pd = ProblemDetail.from_app_error(err)
+        assert pd.code == "INTERNAL_ERROR"
+        assert pd.title == "Internal Error"
+        assert pd.type == "https://pykit.dev/errors/internal-error"
+
+    def test_to_dict_minimal(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "broke")
+        pd = ProblemDetail.from_app_error(err)
+        d = pd.to_dict()
+        assert d["type"] == pd.type
+        assert d["title"] == pd.title
+        assert d["status"] == pd.status
+        assert d["detail"] == pd.detail
+        assert d["code"] == pd.code
+        assert d["retryable"] == pd.retryable
         assert "instance" not in d
-        assert "extensions" not in d
+        assert "details" not in d
 
-    def test_to_dict_with_optional_fields(self) -> None:
-        resp = ErrorResponse(
-            type="https://pykit.dev/errors/not-found",
-            title="NOT_FOUND",
-            status=404,
-            detail="User not found",
-            instance="/users/abc",
-            extensions={"trace_id": "xyz"},
-        )
-        d = resp.to_dict()
-        assert d["instance"] == "/users/abc"
-        assert d["extensions"]["trace_id"] == "xyz"
+    def test_to_dict_includes_instance_when_set(self) -> None:
+        err = AppError.not_found("Widget", "w-1")
+        pd = ProblemDetail.from_app_error(err, instance="/api/widgets/w-1")
+        assert pd.to_dict()["instance"] == "/api/widgets/w-1"
+
+    def test_to_dict_includes_details_when_set(self) -> None:
+        err = AppError.not_found("Widget", "w-1")
+        pd = ProblemDetail.from_app_error(err)
+        assert pd.to_dict()["details"] == {"resource": "Widget"}
+
+    def test_to_dict_omits_empty_details(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "oops")
+        pd = ProblemDetail.from_app_error(err)
+        assert "details" not in pd.to_dict()
+
+    def test_frozen_dataclass(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "fail")
+        pd = ProblemDetail.from_app_error(err)
+        with pytest.raises(AttributeError):
+            pd.type = "changed"  # type: ignore[misc]
+
+    @pytest.mark.parametrize("code", list(ErrorCode))
+    def test_from_app_error_all_codes(self, code: ErrorCode) -> None:
+        err = AppError(code, "test message")
+        pd = ProblemDetail.from_app_error(err)
+        expected_kebab = code.value.lower().replace("_", "-")
+        assert pd.type == f"https://pykit.dev/errors/{expected_kebab}"
+        assert pd.status == code.http_status
+        assert pd.detail == "test message"
+        assert pd.code == code.value
+
+
+class TestSetTypeBaseUri:
+    def test_custom_base_uri(self) -> None:
+        original = get_type_base_uri()
+        set_type_base_uri("https://example.com/problems/")
+        try:
+            err = AppError.not_found("Thing", "t-1")
+            pd = ProblemDetail.from_app_error(err)
+            assert pd.type.startswith("https://example.com/problems/")
+            assert pd.type == "https://example.com/problems/not-found"
+        finally:
+            set_type_base_uri(original)
+
+    def test_must_end_with_slash(self) -> None:
+        with pytest.raises(ValueError, match="must end with '/'"):
+            set_type_base_uri("https://example.com/problems")
+
+    def test_get_type_base_uri_returns_default(self) -> None:
+        assert get_type_base_uri() == "https://pykit.dev/errors/"
+
+
+class TestToProblemDetail:
+    def test_to_problem_detail(self) -> None:
+        err = AppError.not_found("User", "abc")
+        pd = err.to_problem_detail()
+        assert isinstance(pd, ProblemDetail)
+        assert pd.status == 404
+        assert pd.code == "NOT_FOUND"
+
+    def test_to_problem_detail_with_instance(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "broken")
+        pd = err.to_problem_detail(instance="/api/resource")
+        assert pd.instance == "/api/resource"
 
 
 # ---------------------------------------------------------------------------
@@ -582,60 +659,50 @@ class TestToGrpcStatusAll:
 # ---------------------------------------------------------------------------
 
 
-class TestErrorResponseComprehensive:
+class TestProblemDetailComprehensive:
     @pytest.mark.parametrize("code", list(ErrorCode))
-    def test_from_app_error_all_codes(self, code: ErrorCode) -> None:
+    def test_from_app_error_all_codes_type_uri(self, code: ErrorCode) -> None:
         err = AppError(code, "test message")
-        resp = ErrorResponse.from_app_error(err)
+        pd = ProblemDetail.from_app_error(err)
         expected_kebab = code.value.lower().replace("_", "-")
-        assert resp.type == f"https://pykit.dev/errors/{expected_kebab}"
-        assert resp.title == code.value
-        assert resp.status == code.http_status
-        assert resp.detail == "test message"
+        assert pd.type == f"https://pykit.dev/errors/{expected_kebab}"
+        assert pd.status == code.http_status
+        assert pd.detail == "test message"
 
-    def test_to_dict_minimal(self) -> None:
-        resp = ErrorResponse(
-            type="https://pykit.dev/errors/not-found",
-            title="NOT_FOUND",
-            status=404,
-            detail="gone",
-        )
-        d = resp.to_dict()
-        assert set(d.keys()) == {"type", "title", "status", "detail"}
+    def test_to_dict_minimal_keys(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "gone")
+        pd = ProblemDetail.from_app_error(err)
+        d = pd.to_dict()
+        assert {"type", "title", "status", "detail", "code", "retryable"}.issubset(d.keys())
+        assert "instance" not in d
+        assert "details" not in d
 
     def test_to_dict_includes_instance_when_set(self) -> None:
-        resp = ErrorResponse(
-            type="t",
-            title="T",
-            status=400,
-            detail="d",
-            instance="/api/v1/users/42",
-        )
-        assert resp.to_dict()["instance"] == "/api/v1/users/42"
+        err = AppError.not_found("user", "42")
+        pd = ProblemDetail.from_app_error(err, instance="/api/v1/users/42")
+        assert pd.to_dict()["instance"] == "/api/v1/users/42"
 
-    def test_to_dict_includes_extensions_when_set(self) -> None:
-        resp = ErrorResponse(
-            type="t",
-            title="T",
-            status=400,
-            detail="d",
-            extensions={"request_id": "abc-123"},
-        )
-        assert resp.to_dict()["extensions"] == {"request_id": "abc-123"}
+    def test_to_dict_omits_instance_when_empty(self) -> None:
+        err = AppError(ErrorCode.INTERNAL, "oops")
+        pd = ProblemDetail.from_app_error(err)
+        assert "instance" not in pd.to_dict()
 
     def test_to_dict_round_trip_structure(self) -> None:
         err = AppError.not_found("Widget", "w-99")
-        resp = ErrorResponse.from_app_error(err)
-        d = resp.to_dict()
-        assert d["type"] == resp.type
-        assert d["title"] == resp.title
-        assert d["status"] == resp.status
-        assert d["detail"] == resp.detail
+        pd = ProblemDetail.from_app_error(err)
+        d = pd.to_dict()
+        assert d["type"] == pd.type
+        assert d["title"] == pd.title
+        assert d["status"] == pd.status
+        assert d["detail"] == pd.detail
+        assert d["code"] == pd.code
+        assert d["retryable"] == pd.retryable
 
     def test_frozen_dataclass(self) -> None:
-        resp = ErrorResponse(type="t", title="T", status=400, detail="d")
+        err = AppError(ErrorCode.INTERNAL, "fail")
+        pd = ProblemDetail.from_app_error(err)
         with pytest.raises(AttributeError):
-            resp.type = "changed"  # type: ignore[misc]
+            pd.type = "changed"  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------

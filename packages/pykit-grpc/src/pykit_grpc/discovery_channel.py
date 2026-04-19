@@ -293,6 +293,8 @@ class DiscoveryChannel:
         self.start_background_resolve()
         return self
 
-    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object) -> None:
+    async def __aexit__(
+        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: object
+    ) -> None:
         """Async context manager exit: close the channel and cancel background tasks."""
         await self.close()

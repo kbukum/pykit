@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import grpc
 import pytest
 
-from pykit_errors import NotFoundError
+from pykit_errors import AppError, NotFoundError
 from pykit_server.interceptors import (
     ErrorHandlingInterceptor,
     LoggingInterceptor,
@@ -189,7 +189,35 @@ class TestErrorHandlingInterceptor:
         ctx = AsyncMock()
         await wrapped.unary_unary(object(), ctx)
 
-        ctx.abort.assert_awaited_once_with(grpc.StatusCode.NOT_FOUND, str(app_err))
+        ctx.abort.assert_awaited_once_with(grpc.StatusCode.NOT_FOUND, app_err.message)
+
+    @pytest.mark.asyncio
+    async def test_app_error_sets_trailing_metadata(self) -> None:
+        import json
+
+        app_err = AppError.not_found("User", "123")
+        original = AsyncMock(side_effect=app_err)
+        handler = _make_handler(unary_unary=original)
+        interceptor = ErrorHandlingInterceptor()
+        continuation = AsyncMock(return_value=handler)
+        details = _make_call_details()
+
+        with patch("pykit_server.interceptors.grpc.unary_unary_rpc_method_handler") as mock_wrap:
+            mock_wrap.side_effect = lambda fn, **kw: MagicMock(unary_unary=fn)
+            wrapped = await interceptor.intercept_service(continuation, details)
+
+        ctx = AsyncMock()
+        await wrapped.unary_unary(object(), ctx)
+
+        ctx.set_trailing_metadata.assert_called_once()
+        metadata = ctx.set_trailing_metadata.call_args[0][0]
+        key, raw = metadata[0]
+        assert key == "x-error-details-bin"
+        parsed = json.loads(raw.decode("utf-8"))
+        assert parsed["code"] == "NOT_FOUND"
+        assert parsed["message"] == app_err.message
+        assert parsed["retryable"] is False
+        assert parsed["details"] == {"resource": "User"}
 
     @pytest.mark.filterwarnings("ignore::UserWarning")
     @pytest.mark.asyncio
@@ -339,3 +367,4 @@ class TestMetricsInterceptor:
         _, kwargs = mock_wrap.call_args
         assert kwargs["request_deserializer"] is deser
         assert kwargs["response_serializer"] is ser
+
