@@ -28,6 +28,22 @@ class RefreshConfig:
 
 
 @dataclass
+class RefreshInput:
+    """Tokens available for a refresh operation.
+
+    Standard OAuth2 providers use refresh_token; platforms that don't issue
+    refresh tokens (Facebook, Instagram) use access_token instead.
+
+    Args:
+        refresh_token: Standard OAuth2 refresh token.
+        access_token: Current access token (for platforms without refresh tokens).
+    """
+
+    refresh_token: str = ""
+    access_token: str = ""
+
+
+@dataclass
 class TokenResult:
     """Tokens returned from an OAuth2/OIDC token exchange.
 

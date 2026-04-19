@@ -58,7 +58,7 @@ async def refresh_token(
 
     own_client = client is None
     if own_client:
-        client = httpx.AsyncClient()
+        client = httpx.AsyncClient(timeout=10.0)
 
     try:
         resp = await client.post(
