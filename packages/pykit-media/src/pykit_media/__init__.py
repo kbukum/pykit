@@ -2,11 +2,21 @@
 
 __version__ = "0.1.0"
 
+from pykit_media.delegation import (
+    GrpcMediaClient,
+    MediaOperationRequest,
+    MediaOperationResult,
+    MediaServiceClient,
+)
 from pykit_media.detect import detect, detect_file, is_text
 from pykit_media.types import MediaInfo, MediaType
 
 __all__ = [
+    "GrpcMediaClient",
     "MediaInfo",
+    "MediaOperationRequest",
+    "MediaOperationResult",
+    "MediaServiceClient",
     "MediaType",
     "detect",
     "detect_file",

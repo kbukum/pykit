@@ -367,4 +367,3 @@ class TestMetricsInterceptor:
         _, kwargs = mock_wrap.call_args
         assert kwargs["request_deserializer"] is deser
         assert kwargs["response_serializer"] is ser
-

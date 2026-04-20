@@ -69,9 +69,7 @@ class DiscoveryComponent:
 
         try:
             self._pair = create_provider(self._config)
-            logger.info(
-                "discovery provider created: %s", self._config.provider
-            )
+            logger.info("discovery provider created: %s", self._config.provider)
         except Exception:
             logger.exception("failed to create discovery provider")
             self._started = True
@@ -112,9 +110,7 @@ class DiscoveryComponent:
                     raise RuntimeError(
                         f"discovery: register self after {max_retries} retries: {last_err}"
                     ) from last_err
-                logger.warning(
-                    "failed to register with discovery — continuing in degraded mode"
-                )
+                logger.warning("failed to register with discovery — continuing in degraded mode")
 
         self._started = True
 
@@ -125,9 +121,7 @@ class DiscoveryComponent:
                 await self._pair.registry.deregister(self._instance_id)
                 logger.info("deregistered service %s", self._instance_id)
             except Exception:
-                logger.warning(
-                    "failed to deregister from discovery", exc_info=True
-                )
+                logger.warning("failed to deregister from discovery", exc_info=True)
 
         if self._pair:
             await self._pair.close()
@@ -172,7 +166,7 @@ class DiscoveryComponent:
             timestamp=datetime.now(UTC),
         )
 
-    async def register(self, instance: "ServiceInstance") -> None:  # noqa: F821
+    async def register(self, instance: ServiceInstance) -> None:  # noqa: F821
         """Delegate to the underlying registry."""
         if self._pair is None:
             raise RuntimeError("DiscoveryComponent not started")

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class ProviderPair:
     """Holds the generic registry and discovery interfaces for a provider."""
 
-    __slots__ = ("registry", "discovery", "_closeable")
+    __slots__ = ("_closeable", "discovery", "registry")
 
     def __init__(
         self,
@@ -68,10 +68,7 @@ def create_provider(config: DiscoveryConfig) -> ProviderPair:
     factory = _registry.get(config.provider)
     if factory is None:
         available = ", ".join(sorted(_registry)) or "(none)"
-        raise KeyError(
-            f"unknown discovery provider {config.provider!r}; "
-            f"available: {available}"
-        )
+        raise KeyError(f"unknown discovery provider {config.provider!r}; available: {available}")
     return factory(config)
 
 

@@ -12,11 +12,14 @@ from pykit_provider.base import (
     StreamProvider,
 )
 from pykit_provider.func import RequestResponseFunc
+from pykit_provider.operation_registry import OperationBinding, OperationRegistry
 
 __all__ = [
     "BoxIterator",
     "Duplex",
     "DuplexStream",
+    "OperationBinding",
+    "OperationRegistry",
     "Provider",
     "RequestResponse",
     "RequestResponseFunc",

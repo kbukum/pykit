@@ -147,4 +147,3 @@ class MetricsInterceptor(aio.ServerInterceptor):
             request_deserializer=handler.request_deserializer,
             response_serializer=handler.response_serializer,
         )
-

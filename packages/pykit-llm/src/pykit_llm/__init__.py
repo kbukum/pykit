@@ -12,6 +12,8 @@ from pykit_llm.stream_events import (
     ToolCallDelta,
     UsageUpdate,
 )
+from pykit_llm.structured import ParseError, StructuredOutput
+from pykit_llm.template import PromptTemplate, TemplateRegistry
 from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
@@ -54,12 +56,16 @@ __all__ = [
     "Message",
     "MessageComplete",
     "MessageStart",
+    "ParseError",
+    "PromptTemplate",
     "Provider",
     "StopReason",
     "StreamChunk",
     "StreamError",
     "StreamEvent",
+    "StructuredOutput",
     "SystemMessage",
+    "TemplateRegistry",
     "TextBlock",
     "ThinkingBlock",
     "ThinkingDelta",
