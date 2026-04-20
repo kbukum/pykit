@@ -59,6 +59,7 @@ dev = [
     "pykit-hook",
     "pykit-agent",
     "pykit-mcp",
+    "pykit-transcription",
     "aiosqlite",
     "fakeredis",
     "pytest",
@@ -147,6 +148,7 @@ pykit-vector-store   = { workspace = true }
 pykit-version        = { workspace = true }
 pykit-worker         = { workspace = true }
 pykit-workload       = { workspace = true }
+pykit-transcription  = { workspace = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -200,6 +202,7 @@ source_pkgs = [
     "pykit_vector_store",
     "pykit_llm_providers",
     "pykit_explain",
+    "pykit_transcription",
 ]
 branch = true
 
@@ -250,6 +253,7 @@ known-first-party = [
     "pykit_auth", "pykit_authz", "pykit_llm", "pykit_discovery",
     "pykit_process", "pykit_workload",
     "pykit_llm_providers", "pykit_explain",
+    "pykit_transcription",
 ]
 
 [tool.mypy]
@@ -291,6 +295,7 @@ root_packages = [
     "pykit_server", "pykit_grpc",
     "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
     "pykit_discovery", "pykit_workload", "pykit_process", "pykit_testutil", "pykit_metrics",
+    "pykit_transcription",
 ]
 
 [[tool.importlinter.contracts]]
@@ -298,7 +303,7 @@ name = "Layer architecture"
 type = "layers"
 layers = [
     "pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics",
-    "pykit_llm | pykit_triton | pykit_bench | pykit_dataset",
+    "pykit_llm | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription",
     "pykit_server | pykit_grpc",
     "pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
     "pykit_auth | pykit_authz | pykit_security",
