@@ -1,6 +1,30 @@
 # Changelog
 
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
+
+### Added — Documentation & Project Hygiene
+- `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1 (cross-sibling parity).
+- `SECURITY.md` — vulnerability disclosure policy, supply-chain section
+  (Sigstore Trusted Publishing, CycloneDX SBOM, `pip-audit`).
+- `GOVERNANCE.md` — roles, decision making, sibling-parity contract.
+- `MAINTAINERS.md` — current maintainers, areas, succession.
+- `docs/RELEASING.md` — mechanical release process for the uv workspace.
+- `docs/VERSIONING.md` — workspace versioning guide.
+- `docs/policy/SEMVER.md` — semantic-versioning policy (PEP 440 aware).
+- `docs/policy/DEPRECATION.md` — deprecation lifecycle (PEP 702 `@deprecated`).
+- `docs/adr/0000-template.md` and `docs/adr/0001-layered-package-architecture.md` —
+  Architecture Decision Records.
+- `.github/CODEOWNERS` — review ownership across all packages.
+- `.github/dependabot.yml` — pip + GitHub Actions dependency automation.
+- `.github/PULL_REQUEST_TEMPLATE.md` — PR checklist with sibling-parity prompt.
+- `.github/ISSUE_TEMPLATE/{bug_report,feature_request,config}.yml` — modern
+  YAML form templates.
+- README: sibling-projects callout and `Project Documentation` index.
 
 ### Added — Cross-Kit Alignment
 

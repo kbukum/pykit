@@ -270,3 +270,26 @@ importing from a higher layer.
 - Releases are tagged as `v<version>` (e.g., `v0.1.0`).
 - Breaking changes must be documented in the changelog with a
   `### Breaking Changes` section.
+
+---
+
+## Related Documents
+
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Contributor Covenant v2.1
+- [SECURITY.md](SECURITY.md) — vulnerability disclosure & supply-chain
+- [GOVERNANCE.md](GOVERNANCE.md) — roles, decision making, sibling-parity contract
+- [MAINTAINERS.md](MAINTAINERS.md) — current maintainers & areas
+- [CHANGELOG.md](CHANGELOG.md) — release history
+- [docs/RELEASING.md](docs/RELEASING.md) — release process
+- [docs/VERSIONING.md](docs/VERSIONING.md) — versioning rules
+- [docs/policy/SEMVER.md](docs/policy/SEMVER.md) · [docs/policy/DEPRECATION.md](docs/policy/DEPRECATION.md)
+- [docs/adr/](docs/adr/) — Architecture Decision Records
+
+### Sibling-parity reminder
+
+Public abstractions (`AppError`, `Component`, `Provider`, `Pipeline`, lifecycle
+hooks) are mirrored across [gokit](https://github.com/kbukum/gokit),
+[rskit](https://github.com/kbukum/rskit), and
+[pykit](https://github.com/kbukum/pykit). When you change one of these
+surfaces here, please open tracking issues in the sibling repos so the change
+can be evaluated for parity.
