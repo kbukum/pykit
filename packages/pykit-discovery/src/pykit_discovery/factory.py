@@ -11,6 +11,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Protocol
 
+from pykit_util.registry import Registry as GenericRegistry
+
 if TYPE_CHECKING:
     from pykit_discovery.config import DiscoveryConfig
     from pykit_discovery.protocols import Discovery, Registry
@@ -45,8 +47,8 @@ class ProviderFactory(Protocol):
     def __call__(self, config: DiscoveryConfig) -> ProviderPair: ...
 
 
-# Global factory registry
-_registry: dict[str, ProviderFactory] = {}
+# Global factory registry backed by the typed GenericRegistry
+_provider_registry: GenericRegistry[str, ProviderFactory] = GenericRegistry()
 
 
 def register_provider(name: str, factory: ProviderFactory) -> None:
@@ -54,9 +56,9 @@ def register_provider(name: str, factory: ProviderFactory) -> None:
 
     Raises ``ValueError`` if the name is already registered.
     """
-    if name in _registry:
+    if name in _provider_registry:
         raise ValueError(f"discovery provider {name!r} already registered")
-    _registry[name] = factory
+    _provider_registry.register_sync(name, factory)
     logger.debug("registered discovery provider %r", name)
 
 
@@ -65,9 +67,9 @@ def create_provider(config: DiscoveryConfig) -> ProviderPair:
 
     Raises ``KeyError`` if no factory is registered for the provider name.
     """
-    factory = _registry.get(config.provider)
+    factory = _provider_registry.get(config.provider)
     if factory is None:
-        available = ", ".join(sorted(_registry)) or "(none)"
+        available = ", ".join(sorted(_provider_registry.keys())) or "(none)"
         raise KeyError(f"unknown discovery provider {config.provider!r}; available: {available}")
     return factory(config)
 
@@ -121,7 +123,7 @@ def _consul_factory(config: DiscoveryConfig) -> ProviderPair:
 
 def init_builtin() -> None:
     """Register all built-in providers.  Safe to call multiple times."""
-    if "static" not in _registry:
+    if "static" not in _provider_registry:
         register_provider("static", _static_factory)
-    if "consul" not in _registry:
+    if "consul" not in _provider_registry:
         register_provider("consul", _consul_factory)

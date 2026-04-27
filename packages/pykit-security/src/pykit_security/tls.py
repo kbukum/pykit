@@ -70,5 +70,5 @@ class TLSConfig:
             raise FileNotFoundError(f"Key file not found: {self.key_file}")
 
     def is_enabled(self) -> bool:
-        """Return True if any TLS setting is configured."""
-        return self.skip_verify or bool(self.ca_file) or bool(self.cert_file) or bool(self.server_hostname)
+        """Return True only when cert, key, AND min_version are all configured."""
+        return bool(self.cert_file and self.key_file and self.min_version)

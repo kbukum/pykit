@@ -35,9 +35,31 @@ class DiscoveryComponent:
         await comp.stop()      # deregisters, closes resources
     """
 
-    def __init__(self, config: DiscoveryConfig) -> None:
-        self._config = config
-        self._pair: ProviderPair | None = None
+    def __init__(
+        self,
+        config: DiscoveryConfig | None = None,
+        *,
+        provider: object | None = None,
+    ) -> None:
+        from pykit_discovery.config import DiscoveryConfig as _DiscoveryConfig
+        from pykit_discovery.factory import ProviderPair
+        from pykit_discovery.static import StaticProvider
+
+        if provider is not None:
+            # Direct provider supplied — use it immediately without lifecycle.
+            self._config = config if config is not None else _DiscoveryConfig(enabled=True)
+            self._pair: ProviderPair | None = ProviderPair(
+                registry=provider,  # type: ignore[arg-type]
+                discovery=provider,  # type: ignore[arg-type]
+            )
+        elif config is None:
+            # No config or provider — default to an in-memory StaticProvider.
+            self._config = _DiscoveryConfig(enabled=True)
+            _default = StaticProvider()
+            self._pair = ProviderPair(registry=_default, discovery=_default)
+        else:
+            self._config = config
+            self._pair = None
         self._instance_id: str | None = None
         self._started = False
 

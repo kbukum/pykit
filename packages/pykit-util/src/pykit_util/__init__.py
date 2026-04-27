@@ -2,6 +2,7 @@
 
 __version__ = "0.1.0"
 
+from pykit_util.clock import Clock, FakeClock, SystemClock
 from pykit_util.collections import chunk, first, flatten, group_by, unique
 from pykit_util.merge import deep_merge
 from pykit_util.parse import mask_secret, parse_bool, parse_size
@@ -9,6 +10,10 @@ from pykit_util.sanitize import is_safe_string, sanitize_env_value, sanitize_str
 from pykit_util.strings import coalesce, slug, truncate
 
 __all__ = [
+    # clock
+    "Clock",
+    "FakeClock",
+    "SystemClock",
     # collections
     "chunk",
     # strings
