@@ -6,7 +6,7 @@ readme = "README.md"
 license = { text = "MIT" }
 keywords = ["service-discovery", "consul", "load-balancing"]
 requires-python = ">=3.13"
-dependencies = ["pykit-errors", "pykit-component", "httpx"]
+dependencies = ["pykit-errors", "pykit-component", "pykit-util", "httpx"]
 
 [build-system]
 requires = ["hatchling"]

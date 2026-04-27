@@ -47,7 +47,7 @@ class DiscoveryComponent:
 
         if provider is not None:
             # Direct provider supplied — use it immediately without lifecycle.
-            self._config = config if config is not None else _DiscoveryConfig(enabled=True)
+            self._config: DiscoveryConfig = config if config is not None else _DiscoveryConfig(enabled=True)
             self._pair: ProviderPair | None = ProviderPair(
                 registry=provider,  # type: ignore[arg-type]
                 discovery=provider,  # type: ignore[arg-type]
