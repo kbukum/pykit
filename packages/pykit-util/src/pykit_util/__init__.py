@@ -6,6 +6,7 @@ from pykit_util.clock import Clock, FakeClock, SystemClock
 from pykit_util.collections import chunk, first, flatten, group_by, unique
 from pykit_util.merge import deep_merge
 from pykit_util.parse import mask_secret, parse_bool, parse_size
+from pykit_util.registry import Registry
 from pykit_util.sanitize import is_safe_string, sanitize_env_value, sanitize_string
 from pykit_util.strings import coalesce, slug, truncate
 
@@ -29,6 +30,8 @@ __all__ = [
     "mask_secret",
     "parse_bool",
     "parse_size",
+    # registry
+    "Registry",
     "sanitize_env_value",
     "sanitize_string",
     "slug",

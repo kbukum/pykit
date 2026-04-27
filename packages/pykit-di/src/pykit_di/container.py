@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import enum
 import threading
+import warnings
 from collections.abc import Callable
 from contextvars import ContextVar
-from typing import Any, TypeVar
+from typing import Any, TypeVar, overload
 
 T = TypeVar("T")
 
@@ -111,15 +112,31 @@ class Container:
     # Resolution
     # ------------------------------------------------------------------
 
-    def resolve(self, name: str, type_hint: type[T] | None = None) -> T:  # type: ignore[type-var]
+    @overload
+    def resolve(self, name: str, type_hint: type[T]) -> T: ...
+
+    @overload
+    def resolve(self, name: str, type_hint: None = ...) -> Any: ...
+
+    def resolve(self, name: str, type_hint: type[T] | None = None) -> T | Any:
         """Resolve a component by *name*.
 
         If *type_hint* is provided the resolved value is checked with
         ``isinstance`` and a ``TypeError`` is raised on mismatch.
 
+        Prefer passing an explicit ``type_hint`` for full type safety.
+        Calling without ``type_hint`` returns ``Any`` and is deprecated.
+
         Raises ``KeyError`` if *name* is not registered.
         Raises ``CircularDependencyError`` on re-entrant resolution.
         """
+        if type_hint is None:
+            warnings.warn(
+                "resolve() without type_hint returns Any and is deprecated. "
+                "Pass an explicit type: container.resolve(name, MyService)",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         with self._lock:
             reg = self._registrations.get(name)
             if reg is None:
@@ -146,7 +163,13 @@ class Container:
 
         return self._check_type(name, instance, type_hint)
 
-    def resolve_all(self, type_hint: type[T] | None = None) -> list[T]:  # type: ignore[type-var]
+    @overload
+    def resolve_all(self, type_hint: type[T]) -> list[T]: ...
+
+    @overload
+    def resolve_all(self, type_hint: None = ...) -> list[Any]: ...
+
+    def resolve_all(self, type_hint: type[T] | None = None) -> list[T] | list[Any]:
         """Resolve **all** registered components, optionally filtered by *type_hint*."""
         results: list[Any] = []
         with self._lock:
@@ -186,7 +209,7 @@ class Container:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _check_type(name: str, instance: Any, type_hint: type[T] | None) -> T:  # type: ignore[type-var]
+    def _check_type(name: str, instance: Any, type_hint: type[T] | None) -> T | Any:
         if type_hint is not None and not isinstance(instance, type_hint):
             raise TypeError(f"Component '{name}' is {type(instance).__name__}, expected {type_hint.__name__}")
         return instance  # type: ignore[return-value]

@@ -10,6 +10,11 @@ dependencies = [
     "pydantic",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest-benchmark>=4",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
