@@ -24,7 +24,7 @@ jobs:
         run: uv sync --all-packages
       - name: Run benchmarks (smoke)
         run: |
-          uv run pytest -m benchmark -p no:xdist --no-header -q || status=$?
+          uv run pytest -m benchmark -p no:xdist -o "addopts=--tb=short -q --import-mode=importlib" --no-header || status=$?
           if [ "${status:-0}" -eq 5 ]; then
             echo "No benchmark markers found yet"
           elif [ "${status:-0}" -ne 0 ]; then

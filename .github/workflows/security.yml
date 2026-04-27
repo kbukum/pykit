@@ -38,8 +38,7 @@ jobs:
       - name: Export requirements
         run: uv export --only-group dev --format requirements-txt --no-emit-workspace > /tmp/reqs.txt
       - name: Run pip-audit
-        # --ignore-vuln flags for known false-positives in the workspace itself:
-        run: uv run pip-audit -r /tmp/reqs.txt --strict --vulnerability-service osv
+        run: uvx pip-audit -r /tmp/reqs.txt --strict --vulnerability-service osv
 
   bandit:
     name: Bandit SAST
