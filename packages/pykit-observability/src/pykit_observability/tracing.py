@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -17,9 +18,11 @@ from opentelemetry.sdk.trace.sampling import (
 
 from pykit_observability.config import TracerConfig
 
+_setup_lock = threading.Lock()
+_tracer_provider: Any = None
 
-def setup_tracing(config: TracerConfig) -> TracerProvider:
-    """Configure and set the global OTel tracer provider."""
+
+def _build_provider(config: TracerConfig) -> TracerProvider:
     resource = Resource.create({"service.name": config.service_name})
 
     if config.sample_rate >= 1.0:
@@ -30,8 +33,47 @@ def setup_tracing(config: TracerConfig) -> TracerProvider:
         sampler = TraceIdRatioBased(config.sample_rate)
 
     provider = TracerProvider(resource=resource, sampler=sampler)
-    trace.set_tracer_provider(provider)
+
+    if not getattr(config, 'otlp_endpoint', None) and not getattr(config, 'exporter', None):
+        from opentelemetry.sdk.trace.export import SimpleSpanProcessor, ConsoleSpanExporter
+        provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+
     return provider
+
+
+def setup_tracing(config: TracerConfig) -> TracerProvider:
+    """Configure and set the global OTel tracer provider. Idempotent — safe to call multiple times."""
+    global _tracer_provider
+    with _setup_lock:
+        if _tracer_provider is not None:
+            return _tracer_provider
+        provider = _build_provider(config)
+        trace.set_tracer_provider(provider)
+
+        try:
+            from opentelemetry.propagators.b3 import B3MultiFormat
+            from opentelemetry.propagators.composite import CompositePropagator
+            from opentelemetry.propagate import set_global_textmap
+            from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+            set_global_textmap(CompositePropagator([
+                TraceContextTextMapPropagator(),
+                B3MultiFormat(),
+            ]))
+        except ImportError:
+            from opentelemetry.propagate import set_global_textmap
+            from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+            set_global_textmap(TraceContextTextMapPropagator())
+
+        _tracer_provider = provider
+        return provider
+
+
+def reset_tracing() -> None:
+    """Reset to NoOp provider. Intended for test teardown only."""
+    global _tracer_provider
+    with _setup_lock:
+        trace.set_tracer_provider(trace.ProxyTracerProvider())
+        _tracer_provider = None
 
 
 def get_tracer(name: str) -> trace.Tracer:

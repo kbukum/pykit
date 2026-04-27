@@ -114,3 +114,34 @@ class ProblemDetail:
         if self.details:
             d["details"] = self.details
         return d
+
+
+class ProblemDetailFactory:
+    """Factory for creating ProblemDetail instances with a configurable type base URI.
+
+    Prefer this over the module-level ``set_type_base_uri`` when running multiple
+    services in a single process (e.g., tests, in-proc gateways).
+    """
+
+    def __init__(self, type_base_uri: str = "https://pykit.dev/errors/") -> None:
+        if not type_base_uri.endswith("/"):
+            raise ValueError(f"type base URI must end with '/': {type_base_uri!r}")
+        self._type_base_uri = type_base_uri
+
+    @property
+    def type_base_uri(self) -> str:
+        return self._type_base_uri
+
+    def create(self, err: AppError, instance: str = "") -> ProblemDetail:
+        """Create a ProblemDetail from an AppError using this factory's base URI."""
+        code_str = err.code.value
+        return ProblemDetail(
+            type=self._type_base_uri + _code_to_kebab(code_str),
+            title=_code_to_title(code_str),
+            status=err.http_status,
+            detail=err.message,
+            code=code_str,
+            retryable=err.retryable,
+            instance=instance,
+            details=dict(err.details),
+        )
