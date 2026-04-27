@@ -2,6 +2,9 @@
 name = "pykit-di"
 description = "Dependency injection container with eager, lazy, and singleton modes"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["dependency-injection", "container", "ioc", "singleton"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",

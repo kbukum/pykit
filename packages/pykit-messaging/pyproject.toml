@@ -1,6 +1,9 @@
 [project]
 name = "pykit-messaging"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["messaging", "kafka", "async", "broker"]
 description = "Transport-agnostic messaging abstractions with Kafka provider"
 requires-python = ">=3.13"
 dependencies = [

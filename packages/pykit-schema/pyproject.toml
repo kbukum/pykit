@@ -2,6 +2,9 @@
 name = "pykit-schema"
 description = "JSON Schema generation from Python types and Pydantic models"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["json-schema", "pydantic", "validation", "types"]
 requires-python = ">=3.13"
 dependencies = [
     "pydantic>=2.12",

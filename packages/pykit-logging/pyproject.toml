@@ -2,6 +2,9 @@
 name = "pykit-logging"
 description = "Structured logging with structlog integration"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["logging", "structlog", "structured-logging"]
 requires-python = ">=3.13"
 dependencies = [
     "structlog",

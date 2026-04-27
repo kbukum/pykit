@@ -2,6 +2,9 @@
 name = "pykit-dataset"
 description = "Dataset collection, transformation, and publishing"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["dataset", "data", "transformation", "publishing"]
 requires-python = ">=3.13"
 dependencies = []
 

@@ -2,6 +2,9 @@
 name = "pykit-dag"
 description = "DAG execution engine with parallel task orchestration"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["dag", "task", "orchestration", "async", "parallel"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",

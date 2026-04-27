@@ -2,6 +2,9 @@
 name = "pykit-auth-oidc"
 description = "OpenID Connect authentication provider"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["oidc", "openid-connect", "oauth2", "authentication"]
 requires-python = ">=3.13"
 dependencies = [
     "httpx",

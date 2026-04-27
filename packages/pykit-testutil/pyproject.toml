@@ -2,10 +2,18 @@
 name = "pykit-testutil"
 description = "Test utilities for gRPC services"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["testing", "grpc", "utilities", "pytest"]
 requires-python = ">=3.13"
 dependencies = [
     "grpcio",
+    "pytest>=8",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "pytest-xdist>=3", "hypothesis>=6"]
+hypothesis = ["hypothesis>=6"]
 
 [build-system]
 requires = ["hatchling"]

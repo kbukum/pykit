@@ -2,6 +2,9 @@
 name = "pykit-chain"
 description = "Sequential chain execution with progress, cancellation, and cleanup"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["chain", "pipeline", "sequential", "async"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",

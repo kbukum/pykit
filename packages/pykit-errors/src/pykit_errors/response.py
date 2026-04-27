@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,11 +31,13 @@ def get_type_base_uri() -> str:
     return _TYPE_BASE_URI
 
 
+@functools.lru_cache(maxsize=512)
 def _code_to_kebab(code: str) -> str:
     """Convert an UPPER_SNAKE_CASE error code to kebab-case."""
     return code.lower().replace("_", "-")
 
 
+@functools.lru_cache(maxsize=512)
 def _code_to_title(code: str) -> str:
     """Convert an UPPER_SNAKE_CASE error code to title-cased human text.
 

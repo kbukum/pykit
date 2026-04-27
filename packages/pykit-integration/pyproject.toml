@@ -1,6 +1,9 @@
 [project]
 name = "pykit-integration"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["integration", "testing", "cross-layer"]
 requires-python = ">=3.13"
 description = "Cross-layer integration tests for pykit"
 dependencies = [
