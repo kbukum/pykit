@@ -65,6 +65,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "pytest-cov",
+    "pytest-xdist>=3",
     "ruff",
     "mypy",
     "import-linter",
@@ -153,7 +154,11 @@ pykit-transcription  = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["packages"]
-addopts = "--tb=short -q --import-mode=importlib"
+addopts = "--tb=short -q --import-mode=importlib -n auto -m 'not integration'"
+markers = [
+    "integration: mark test as requiring live services (Redis, PostgreSQL, etc.)",
+    "slow: mark test as slow-running",
+]
 
 [tool.coverage.run]
 source_pkgs = [
@@ -209,7 +214,7 @@ branch = true
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
-fail_under = 60
+fail_under = 85
 
 [tool.ruff]
 target-version = "py313"
@@ -224,21 +229,42 @@ select = [
     "I",     # isort
     "UP",    # pyupgrade
     "B",     # flake8-bugbear
+    "B9",    # flake8-bugbear opinionated
+    "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
     "TCH",   # flake8-type-checking
     "RUF",   # ruff-specific
+    "TRY",   # tryceratops (raise from e)
+    "TRY200",
+    "TRY201",
+    "ASYNC", # flake8-async (sync I/O in async)
+    "S",     # flake8-bandit (security)
+    "PT",    # flake8-pytest-style
+    "N",     # pep8-naming
+    "PL",    # pylint
+    "ERA",   # eradicate (commented-out code)
 ]
 ignore = [
-    "E501",   # line too long (handled by formatter)
-    "B008",   # do not perform function call in argument defaults
-    "UP007",  # use X | Y for union (keep Optional for readability)
-    "TC001",  # move import into TYPE_CHECKING (too aggressive for protocols)
-    "TC002",  # same
-    "TC003",  # same
+    "E501",    # line too long (handled by formatter)
+    "B008",    # function call in defaults
+    "UP007",   # X | Y union
+    "TC001", "TC002", "TC003",  # type-checking imports
+    "S101",    # assert allowed in tests
+    "TRY003",  # allow long messages in raise
+    "PLR0913", # too many arguments
+    "PLR2004", # magic value in test comparisons
+    "ERA001",  # commented-out code (too noisy)
+    "N818",    # exception naming
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/*.py" = ["E402"]
+"**/tests/*.py" = ["E402", "S", "PLR", "N", "ANN"]
+"**/tests/**/*.py" = ["S", "PLR", "N", "ANN"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
 
 [tool.ruff.lint.isort]
 known-first-party = [
@@ -261,13 +287,69 @@ python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
+disallow_any_generics = true
+warn_redundant_casts = true
 packages = [
+    "pykit",
     "pykit_errors",
     "pykit_config",
     "pykit_logging",
     "pykit_provider",
     "pykit_pipeline",
+    "pykit_server",
+    "pykit_metrics",
+    "pykit_testutil",
+    "pykit_triton",
+    "pykit_dataset",
+    "pykit_bench",
+    "pykit_validation",
+    "pykit_encryption",
+    "pykit_util",
+    "pykit_version",
+    "pykit_component",
+    "pykit_resilience",
+    "pykit_di",
+    "pykit_bootstrap",
+    "pykit_database",
+    "pykit_redis",
+    "pykit_storage",
+    "pykit_messaging",
+    "pykit_httpclient",
+    "pykit_grpc",
+    "pykit_auth",
+    "pykit_authz",
+    "pykit_observability",
+    "pykit_dag",
+    "pykit_worker",
+    "pykit_sse",
+    "pykit_stateful",
+    "pykit_llm",
+    "pykit_discovery",
+    "pykit_process",
+    "pykit_media",
+    "pykit_security",
+    "pykit_workload",
+    "pykit_kafka_middleware",
+    "pykit_server_middleware",
+    "pykit_auth_oidc",
+    "pykit_embedding",
+    "pykit_vector_store",
+    "pykit_llm_providers",
+    "pykit_explain",
+    "pykit_transcription",
+    "pykit_agent",
+    "pykit_hook",
+    "pykit_mcp",
+    "pykit_chain",
+    "pykit_schema",
+    "pykit_auth_apikey",
+    "pykit_integration",
+    "pykit_tool",
 ]
+
+[[tool.mypy.overrides]]
+module = ["*.tests.*", "*.tests"]
+disallow_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = [
@@ -285,31 +367,40 @@ ignore_missing_imports = true
 
 [tool.importlinter]
 root_packages = [
+    "pykit",
     "pykit_errors", "pykit_config", "pykit_logging",
     "pykit_validation", "pykit_encryption", "pykit_util", "pykit_version", "pykit_media",
-    "pykit_provider", "pykit_component", "pykit_resilience",
+    "pykit_provider", "pykit_component", "pykit_resilience", "pykit_schema",
     "pykit_di", "pykit_bootstrap", "pykit_observability", "pykit_security",
+    "pykit_hook", "pykit_mcp", "pykit_chain",
     "pykit_pipeline", "pykit_dag", "pykit_worker", "pykit_sse", "pykit_stateful",
-    "pykit_auth", "pykit_authz",
+    "pykit_auth", "pykit_authz", "pykit_auth_oidc", "pykit_auth_apikey",
     "pykit_database", "pykit_redis", "pykit_storage", "pykit_messaging", "pykit_httpclient",
-    "pykit_server", "pykit_grpc",
+    "pykit_server", "pykit_grpc", "pykit_server_middleware", "pykit_kafka_middleware",
     "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
-    "pykit_discovery", "pykit_workload", "pykit_process", "pykit_testutil", "pykit_metrics",
+    "pykit_embedding", "pykit_vector_store", "pykit_llm_providers", "pykit_explain",
     "pykit_transcription",
+    "pykit_agent", "pykit_discovery", "pykit_workload", "pykit_process",
+    "pykit_testutil", "pykit_metrics", "pykit_integration", "pykit_tool",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Layer architecture"
 type = "layers"
 layers = [
-    "pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics",
-    "pykit_llm | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription",
-    "pykit_server | pykit_grpc",
+    "pykit_agent | pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics | pykit_integration",
+    "pykit_llm | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription | pykit_embedding | pykit_vector_store | pykit_llm_providers | pykit_explain",
+    "pykit_server | pykit_grpc | pykit_server_middleware | pykit_kafka_middleware",
     "pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
-    "pykit_auth | pykit_authz | pykit_security",
+    "pykit_auth | pykit_authz | pykit_security | pykit_auth_oidc | pykit_auth_apikey",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
-    "pykit_di | pykit_bootstrap | pykit_observability",
-    "pykit_provider | pykit_component | pykit_resilience",
+    "pykit_di | pykit_bootstrap | pykit_observability | pykit_hook | pykit_mcp | pykit_chain",
+    "pykit_provider | pykit_component | pykit_resilience | pykit_schema",
     "pykit_validation | pykit_encryption | pykit_util | pykit_version | pykit_media",
     "pykit_errors | pykit_config | pykit_logging",
 ]
+
+[tool.bandit]
+targets = ["packages"]
+recursive = true
+skips = ["B101"]  # assert_used — allowed in tests

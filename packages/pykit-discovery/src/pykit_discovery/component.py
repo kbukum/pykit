@@ -18,6 +18,7 @@ from pykit_discovery.protocols import Discovery, Registry
 
 if TYPE_CHECKING:
     from pykit_discovery.config import DiscoveryConfig
+    from pykit_discovery.types import ServiceInstance
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ class DiscoveryComponent:
             timestamp=datetime.now(UTC),
         )
 
-    async def register(self, instance: ServiceInstance) -> None:  # noqa: F821
+    async def register(self, instance: ServiceInstance) -> None:
         """Delegate to the underlying registry."""
         if self._pair is None:
             raise RuntimeError("DiscoveryComponent not started")
