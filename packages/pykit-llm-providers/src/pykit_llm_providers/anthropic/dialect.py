@@ -14,6 +14,7 @@ from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
+    ContentBlock,
     FunctionCall,
     Message,
     StreamChunk,
@@ -198,7 +199,7 @@ def _encode_message(msg: Message) -> dict[str, Any]:
 
 def _parse_response(data: dict[str, Any]) -> CompletionResponse:
     """Parse an Anthropic Messages API response."""
-    content_blocks: list[TextBlock | ToolUseBlock] = []
+    content_blocks: list[ContentBlock] = []
     for block in data.get("content", []):
         if block["type"] == "text":
             content_blocks.append(TextBlock(text=block["text"]))

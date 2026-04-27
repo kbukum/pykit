@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import signal
+from typing import cast
 
 import grpc
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
@@ -200,7 +201,7 @@ class BaseServer:
         """
         if self._server is None:
             raise RuntimeError("Server has not been started; call start() first.")
-        return self._server.add_secure_port(address, credentials)
+        return cast("int", self._server.add_secure_port(address, credentials))
 
     @classmethod
     def credentials_from_files(
@@ -232,4 +233,3 @@ class BaseServer:
             root_certificates=root_certs,
             require_client_auth=ca_file is not None,
         )
-

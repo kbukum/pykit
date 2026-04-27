@@ -1,7 +1,7 @@
 """Generic async repository pattern for SQLAlchemy models."""
 
 from collections.abc import AsyncIterator, Callable
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any
 
 from sqlalchemy import func, inspect, select
@@ -13,7 +13,7 @@ class ReadRepository[T]:
 
     def __init__(
         self,
-        session_factory: Callable[..., AsyncIterator[AsyncSession]],
+        session_factory: Callable[..., AbstractAsyncContextManager[AsyncSession]],
         model_class: type[T],
     ) -> None:
         self._session_factory = session_factory
@@ -28,6 +28,8 @@ class ReadRepository[T]:
 
     def _pk_column(self) -> Any:
         mapper = inspect(self._model_class)
+        if mapper is None:
+            raise TypeError(f"Cannot inspect {self._model_class}")
         return mapper.primary_key[0]
 
     # -- queries --------------------------------------------------------------

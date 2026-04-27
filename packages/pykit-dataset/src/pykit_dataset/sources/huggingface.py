@@ -23,6 +23,7 @@ import io
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
+from typing import Any
 
 from pykit_dataset.model import DataItem, Label, MediaType
 
@@ -43,7 +44,7 @@ class HuggingFaceSourceConfig:
     shuffle_buffer: int = 200
 
 
-def _load_and_shuffle(repo: str, split: str, token: bool, buffer_size: int):
+def _load_and_shuffle(repo: str, split: str, token: bool, buffer_size: int) -> Any:
     """Load dataset in a thread (blocking I/O)."""
     from datasets import load_dataset
 
@@ -51,7 +52,7 @@ def _load_and_shuffle(repo: str, split: str, token: bool, buffer_size: int):
     return ds.shuffle(seed=42, buffer_size=buffer_size)
 
 
-def _next_row(ds_iter):
+def _next_row(ds_iter: Any) -> Any:
     """Get next row from dataset iterator (blocking I/O)."""
     try:
         return next(ds_iter)

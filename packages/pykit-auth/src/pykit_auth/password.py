@@ -11,7 +11,6 @@ import bcrypt
 
 try:
     from argon2 import PasswordHasher as _Argon2Hasher
-    from argon2.exceptions import VerifyMismatchError as _VerifyMismatchError
 
     _ARGON2 = _Argon2Hasher()
     _ARGON2_AVAILABLE = True
@@ -63,8 +62,8 @@ class PasswordHasher:
             if not _ARGON2_AVAILABLE:
                 raise RuntimeError("argon2-cffi is required for ARGON2.")
             try:
-                return _ARGON2.verify(hashed, password)
-            except _VerifyMismatchError:
+                return bool(_ARGON2.verify(hashed, password))
+            except Exception:
                 return False
         return self._verify_scrypt(password, hashed)
 

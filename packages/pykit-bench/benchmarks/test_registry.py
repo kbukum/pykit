@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.benchmark
+
 
 def test_registry_get(benchmark: pytest.FixtureRequest) -> None:
     """Benchmark registry lookup."""

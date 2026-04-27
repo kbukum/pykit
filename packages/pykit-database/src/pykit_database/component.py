@@ -48,4 +48,4 @@ class DatabaseComponent:
 
 
 # Ensure the class satisfies the Component protocol at import time.
-_: type[Component] = DatabaseComponent  # type: ignore[assignment]
+_: type[Component] = DatabaseComponent

@@ -28,8 +28,8 @@ def grpc_error_to_app_error(rpc_error: grpc.RpcError) -> AppError:
     Known status codes are mapped to specific subtypes; everything else
     falls back to a generic :class:`AppError`.
     """
-    code: grpc.StatusCode = rpc_error.code()  # type: ignore[union-attr]
-    details: str = rpc_error.details()  # type: ignore[union-attr]
+    code: grpc.StatusCode = rpc_error.code()
+    details: str = rpc_error.details()
 
     if code == grpc.StatusCode.NOT_FOUND:
         return NotFoundError(resource=details or "resource")

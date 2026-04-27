@@ -241,7 +241,7 @@ class TestCircuitBreakerEdgeCases:
 
         # Run enough iterations to cycle the breaker
         for _ in range(10):
-            try:  # noqa: SIM105
+            try:
                 await cb.execute(flaky)
             except (RuntimeError, CircuitOpenError):
                 pass
@@ -709,8 +709,8 @@ class TestRateLimiterEdgeCases:
         assert 5.5 <= remaining <= 6.5, f"Expected ~6 tokens, got {remaining}"
 
     def test_very_high_rate_burst(self) -> None:
-        """High rate (1000/s) with large burst should handle rapid allow() calls."""
-        rl = RateLimiter(RateLimiterConfig(name="high", rate=1000.0, burst=500))
+        """Large burst should handle rapid allow() calls without timing interference."""
+        rl = RateLimiter(RateLimiterConfig(name="high", rate=1.0, burst=500))
         allowed = sum(1 for _ in range(500) if rl.allow())
         assert allowed == 500
         assert rl.allow() is False

@@ -110,15 +110,13 @@ def parse_query_params(
     cfg = config or QueryConfig()
 
     page = _parse_int(query_dict.get("page"), default=1)
-    if page < 1:
-        page = 1
+    page = max(page, 1)
 
     raw_size = query_dict.get("page_size") or query_dict.get("per_page") or query_dict.get("pageSize")
     page_size = _parse_int(raw_size, default=cfg.default_page_size)
     if page_size < 1:
         page_size = cfg.default_page_size
-    if page_size > cfg.max_page_size:
-        page_size = cfg.max_page_size
+    page_size = min(page_size, cfg.max_page_size)
 
     sort_by = (
         query_dict.get("sort_by")

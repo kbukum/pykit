@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     import io
@@ -99,8 +99,8 @@ class MarkdownReporter:
     def _find_confusion_matrix(r: BenchRunResult) -> dict[str, Any] | None:
         """Extract confusion matrix from curves or metric detail."""
         if "confusion_matrix" in r.curves:
-            return r.curves["confusion_matrix"]  # type: ignore[return-value]
+            return cast("dict[str, Any]", r.curves["confusion_matrix"])
         for m in r.metrics:
             if m.detail and isinstance(m.detail, dict) and "matrix" in m.detail:
-                return m.detail  # type: ignore[return-value]
+                return cast("dict[str, Any]", m.detail)
         return None

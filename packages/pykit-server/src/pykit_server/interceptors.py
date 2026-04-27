@@ -13,7 +13,7 @@ import pykit_logging as log
 from pykit_errors import AppError
 
 
-class LoggingInterceptor(aio.ServerInterceptor):
+class LoggingInterceptor(aio.ServerInterceptor):  # type: ignore[misc]  # ServerInterceptor is from untyped grpc library
     """Logs every gRPC request with method, duration, and status."""
 
     def __init__(self) -> None:
@@ -66,7 +66,7 @@ class LoggingInterceptor(aio.ServerInterceptor):
         return handler
 
 
-class ErrorHandlingInterceptor(aio.ServerInterceptor):
+class ErrorHandlingInterceptor(aio.ServerInterceptor):  # type: ignore[misc]  # ServerInterceptor is from untyped grpc library
     """Catches AppError exceptions and translates them to proper gRPC status codes."""
 
     def __init__(self) -> None:
@@ -112,7 +112,7 @@ class ErrorHandlingInterceptor(aio.ServerInterceptor):
         )
 
 
-class MetricsInterceptor(aio.ServerInterceptor):
+class MetricsInterceptor(aio.ServerInterceptor):  # type: ignore[misc]  # ServerInterceptor is from untyped grpc library
     """Records Prometheus metrics for gRPC calls."""
 
     def __init__(self, collector: Any = None) -> None:

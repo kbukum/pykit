@@ -91,7 +91,6 @@ def max_pooling(vectors: list[list[float]]) -> list[float] | None:
         if len(v) != dims:
             raise ValueError("all vectors must have equal dimensions")
         for i, val in enumerate(v):
-            if val > result[i]:
-                result[i] = val
+            result[i] = max(result[i], val)
 
     return result

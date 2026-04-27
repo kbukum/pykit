@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, MutableMapping
-from typing import Any
+from typing import Any, cast
 
 from opentelemetry import trace
 from opentelemetry.propagate import extract, inject
@@ -17,7 +17,7 @@ class _ASGIHeaderCarrier:
         self._scope = scope
 
     def _headers(self) -> list[tuple[bytes, bytes]]:
-        return self._scope.get("headers", [])
+        return cast("list[tuple[bytes, bytes]]", self._scope.get("headers", []))
 
     def get(self, key: str, default: str | None = None) -> str | None:
         key_lower = key.lower().encode("latin-1")

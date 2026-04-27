@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 from typing import Generic, TypeVar
 
 K = TypeVar("K")
@@ -49,11 +50,11 @@ class Registry(Generic[K, V]):
         """Return all registered (key, value) pairs."""
         return list(self._store.items())
 
-    def keys(self) -> list[K]:
+    def keys(self) -> builtins.list[K]:
         """Return all registered keys."""
         return list(self._store.keys())
 
-    def values(self) -> list[V]:
+    def values(self) -> builtins.list[V]:
         """Return all registered values."""
         return list(self._store.values())
 

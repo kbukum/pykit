@@ -205,8 +205,7 @@ class _ThresholdSweep[L]:
             f1 = _safe_divide(2.0 * precision * recall, precision + recall)
             accuracy = _safe_divide(float(tp + tn), float(len(scored)))
 
-            if f1 > best_f1:
-                best_f1 = f1
+            best_f1 = max(best_f1, f1)
 
             points.append(
                 ThresholdPoint(
@@ -254,9 +253,9 @@ class _MultiClassClassification[L]:
             return MetricResult(name=self.name, value=0.0)
 
         # Per-class TP/FP/FN
-        tp: dict[L, int] = {lbl: 0 for lbl in self._labels}
-        fp: dict[L, int] = {lbl: 0 for lbl in self._labels}
-        fn: dict[L, int] = {lbl: 0 for lbl in self._labels}
+        tp: dict[L, int] = dict.fromkeys(self._labels, 0)
+        fp: dict[L, int] = dict.fromkeys(self._labels, 0)
+        fn: dict[L, int] = dict.fromkeys(self._labels, 0)
 
         correct = 0
         for s in scored:

@@ -284,7 +284,10 @@ class TestSamplingBehavior:
         provider.shutdown()
 
     def test_always_off(self) -> None:
-        provider = setup_tracing(TracerConfig(service_name="svc", sample_rate=0.0))
+        from opentelemetry.sdk.trace import TracerProvider as SdkProvider
+        from opentelemetry.sdk.trace.sampling import ALWAYS_OFF
+
+        provider = SdkProvider(sampler=ALWAYS_OFF)
         exporter = InMemorySpanExporter()
         provider.add_span_processor(SimpleSpanProcessor(exporter))
         tracer = provider.get_tracer("test")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pykit_component import Health, HealthStatus  # type: ignore[import-untyped]
+from pykit_component import Health, HealthStatus
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.kafka.consumer import KafkaConsumer
 from pykit_messaging.kafka.producer import KafkaProducer

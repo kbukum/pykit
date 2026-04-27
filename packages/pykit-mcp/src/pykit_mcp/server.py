@@ -35,11 +35,11 @@ def create_server(
     """
     server = Server(name)
 
-    @server.list_tools()
+    @server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]  # untyped decorator from mcp library
     async def _list_tools() -> list[Tool]:
         return [definition_to_mcp_tool(d, prefix) for d in registry.list()]
 
-    @server.call_tool()
+    @server.call_tool()  # type: ignore[untyped-decorator]  # untyped decorator from mcp library
     async def _call_tool(name: str, arguments: dict[str, Any] | None) -> CallToolResult:
         # Strip prefix to get the registry tool name.
         tool_name = name
@@ -57,7 +57,7 @@ def create_server(
         input_data = arguments or {}
         validation = tool.validate(input_data)
         if not validation.valid:
-            error_text = "; ".join(validation.errors)
+            error_text = "; ".join(str(e) for e in validation.errors)
             return CallToolResult(
                 content=[TextContent(type="text", text=f"validation error: {error_text}")],
                 isError=True,

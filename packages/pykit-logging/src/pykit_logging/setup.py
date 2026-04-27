@@ -138,11 +138,12 @@ def setup_logging(
             shared_processors.append(otlp_processor(bridge))
             _otlp_bridge = bridge
         except ImportError:
-            print(
+            import logging as _stdlib_logging
+
+            _stdlib_logging.getLogger("pykit.logging").warning(
                 "OTLP log export requested but dependencies are not installed. "
                 "Install with: pip install pykit-logging[otlp] — "
                 "falling back to stdout-only logging.",
-                file=sys.stderr,
             )
 
     if log_format == "json":

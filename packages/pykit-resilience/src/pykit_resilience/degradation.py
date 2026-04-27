@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
 from pykit_resilience.circuit_breaker import State
+
+_CircuitBreakerCallback = Callable[[str, State, State], None]
 
 
 class ServiceHealth(StrEnum):
@@ -96,7 +99,7 @@ class DegradationManager:
         with self._lock:
             return all(s.health == ServiceHealth.HEALTHY for s in self._services.values())
 
-    def on_circuit_breaker_state_change(self, service_name: str):
+    def on_circuit_breaker_state_change(self, service_name: str) -> _CircuitBreakerCallback:
         """Return a callback compatible with CircuitBreakerConfig.on_state_change.
 
         Automatically updates the service health when the circuit breaker

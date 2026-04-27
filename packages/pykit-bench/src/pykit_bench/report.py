@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING:
     from pykit_bench.runner import RunResult
@@ -107,4 +107,4 @@ class JsonReporter:
     """Generate machine-readable JSON report."""
 
     def generate(self, run_result: RunResult) -> dict[str, object]:
-        return json.loads(run_result.model_dump_json())
+        return cast("dict[str, object]", json.loads(run_result.model_dump_json()))

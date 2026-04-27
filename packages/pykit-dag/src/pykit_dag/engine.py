@@ -117,7 +117,7 @@ class Engine:
                 tasks.append(self._run_node(name, node, inputs, result, semaphore))
 
             if tasks:
-                await asyncio.gather(*tasks)
+                await asyncio.gather(*tasks, return_exceptions=True)
 
             # Check for failures after this level
             for name in level:

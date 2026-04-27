@@ -57,7 +57,7 @@ class Graph:
 
         # Detect cycles via DFS
         WHITE, GRAY, BLACK = 0, 1, 2
-        color: dict[str, int] = {name: WHITE for name in self._nodes}
+        color: dict[str, int] = dict.fromkeys(self._nodes, WHITE)
 
         def dfs(name: str) -> None:
             color[name] = GRAY
@@ -87,7 +87,7 @@ class Graph:
         self.validate()
 
         # Build effective in-degree using both explicit edges and declared dependencies
-        in_degree: dict[str, int] = {name: 0 for name in self._nodes}
+        in_degree: dict[str, int] = dict.fromkeys(self._nodes, 0)
         adj: dict[str, set[str]] = {name: set() for name in self._nodes}
 
         # Explicit edges

@@ -17,8 +17,8 @@ class Algorithm(Enum):
 
 
 _REGISTRY: dict[Algorithm, type[Encryptor]] = {
-    Algorithm.AES_GCM: AESGCMEncryptor,  # type: ignore[dict-item]
-    Algorithm.FERNET: FernetEncryptor,  # type: ignore[dict-item]
+    Algorithm.AES_GCM: AESGCMEncryptor,
+    Algorithm.FERNET: FernetEncryptor,
 }
 
 

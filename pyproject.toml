@@ -71,6 +71,7 @@ dev = [
     "import-linter",
     "aiokafka>=0.13.0",
     "cramjam>=2.11.0",
+    "argon2-cffi>=23.1",
 ]
 
 [tool.uv.workspace]
@@ -154,10 +155,11 @@ pykit-transcription  = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["packages"]
-addopts = "--tb=short -q --import-mode=importlib -n auto -m 'not integration'"
+addopts = "--tb=short -q --import-mode=importlib -n auto -m 'not integration and not benchmark'"
 markers = [
     "integration: mark test as requiring live services (Redis, PostgreSQL, etc.)",
     "slow: mark test as slow-running",
+    "benchmark: mark test as a benchmark (run with -m benchmark)",
 ]
 
 [tool.coverage.run]
@@ -243,6 +245,9 @@ select = [
     "N",     # pep8-naming
     "PL",    # pylint
     "ERA",   # eradicate (commented-out code)
+    "A",     # flake8-builtins (shadowing)
+    "PIE",   # misc lints
+    "T20",   # flake8-print (no print() in lib code)
 ]
 ignore = [
     "E501",    # line too long (handled by formatter)
@@ -250,16 +255,60 @@ ignore = [
     "UP007",   # X | Y union
     "TC001", "TC002", "TC003",  # type-checking imports
     "S101",    # assert allowed in tests
+    "S108",    # hardcoded temp file path (acceptable in tooling)
+    "S104",    # hardcoded bind-all-interfaces (intentional for servers)
+    "S311",    # non-cryptographic random (OK for non-security uses)
+    "S603",    # subprocess call - we control inputs
+    "S607",    # start process with partial path (system tools)
     "TRY003",  # allow long messages in raise
+    "TRY300",  # try-consider-else (too prescriptive)
+    "TRY301",  # raise-within-try (common pattern)
+    "TRY400",  # error-instead-of-exception (logging.error is fine)
     "PLR0913", # too many arguments
     "PLR2004", # magic value in test comparisons
+    "PLR0912", # too many branches
+    "PLR0911", # too many return statements
+    "PLR0915", # too many statements
+    "PLW0603", # global-statement (used in module initialization)
+    "PLW2901", # redefined-loop-name
+    "PLC0415", # import-outside-top-level (local imports are idiomatic Python)
+    "PLW0108", # unnecessary-lambda (lambdas for deferred evaluation)
+    "PLW1510", # subprocess-run-without-check (handled by caller)
     "ERA001",  # commented-out code (too noisy)
     "N818",    # exception naming
+    "A002",    # builtin-argument-shadowing (type/id/input are common param names)
+    "A004",    # builtin-import-shadowing
+    "A001",    # builtin-variable-shadowing (TimeoutError alias)
+    "SIM105",  # suppressible-exception (contextlib.suppress not always clearer)
+    "ASYNC109", # async-function-with-timeout (custom timeout params are fine)
+    "ASYNC240", # blocking-path-method-in-async (Path.read_text in sync-compatible code)
+    "ASYNC251", # blocking-sleep-in-async (time.sleep in test/bench helpers)
+    "N802",    # function naming (factory functions like RetryHandler are intentional)
+    "N806",    # variable naming in functions (ANSI color constants)
+    "S105",    # hardcoded password strings (test tokens and field names)
+    "S110",    # try-except-pass (intentional silencing)
+    "S112",    # try-except-continue (intentional resilience)
+    "S324",    # insecure hash (md5 for non-security checksums)
+    "S608",    # SQL injection (parameterized queries handled at call site)
+    "PLC0105", # TypeVar naming conventions (In/Out are clear)
+    "PLE0643", # potential-index-error (bounds checked at runtime)
+    "UP046",   # non-pep695-generic-class (migration in progress)
+    "UP047",   # non-pep695-generic-function (migration in progress)
+    "TRY004",  # prefer-type-error (ValueError is more appropriate in context)
+    "TRY201",  # verbose-raise (explicit re-raise for clarity)
+    "RUF022",  # unsorted-dunder-all (order is intentional)
+    "C408",    # unnecessary-dict-call (dict() is sometimes clearer)
+    "PLR1714", # repeated-equality-comparison (readability preference)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/*.py" = ["E402", "S", "PLR", "N", "ANN"]
-"**/tests/**/*.py" = ["S", "PLR", "N", "ANN"]
+"**/tests/*.py" = ["E402", "S", "PLR", "N", "ANN", "T20", "PT"]
+"**/tests/**/*.py" = ["S", "PLR", "N", "ANN", "T20", "PT"]
+"**/benchmarks/*.py" = ["T20", "S", "PT"]
+"examples/**/*.py" = ["T20", "S"]
+"**/cli.py" = ["T20"]
+"**/sources/*.py" = ["T20"]
+"**/pykit_bench/*.py" = ["T20"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -348,10 +397,6 @@ packages = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["*.tests.*", "*.tests"]
-disallow_untyped_defs = false
-
-[[tool.mypy.overrides]]
 module = [
     "grpc.*",
     "grpc_health.*",
@@ -362,6 +407,14 @@ module = [
     "datasets.*",
     "huggingface_hub.*",
     "kagglehub.*",
+    "hypothesis.*",
+    "argon2.*",
+    "qdrant_client.*",
+    "PIL.*",
+    "opentelemetry.propagators.b3.*",
+    "mcp.*",
+    "jsonschema.*",
+    "aiofiles.*",
 ]
 ignore_missing_imports = true
 

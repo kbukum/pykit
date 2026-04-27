@@ -6,7 +6,7 @@ and produces a Prediction.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, TypeVar, cast, runtime_checkable
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -95,10 +95,10 @@ class FromProvider[L]:
 
     @property
     def name(self) -> str:
-        return self._provider.name  # type: ignore[attr-defined]
+        return cast("str", self._provider.name)  # type: ignore[attr-defined]
 
     async def is_available(self) -> bool:
-        return await self._provider.is_available()  # type: ignore[attr-defined]
+        return bool(await self._provider.is_available())  # type: ignore[attr-defined]
 
     async def evaluate(self, input: bytes) -> Prediction[L]:
         converted = self._to_input(input)

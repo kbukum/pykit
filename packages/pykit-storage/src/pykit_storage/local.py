@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import UTC, datetime
-from typing import BinaryIO
+from typing import BinaryIO, cast
 
 import aiofiles
 import aiofiles.os
@@ -25,7 +26,7 @@ class LocalStorage:
     async def upload(self, path: str, data: bytes | BinaryIO) -> None:
         full = self._resolve(path)
         await aiofiles.os.makedirs(os.path.dirname(full), exist_ok=True)
-        raw = data if isinstance(data, bytes) else data.read()
+        raw = data if isinstance(data, bytes) else await asyncio.to_thread(data.read)
         async with aiofiles.open(full, "wb") as f:
             await f.write(raw)
 
@@ -36,7 +37,7 @@ class LocalStorage:
 
             raise NotFoundError("file", path)
         async with aiofiles.open(full, "rb") as f:
-            return await f.read()
+            return cast("bytes", await f.read())
 
     async def delete(self, path: str) -> None:
         full = self._resolve(path)
@@ -44,28 +45,31 @@ class LocalStorage:
             await aiofiles.os.remove(full)
 
     async def exists(self, path: str) -> bool:
-        return await aiofiles.os.path.exists(self._resolve(path))
+        return bool(await aiofiles.os.path.exists(self._resolve(path)))
 
     async def list(self, prefix: str = "") -> list[FileInfo]:
         root = self._resolve(prefix)
         if not await aiofiles.os.path.isdir(root):
             return []
 
-        results: list[FileInfo] = []
-        for dirpath, _, filenames in os.walk(root):
-            for name in sorted(filenames):
-                full = os.path.join(dirpath, name)
-                stat = os.stat(full)
-                rel = os.path.relpath(full, self._base_path)
-                results.append(
-                    FileInfo(
-                        path=rel,
-                        size=stat.st_size,
-                        last_modified=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
-                        content_type="application/octet-stream",
+        def _list_sync() -> list[FileInfo]:
+            results: list[FileInfo] = []
+            for dirpath, _, filenames in os.walk(root):
+                for name in sorted(filenames):
+                    full = os.path.join(dirpath, name)
+                    stat = os.stat(full)
+                    rel = os.path.relpath(full, self._base_path)
+                    results.append(
+                        FileInfo(
+                            path=rel,
+                            size=stat.st_size,
+                            last_modified=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
+                            content_type="application/octet-stream",
+                        )
                     )
-                )
-        return results
+            return results
+
+        return await asyncio.to_thread(_list_sync)
 
     async def url(self, path: str) -> str:
         if self._public_url:

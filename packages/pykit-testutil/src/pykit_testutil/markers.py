@@ -1,4 +1,5 @@
 """pytest marker utilities for pykit test suites."""
+
 from __future__ import annotations
 
 import pytest
@@ -13,4 +14,4 @@ slow = pytest.mark.slow
 requires_network = pytest.mark.requires_network
 """Mark a test as requiring network access."""
 
-__all__ = ["integration", "slow", "requires_network"]
+__all__ = ["integration", "requires_network", "slow"]

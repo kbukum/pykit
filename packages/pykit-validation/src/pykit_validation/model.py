@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, ValidationError
 
 from pykit_errors import InvalidInputError
 
 
-def validate_model[T: BaseModel](model_class: type[T], data: dict) -> T:
+def validate_model[T: BaseModel](model_class: type[T], data: dict[str, Any]) -> T:
     """Create a Pydantic model from *data*, converting errors to *InvalidInputError*.
 
     Returns the validated model instance on success.

@@ -27,7 +27,7 @@ class TenantConfig:
     fallback: str | None = None
 
 
-class TenantInterceptor(grpc.aio.ServerInterceptor):
+class TenantInterceptor(grpc.aio.ServerInterceptor):  # type: ignore[misc]  # ServerInterceptor is from untyped grpc library
     """gRPC server interceptor that extracts tenant ID from request metadata.
 
     The tenant ID is read from the configured metadata key (default: "x-tenant-id").

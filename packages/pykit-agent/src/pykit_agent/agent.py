@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from pykit_agent.hooks import (
     EVENT_ON_ERROR,
@@ -320,6 +320,6 @@ def _parse_arguments(arguments: str) -> dict[str, Any]:
     if not arguments:
         return {}
     try:
-        return json.loads(arguments)
+        return cast("dict[str, Any]", json.loads(arguments))
     except (json.JSONDecodeError, TypeError):
         return {"raw": arguments}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
@@ -19,7 +20,7 @@ class Database:
 
         # SQLite does not support pool_size / max_overflow / pool_timeout / pool_recycle
         is_sqlite = config.dsn.startswith("sqlite")
-        engine_kwargs: dict = {
+        engine_kwargs: dict[str, Any] = {
             "echo": config.echo,
         }
         if not is_sqlite:
@@ -49,7 +50,7 @@ class Database:
                 await sess.rollback()
                 raise
 
-    async def execute(self, stmt):
+    async def execute(self, stmt: Any) -> Any:
         """Execute a statement in a short-lived session and return the result."""
         async with self._session_factory() as sess:
             result = await sess.execute(stmt)
@@ -69,7 +70,7 @@ class Database:
         """Dispose of the engine and release all pooled connections."""
         await self._engine.dispose()
 
-    async def run_migrations(self, metadata) -> None:
+    async def run_migrations(self, metadata: Any) -> None:
         """Create all tables defined in *metadata*."""
         async with self._engine.begin() as conn:
             await conn.run_sync(metadata.create_all)

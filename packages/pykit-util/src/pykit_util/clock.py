@@ -1,7 +1,8 @@
 """Deterministic clock abstraction for testable time-dependent code."""
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 
@@ -17,14 +18,14 @@ class SystemClock:
     """Real clock backed by ``datetime.now(UTC)``."""
 
     def now(self) -> datetime:
-        return datetime.now(tz=timezone.utc)
+        return datetime.now(tz=UTC)
 
 
 class FakeClock:
     """Deterministic clock for tests. Starts at a fixed time; advance manually."""
 
     def __init__(self, initial: datetime | None = None) -> None:
-        self._now = initial or datetime(2024, 1, 1, tzinfo=timezone.utc)
+        self._now = initial or datetime(2024, 1, 1, tzinfo=UTC)
 
     def now(self) -> datetime:
         return self._now

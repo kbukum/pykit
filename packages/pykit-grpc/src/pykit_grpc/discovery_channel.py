@@ -268,7 +268,7 @@ class DiscoveryChannel:
 
         try:
             state = self._channel.get_state(try_to_connect=True)
-            return state == grpc.ChannelConnectivity.READY
+            return bool(state == grpc.ChannelConnectivity.READY)
         except Exception:
             return False
 

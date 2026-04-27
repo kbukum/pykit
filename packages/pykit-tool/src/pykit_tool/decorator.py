@@ -7,7 +7,7 @@ import contextlib
 import functools
 import inspect
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from pykit_schema import from_function
 from pykit_tool.context import Context
@@ -23,7 +23,7 @@ def tool(
     destructive: bool = False,
     timeout: float = 0.0,
     max_result_size: int = 0,
-) -> Callable:
+) -> Callable[..., Tool[Any, Any]]:
     """Decorator that converts a typed function into a Tool.
 
     The function can be sync or async. Sync functions are wrapped in
@@ -52,7 +52,7 @@ def tool(
         print(search.definition.name)  # "search"
     """
 
-    def decorator(fn: Callable) -> Tool:
+    def decorator(fn: Callable[..., Any]) -> Tool[Any, Any]:
         tool_name = name or fn.__name__
         tool_desc = description
         if tool_desc is None:
@@ -116,14 +116,14 @@ def tool(
                 return await handler(ctx, input_data)
             return await handler(input_data)
 
-        result = Tool(
+        result: Tool[Any, Any] = Tool(
             _definition=defn,
             _handler=_handler,
             _input_type=input_type,
         )
 
         # Preserve original function metadata for introspection.
-        functools.update_wrapper(result, fn)
+        functools.update_wrapper(cast("Any", result), fn)
 
         return result
 

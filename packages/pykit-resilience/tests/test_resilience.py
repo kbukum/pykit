@@ -525,7 +525,7 @@ class TestRateLimiter:
 
     @pytest.mark.asyncio
     async def test_high_rate_burst(self) -> None:
-        rl = RateLimiter(RateLimiterConfig(name="test", rate=1000.0, burst=100))
+        rl = RateLimiter(RateLimiterConfig(name="test", rate=1.0, burst=100))
         allowed = sum(1 for _ in range(100) if rl.allow())
         assert allowed == 100
         assert rl.allow() is False

@@ -24,6 +24,7 @@ from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
+    ContentBlock,
     FunctionCall,
     Message,
     StreamChunk,
@@ -151,8 +152,8 @@ def _build_payload(request: CompletionRequest, config: GeminiConfig) -> dict[str
         func_declarations = []
         for tool in request.tools:
             decl: dict[str, Any] = {"name": tool.name, "description": tool.description}
-            if tool.parameters:
-                decl["parameters"] = tool.parameters
+            if tool.input_schema:
+                decl["parameters"] = tool.input_schema
             func_declarations.append(decl)
         payload["tools"] = [{"functionDeclarations": func_declarations}]
 
@@ -215,7 +216,7 @@ def _parse_response(data: dict[str, Any]) -> CompletionResponse:
     content_data = candidate.get("content", {})
     parts = content_data.get("parts", [])
 
-    content_blocks: list[TextBlock | ToolUseBlock] = []
+    content_blocks: list[ContentBlock] = []
     for part in parts:
         if "text" in part:
             content_blocks.append(TextBlock(text=part["text"]))

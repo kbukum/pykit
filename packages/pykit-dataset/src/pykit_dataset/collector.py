@@ -19,7 +19,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 from pykit_dataset.model import DataItem, Label
 from pykit_dataset.source import Source
@@ -50,7 +50,7 @@ def _load_manifest(output_dir: Path) -> dict[str, Any]:
     path = output_dir / MANIFEST_FILE
     if path.exists():
         try:
-            return json.loads(path.read_text())
+            return cast("dict[str, Any]", json.loads(path.read_text()))
         except (json.JSONDecodeError, OSError):
             return {}
     return {}
@@ -183,7 +183,7 @@ class Collector:
             return None
         current_key = _source_cache_key(source)
         if cached.get("config") == current_key and cached.get("status") == "done":
-            return cached.get("stats")
+            return cast("dict[str, int] | None", cached.get("stats"))
         return None
 
     async def _fetch_one(
