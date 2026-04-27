@@ -103,16 +103,15 @@ class TestTLSMinVersionEnforcement:
         assert ctx is not None
         assert ctx.minimum_version == ssl.TLSVersion.TLSv1_3
 
-    def test_build_server_applies_min_version(self):
+    def test_build_server_returns_none_without_certs(self):
+        """build_server requires cert_file+key_file; skip_verify alone is insufficient."""
         cfg = TLSConfig(skip_verify=True, min_version=ssl.TLSVersion.TLSv1_3)
         ctx = cfg.build_server()
-        assert ctx is not None
-        assert ctx.minimum_version == ssl.TLSVersion.TLSv1_3
+        assert ctx is None
 
-    def test_build_server_default_min_version(self):
+    def test_build_server_default_returns_none_without_certs(self):
         ctx = TLSConfig(skip_verify=True).build_server()
-        assert ctx is not None
-        assert ctx.minimum_version == ssl.TLSVersion.TLSv1_2
+        assert ctx is None
 
 
 # ---------------------------------------------------------------------------
@@ -406,10 +405,10 @@ class TestBuildProtocols:
         assert ctx is not None
         assert ctx.protocol == ssl.PROTOCOL_TLS_CLIENT
 
-    def test_build_server_creates_server_protocol(self):
+    def test_build_server_returns_none_without_certs(self):
+        """build_server requires cert_file+key_file."""
         ctx = TLSConfig(skip_verify=True).build_server()
-        assert ctx is not None
-        assert ctx.protocol == ssl.PROTOCOL_TLS_SERVER
+        assert ctx is None
 
     def test_skip_verify_disables_hostname_check(self):
         ctx = TLSConfig(skip_verify=True).build()

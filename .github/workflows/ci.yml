@@ -23,8 +23,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb  # v5.4.1
-      - run: uv sync --no-progress
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
+      - run: uv sync --all-packages --no-progress
       - run: uv run ruff format --check packages/
 
   # ---------------------------------------------------------------------------
@@ -36,8 +36,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb  # v5.4.1
-      - run: uv sync --no-progress
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
+      - run: uv sync --all-packages --no-progress
       - run: uv run ruff check packages/
 
   # ---------------------------------------------------------------------------
@@ -49,12 +49,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb  # v5.4.1
-      - run: uv sync --no-progress
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
+      - run: uv sync --all-packages --no-progress
       - run: uv run mypy
 
   # ---------------------------------------------------------------------------
-  # Test — pytest with coverage (fail_under = 60 configured in pyproject.toml)
+  # Test — pytest with coverage (fail_under = 85 configured in pyproject.toml)
   # ---------------------------------------------------------------------------
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -63,13 +63,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb  # v5.4.1
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
         with:
           python-version: ${{ matrix.python-version }}
-      - run: uv sync --no-progress
+      - run: uv sync --all-packages --no-progress
       - name: Verify lockfile is up-to-date
         run: uv lock --check
         continue-on-error: true
@@ -92,8 +92,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-      - uses: astral-sh/setup-uv@f0ec1fc3b38f5e7cd731bb6ce540c5af426746bb  # v5.4.1
-      - run: uv sync --no-progress
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
+      - run: uv sync --all-packages --no-progress
       - run: uv run import-linter
 
   # ---------------------------------------------------------------------------

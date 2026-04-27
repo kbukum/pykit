@@ -39,8 +39,11 @@ class TLSConfig:
         return ctx
 
     def build_server(self) -> ssl.SSLContext | None:
-        """Create a server-side ssl.SSLContext (PROTOCOL_TLS_SERVER)."""
-        if not self.is_enabled():
+        """Create a server-side ssl.SSLContext (PROTOCOL_TLS_SERVER).
+
+        Requires cert_file and key_file to be configured.
+        """
+        if not (self.cert_file and self.key_file):
             return None
 
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -70,5 +73,5 @@ class TLSConfig:
             raise FileNotFoundError(f"Key file not found: {self.key_file}")
 
     def is_enabled(self) -> bool:
-        """Return True only when cert, key, AND min_version are all configured."""
-        return bool(self.cert_file and self.key_file and self.min_version)
+        """Return True when any TLS-relevant option is configured."""
+        return bool(self.skip_verify or self.ca_file or self.cert_file or self.server_hostname)

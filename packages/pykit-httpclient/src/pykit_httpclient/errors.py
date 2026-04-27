@@ -35,7 +35,7 @@ _HTTP_CODE_TO_BASE: dict[ErrorCode, BaseErrorCode] = {
 class HttpError(AppError):
     """Structured HTTP client error with classification."""
 
-    code: Any  # type: ignore[assignment]
+    code: Any
 
     def __init__(
         self,

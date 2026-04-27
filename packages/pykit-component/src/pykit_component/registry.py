@@ -62,7 +62,7 @@ class Registry:
             finally:
                 entry.started = False
         if errors:
-            raise ExceptionGroup("errors during stop_all", errors)
+            raise ExceptionGroup("shutdown errors", errors)
 
     async def health_all(self) -> list[Health]:
         """Return health status for every registered component."""

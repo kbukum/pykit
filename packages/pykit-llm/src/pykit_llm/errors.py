@@ -35,7 +35,7 @@ _LLM_CODE_TO_BASE: dict[LLMErrorCode, BaseErrorCode] = {
 class LLMError(AppError):
     """Structured LLM client error with classification."""
 
-    code: Any  # type: ignore[assignment]
+    code: Any
 
     def __init__(
         self,

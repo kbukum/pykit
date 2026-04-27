@@ -201,7 +201,7 @@ class DiscoveryComponent:
             raise RuntimeError("DiscoveryComponent not started")
         await self._pair.registry.deregister(instance_id)
 
-    async def discover(self, service_name: str) -> list:
+    async def discover(self, service_name: str) -> list[ServiceInstance]:
         """Delegate to the underlying discovery."""
         if self._pair is None:
             raise RuntimeError("DiscoveryComponent not started")

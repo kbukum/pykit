@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+pytestmark = pytest.mark.benchmark
+
 
 def test_container_resolve_simple(benchmark: pytest.FixtureRequest) -> None:
     """Benchmark resolving a simple registered value."""

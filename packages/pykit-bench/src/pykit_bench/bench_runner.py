@@ -17,7 +17,7 @@ from pykit_bench.result import (
     DatasetInfo,
     MetricResult,
 )
-from pykit_bench.schema import SCHEMA_URL, SCHEMA_VERSION
+from pykit_bench.schema import SCHEMA_VERSION
 from pykit_bench.types import BenchSample, Prediction, ScoredSample
 
 if TYPE_CHECKING:
@@ -194,7 +194,6 @@ class BenchRunnerV2[L]:
 
         bench_result = BenchRunResult(
             id=run_id,
-            schema_url=SCHEMA_URL,
             version=SCHEMA_VERSION,
             timestamp=now,
             tag=opts.tag,

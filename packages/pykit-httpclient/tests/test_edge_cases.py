@@ -645,7 +645,7 @@ class TestSecurity:
         cfg = HttpConfig(base_url="http://test")
         c = HttpClient(cfg, transport=mock_transport(handler))
         # httpx should handle or reject invalid header values
-        try:  # noqa: SIM105
+        try:
             await c.request(
                 Request(
                     method="GET",

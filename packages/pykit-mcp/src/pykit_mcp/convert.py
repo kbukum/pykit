@@ -74,7 +74,7 @@ def result_to_mcp_result(result: Result) -> mcp_types.CallToolResult:
     elif not content:
         content.append(mcp_types.TextContent(type="text", text=""))
 
-    return mcp_types.CallToolResult(content=content, isError=result.is_error)
+    return mcp_types.CallToolResult(content=content, isError=result.is_error)  # type: ignore[arg-type]  # content list type is compatible at runtime
 
 
 def mcp_result_to_result(mcp_result: mcp_types.CallToolResult) -> Result:

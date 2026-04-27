@@ -8,6 +8,7 @@ for checking values against JSON Schemas.
 from __future__ import annotations
 
 import inspect
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, get_type_hints
 
@@ -157,7 +158,7 @@ def from_type(
 
 
 def from_function(
-    fn: callable,
+    fn: Callable[..., Any],
     *,
     title: str = "",
     description: str = "",
@@ -201,15 +202,15 @@ def from_function(
         else:
             fields[name] = (annotation, param.default)
 
-    model_title = title or fn.__name__
+    model_title = title or getattr(fn, "__name__", "unknown")
     wrapper = create_model(model_title, **fields)
-    schema = wrapper.model_json_schema()
+    schema: JSON = wrapper.model_json_schema()
 
     if title:
         schema["title"] = title
     if description:
         schema["description"] = description
-    elif fn.__doc__:
+    elif hasattr(fn, "__doc__") and fn.__doc__:
         first_line = fn.__doc__.strip().split("\n")[0].strip()
         if first_line:
             schema["description"] = first_line

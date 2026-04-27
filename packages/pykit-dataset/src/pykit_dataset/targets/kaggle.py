@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from pykit_dataset.target import PublishResult
 
@@ -48,7 +49,7 @@ class KaggleTarget:
         files = list(directory.rglob("*"))
         file_count = sum(1 for f in files if f.is_file())
 
-        kwargs: dict = {"handle": self._handle, "local_dataset_dir": str(directory)}
+        kwargs: dict[str, Any] = {"handle": self._handle, "local_dataset_dir": str(directory)}
         if self._version_notes:
             kwargs["version_notes"] = self._version_notes
         if self._ignore_patterns:

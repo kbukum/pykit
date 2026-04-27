@@ -201,7 +201,7 @@ class OTLPLogBridge:
     def shutdown(self) -> None:
         """Gracefully shutdown, flushing pending logs."""
         try:
-            self._provider.shutdown()  # type: ignore[no-untyped-call]
+            self._provider.shutdown()
         except Exception:
             logging.getLogger(__name__).debug("Error during OTLP bridge shutdown", exc_info=True)
 

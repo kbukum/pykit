@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import threading
 from typing import Any
 
@@ -45,12 +46,12 @@ class Registry:
         with self._lock:
             return [t.definition for t in self._tools.values()]
 
-    def names(self) -> list[str]:
+    def names(self) -> builtins.list[str]:
         """List all registered tool names."""
         with self._lock:
             return list(self._tools.keys())
 
-    def search(self, query: str) -> list[Definition]:
+    def search(self, query: str) -> builtins.list[Definition]:
         """Search tools by name or description substring (case-insensitive)."""
         q = query.lower()
         with self._lock:
@@ -60,7 +61,7 @@ class Registry:
                 if q in t.definition.name.lower() or q in t.definition.description.lower()
             ]
 
-    def filter_by_execution_hint(self, hint: str) -> list[Definition]:
+    def filter_by_execution_hint(self, hint: str) -> builtins.list[Definition]:
         """Return tools whose annotations match the given execution_hint.
 
         An empty *hint* on annotations is treated as ``"backend"`` for
@@ -86,9 +87,9 @@ class Registry:
 
     async def call_batch(
         self,
-        calls: list[tuple[str, dict[str, Any]]],
+        calls: builtins.list[tuple[str, dict[str, Any]]],
         ctx: Context,
-    ) -> list[Result]:
+    ) -> builtins.list[Result]:
         """Execute multiple tool calls.
 
         Read-only tools run concurrently; non-read-only tools run serially.
@@ -116,17 +117,27 @@ class Registry:
                     return (idx, await self.call(n, ctx, inp))
                 except KeyError:
                     return (idx, error_result(f"tool not found: {n!r}"))
+                except Exception as exc:
+                    return (idx, error_result(str(exc)))
 
-            concurrent = await asyncio.gather(*[_run(i, n, inp) for i, n, inp in read_only])
-            results.extend(concurrent)
+            concurrent = await asyncio.gather(
+                *[_run(i, n, inp) for i, n, inp in read_only], return_exceptions=True
+            )
+            for item in concurrent:
+                if isinstance(item, BaseException):
+                    # Should not happen since _run catches all exceptions,
+                    # but handle cancellation/system errors defensively.
+                    results.append((len(results), error_result(str(item))))
+                else:
+                    results.append(item)
 
         # Run mutating tools serially.
         for idx, name, input_data in mutating:
             try:
-                r = await self.call(name, ctx, input_data)
+                result = await self.call(name, ctx, input_data)
             except KeyError:
-                r = error_result(f"tool not found: {name!r}")
-            results.append((idx, r))
+                result = error_result(f"tool not found: {name!r}")
+            results.append((idx, result))
 
         # Return in original order.
         results.sort(key=lambda x: x[0])

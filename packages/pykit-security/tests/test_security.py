@@ -132,15 +132,15 @@ class TestBuildServer:
     def test_returns_none_when_not_enabled(self):
         assert TLSConfig().build_server() is None
 
-    def test_returns_server_context(self):
+    def test_returns_none_without_cert_key(self):
         ctx = TLSConfig(skip_verify=True).build_server()
-        assert isinstance(ctx, ssl.SSLContext)
+        assert ctx is None
 
     def test_min_version_applied(self):
+        """min_version alone (no cert/key) → build_server returns None."""
         cfg = TLSConfig(skip_verify=True, min_version=ssl.TLSVersion.TLSv1_3)
         ctx = cfg.build_server()
-        assert ctx is not None
-        assert ctx.minimum_version == ssl.TLSVersion.TLSv1_3
+        assert ctx is None
 
 
 # ---------------------------------------------------------------------------

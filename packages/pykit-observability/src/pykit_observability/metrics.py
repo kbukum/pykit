@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Any
+from typing import Any, cast
 
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
@@ -20,7 +20,7 @@ def setup_metrics(config: MeterConfig) -> MeterProvider:
     global _meter_provider
     with _setup_lock:
         if _meter_provider is not None:
-            return _meter_provider
+            return cast("MeterProvider", _meter_provider)
         resource = Resource.create({"service.name": config.service_name})
         provider = MeterProvider(resource=resource)
         metrics.set_meter_provider(provider)
@@ -32,7 +32,7 @@ def reset_metrics() -> None:
     """Reset to NoOp provider. Intended for test teardown only."""
     global _meter_provider
     with _setup_lock:
-        metrics.set_meter_provider(metrics.ProxyMeterProvider())
+        metrics.set_meter_provider(metrics.ProxyMeterProvider())  # type: ignore[attr-defined]  # ProxyMeterProvider exists at runtime but is not in type stubs
         _meter_provider = None
 
 

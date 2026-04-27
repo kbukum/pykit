@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import redis.asyncio as aioredis
 
@@ -30,7 +30,7 @@ class RedisClient:
 
     async def get(self, key: str) -> str | None:
         """Retrieve a value by key."""
-        return await self._redis.get(key)  # type: ignore[return-value]
+        return cast("str | None", await self._redis.get(key))
 
     async def set(self, key: str, value: str, ex: int | None = None) -> None:
         """Store a value with optional expiration in seconds."""
@@ -38,18 +38,18 @@ class RedisClient:
 
     async def delete(self, *keys: str) -> int:
         """Delete one or more keys. Returns number of keys removed."""
-        return await self._redis.delete(*keys)  # type: ignore[return-value]
+        return cast("int", await self._redis.delete(*keys))
 
     async def exists(self, *keys: str) -> int:
         """Return the number of provided keys that exist."""
-        return await self._redis.exists(*keys)  # type: ignore[return-value]
+        return cast("int", await self._redis.exists(*keys))
 
     async def get_json(self, key: str, type_hint: type[T] = dict) -> T | None:  # type: ignore[assignment]
         """Get a key and JSON-decode the value."""
         raw = await self.get(key)
         if raw is None:
             return None
-        return json.loads(raw)  # type: ignore[return-value]
+        return cast("T", json.loads(raw))
 
     async def set_json(self, key: str, value: Any, ex: int | None = None) -> None:
         """JSON-encode *value* and store it."""
@@ -57,7 +57,10 @@ class RedisClient:
 
     async def ping(self) -> bool:
         """Return ``True`` if the server responds to PING."""
-        return await self._redis.ping()  # type: ignore[return-value]
+        result = self._redis.ping()
+        if hasattr(result, "__await__"):
+            return cast("bool", await result)
+        return bool(result)
 
     async def close(self) -> None:
         """Close the underlying connection pool."""

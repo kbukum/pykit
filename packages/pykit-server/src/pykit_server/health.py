@@ -1,4 +1,5 @@
 """ASGI-compatible health check registry."""
+
 from __future__ import annotations
 
 import json
@@ -63,8 +64,13 @@ class HealthRegistry:
         elif path in ("/readyz", "/ready"):
             checks = self._readiness_checks
         else:
-            await send({"type": "http.response.start", "status": 404,
-                        "headers": [[b"content-type", b"application/json"]]})
+            await send(
+                {
+                    "type": "http.response.start",
+                    "status": 404,
+                    "headers": [[b"content-type", b"application/json"]],
+                }
+            )
             await send({"type": "http.response.body", "body": b'{"detail":"Not Found"}'})
             return
 
@@ -72,6 +78,11 @@ class HealthRegistry:
         body = json.dumps({"status": "ok" if healthy else "error", "checks": results}).encode()
         status = 200 if healthy else 503
 
-        await send({"type": "http.response.start", "status": status,
-                    "headers": [[b"content-type", b"application/json"]]})
+        await send(
+            {
+                "type": "http.response.start",
+                "status": status,
+                "headers": [[b"content-type", b"application/json"]],
+            }
+        )
         await send({"type": "http.response.body", "body": body})

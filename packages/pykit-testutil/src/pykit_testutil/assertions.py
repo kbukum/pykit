@@ -1,4 +1,5 @@
 """Assertion helpers for pykit test suites."""
+
 from __future__ import annotations
 
 from typing import TypeVar
@@ -10,7 +11,7 @@ def assert_ok(value: T | Exception) -> T:
     """Assert that value is not an exception and return it."""
     if isinstance(value, Exception):
         raise AssertionError(f"Expected Ok, got exception: {value!r}") from value
-    return value  # type: ignore[return-value]
+    return value
 
 
 def assert_err(value: object, exc_type: type[Exception] = Exception) -> Exception:
@@ -20,4 +21,4 @@ def assert_err(value: object, exc_type: type[Exception] = Exception) -> Exceptio
     return value
 
 
-__all__ = ["assert_ok", "assert_err"]
+__all__ = ["assert_err", "assert_ok"]

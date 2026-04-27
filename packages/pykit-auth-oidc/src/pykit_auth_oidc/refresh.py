@@ -14,9 +14,7 @@ from pykit_auth_oidc.types import RefreshConfig, TokenResult
 
 _LOGGER = logging.getLogger(__name__)
 
-_SENSITIVE_FIELDS = re.compile(
-    r'"(client_secret|refresh_token|access_token|code|id_token)"\s*:\s*"[^"]*"'
-)
+_SENSITIVE_FIELDS = re.compile(r'"(client_secret|refresh_token|access_token|code|id_token)"\s*:\s*"[^"]*"')
 
 
 def _redact_token_response(text: str) -> str:
@@ -72,6 +70,8 @@ async def refresh_token(
     own_client = client is None
     if own_client:
         client = httpx.AsyncClient(timeout=10.0)
+
+    assert client is not None  # ensured above
 
     try:
         resp = await client.post(

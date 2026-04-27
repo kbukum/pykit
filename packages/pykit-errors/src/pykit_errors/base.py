@@ -17,9 +17,9 @@ _GRPC_STATUS_BY_CODE: dict[int, grpc.StatusCode] = {s.value[0]: s for s in grpc.
 
 
 class ErrorClassifier(Enum):
-    TRANSIENT = "transient"   # client should retry
-    PERMANENT = "permanent"   # do not retry
-    WRAPPED = "wrapped"       # wraps a third-party error
+    TRANSIENT = "transient"  # client should retry
+    PERMANENT = "permanent"  # do not retry
+    WRAPPED = "wrapped"  # wraps a third-party error
 
 
 class AppError(Exception):
@@ -107,7 +107,10 @@ class AppError(Exception):
         return _GRPC_STATUS_BY_CODE[self.code.grpc_code]
 
     def __str__(self) -> str:
-        return f"{self.code}: {self.message}"
+        s = f"{self.code}: {self.message}"
+        if self.cause is not None:
+            s += f"; cause: {self.cause}"
+        return s
 
     def __repr__(self) -> str:
         return f"AppError({self.code!r}, {self.message!r}, cause={self.cause!r})"
@@ -168,7 +171,7 @@ class AppError(Exception):
         return cls(ErrorCode.INVALID_TOKEN, "Invalid authentication token. Please log in again.")
 
     @classmethod
-    def wrap(cls, cause: Exception, message: str = "") -> "AppError":
+    def wrap(cls, cause: Exception, message: str = "") -> AppError:
         """Wrap a third-party exception as an INTERNAL AppError."""
         msg = message or "An unexpected error occurred."
         err = cls(ErrorCode.INTERNAL, msg)

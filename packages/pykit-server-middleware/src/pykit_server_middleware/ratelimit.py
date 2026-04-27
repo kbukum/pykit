@@ -9,7 +9,7 @@ import threading
 import time
 from collections.abc import Awaitable, Callable, MutableMapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 Scope = MutableMapping[str, Any]
 Receive = Callable[[], Awaitable[MutableMapping[str, Any]]]
@@ -21,10 +21,10 @@ def ip_based_key(scope: Scope) -> str:
     """Extract client IP from ASGI scope headers (X-Forwarded-For, then scope client)."""
     for name, value in scope.get("headers", []):
         if name == b"x-forwarded-for":
-            return value.decode("latin-1").split(",")[0].strip()
+            return cast("str", value.decode("latin-1").split(",")[0].strip())
     client = scope.get("client")
     if client:
-        return client[0]
+        return cast("str", client[0])
     return "unknown"
 
 

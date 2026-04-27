@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, cast
 
 from pykit_explain.types import Explanation, ReasoningStep, Request, Signal
 from pykit_llm.provider import LLMProvider
@@ -51,7 +51,7 @@ def _extract_json(text: str) -> dict[str, Any]:
     match = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
     if match:
         text = match.group(1).strip()
-    return json.loads(text)
+    return cast("dict[str, Any]", json.loads(text))
 
 
 def _parse_explanation(data: dict[str, Any]) -> Explanation:

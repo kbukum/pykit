@@ -41,4 +41,4 @@ class GrpcChannel:
     async def ping(self) -> bool:
         """Return *True* if the channel is in a connected / ready state."""
         state = self._channel.get_state(try_to_connect=True)
-        return state == grpc.ChannelConnectivity.READY
+        return bool(state == grpc.ChannelConnectivity.READY)

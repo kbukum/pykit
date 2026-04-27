@@ -212,4 +212,4 @@ class Container:
     def _check_type(name: str, instance: Any, type_hint: type[T] | None) -> T | Any:
         if type_hint is not None and not isinstance(instance, type_hint):
             raise TypeError(f"Component '{name}' is {type(instance).__name__}, expected {type_hint.__name__}")
-        return instance  # type: ignore[return-value]
+        return instance

@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
+from typing import Any
 
 import pytest
 from grpc import aio
-
-if TYPE_CHECKING:
-    pass
 
 
 async def grpc_server_fixture(
@@ -48,7 +46,7 @@ async def grpc_channel_fixture(
 
 
 @pytest.fixture
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+def event_loop() -> Generator[asyncio.AbstractEventLoop]:
     """Create a new event loop for each test (avoids cross-test contamination)."""
     loop = asyncio.new_event_loop()
     yield loop

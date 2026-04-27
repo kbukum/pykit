@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
 from pykit_redis.client import RedisClient
 
@@ -24,7 +25,7 @@ class TypedStore[T]:
         raw = await self._client.get(self._full_key(key))
         if raw is None:
             return None
-        return json.loads(raw)  # type: ignore[return-value]
+        return cast("T", json.loads(raw))
 
     async def save(self, key: str, value: T, ttl: int | None = None) -> None:
         """JSON-encode and store with an optional TTL in seconds."""
