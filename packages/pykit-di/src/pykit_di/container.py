@@ -5,9 +5,12 @@ from __future__ import annotations
 import enum
 import threading
 from collections.abc import Callable
+from contextvars import ContextVar
 from typing import Any, TypeVar
 
 T = TypeVar("T")
+
+_resolving_var: ContextVar[frozenset[str]] = ContextVar("_resolving", default=frozenset())
 
 
 class RegistrationMode(enum.StrEnum):
@@ -51,7 +54,24 @@ class Container:
     def __init__(self) -> None:
         self._registrations: dict[str, _Registration] = {}
         self._lock = threading.Lock()
-        self._resolving: set[str] = set()
+
+    # ------------------------------------------------------------------
+    # ContextVar-based cycle detection helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _get_resolving() -> frozenset[str]:
+        return _resolving_var.get()
+
+    @staticmethod
+    def _enter_resolving(name: str) -> None:
+        current = _resolving_var.get()
+        _resolving_var.set(current | {name})
+
+    @staticmethod
+    def _exit_resolving(name: str) -> None:
+        current = _resolving_var.get()
+        _resolving_var.set(current - {name})
 
     # ------------------------------------------------------------------
     # Registration
@@ -109,17 +129,16 @@ class Container:
                 return self._check_type(name, reg.instance, type_hint)
 
             # Circular dependency guard
-            if name in self._resolving:
+            if name in self._get_resolving():
                 raise CircularDependencyError(f"Circular dependency detected while resolving '{name}'")
-            self._resolving.add(name)
+            self._enter_resolving(name)
 
         # Factory call outside lock to avoid deadlock, but guard is set.
         try:
             assert reg.factory is not None
             instance = reg.factory()
         finally:
-            with self._lock:
-                self._resolving.discard(name)
+            self._exit_resolving(name)
 
         with self._lock:
             reg.instance = instance
@@ -161,7 +180,6 @@ class Container:
         """Remove all registrations and reset internal state."""
         with self._lock:
             self._registrations.clear()
-            self._resolving.clear()
 
     # ------------------------------------------------------------------
     # Helpers

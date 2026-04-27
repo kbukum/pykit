@@ -77,6 +77,7 @@ class BaseServer:
         self._server: grpc.aio.Server | None = None
         self._health_servicer: health.HealthServicer | None = None
         self._shutdown_event = asyncio.Event()
+        self._stop_task: asyncio.Task[None] | None = None
         self.logger = log.get_logger(__name__)
 
     @property
@@ -148,7 +149,12 @@ class BaseServer:
         """Install signal handlers for graceful shutdown."""
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda: asyncio.create_task(self.stop()))
+            loop.add_signal_handler(sig, self._schedule_stop)
+
+    def _schedule_stop(self) -> None:
+        """Schedule stop() as a task, storing the reference to prevent GC."""
+        if self._stop_task is None or self._stop_task.done():
+            self._stop_task = asyncio.create_task(self.stop())
 
     @property
     def health_servicer(self) -> health.HealthServicer | None:
