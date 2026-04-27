@@ -2,6 +2,9 @@
 name = "pykit-database"
 description = "Async database access with SQLAlchemy and asyncpg"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["database", "sqlalchemy", "async", "orm"]
 requires-python = ">=3.13"
 dependencies = [
     "sqlalchemy[asyncio]",

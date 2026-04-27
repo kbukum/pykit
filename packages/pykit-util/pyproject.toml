@@ -2,6 +2,9 @@
 name = "pykit-util"
 description = "Common utility functions — pure Python, zero dependencies"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["utilities", "helpers", "python"]
 requires-python = ">=3.13"
 dependencies = []
 

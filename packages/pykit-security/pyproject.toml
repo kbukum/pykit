@@ -2,6 +2,9 @@
 name = "pykit-security"
 description = "Security utilities and policies"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["security", "policies", "utilities"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",

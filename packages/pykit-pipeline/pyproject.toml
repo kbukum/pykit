@@ -2,6 +2,9 @@
 name = "pykit-pipeline"
 description = "Composable, pull-based async data pipelines"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["pipeline", "async", "data", "stream"]
 requires-python = ">=3.13"
 dependencies = []
 

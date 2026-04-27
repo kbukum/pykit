@@ -2,6 +2,9 @@
 name = "pykit-tool"
 description = "Tool definition, auto-wiring, registry and middleware for agentic systems"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["tools", "agent", "registry", "ai"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-schema",

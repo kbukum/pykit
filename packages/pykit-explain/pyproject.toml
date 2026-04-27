@@ -2,6 +2,9 @@
 name = "pykit-explain"
 description = "Structured explanation generation from analysis signals using LLMs"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["explainability", "llm", "analysis", "ai"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-llm",

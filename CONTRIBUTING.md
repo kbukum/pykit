@@ -262,6 +262,52 @@ importing from a higher layer.
 
 ---
 
+## Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+| Prefix | Use for |
+|--------|---------|
+| `feat:` | New features |
+| `fix:` | Bug fixes |
+| `docs:` | Documentation only |
+| `ci:` | CI/CD changes |
+| `refactor:` | Code changes without feature/fix |
+| `test:` | Adding or fixing tests |
+| `chore:` | Maintenance |
+
+Examples:
+```
+feat(pykit-resilience): add bulkhead limiter
+fix(pykit-auth): handle expired JWT edge case
+docs: add per-package READMEs
+```
+
+---
+
+## Deprecation Policy
+
+Deprecated APIs:
+1. Get a `@deprecated` decorator (via `typing_extensions.deprecated` or `warnings.warn(..., DeprecationWarning)`)
+2. Remain functional for **at least 1 MINOR release** (target: 6 months)
+3. Are removed in the **next MAJOR release**
+
+```python
+import warnings
+
+def old_function():
+    warnings.warn(
+        "old_function() is deprecated; use new_function() instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return new_function()
+```
+
+See the full policy at [`docs/policy/DEPRECATION.md`](docs/policy/DEPRECATION.md).
+
+---
+
 ## Release Process
 
 - All packages currently share the same version: **0.1.0**.

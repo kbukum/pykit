@@ -2,6 +2,9 @@
 name = "pykit-storage"
 description = "Object/file storage abstraction — local and S3 backends"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["storage", "s3", "object-storage", "file"]
 requires-python = ">=3.13"
 dependencies = [
     "aiofiles",

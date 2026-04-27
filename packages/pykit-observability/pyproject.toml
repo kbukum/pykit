@@ -2,6 +2,9 @@
 name = "pykit-observability"
 description = "OpenTelemetry tracing, metrics, and context propagation"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["opentelemetry", "tracing", "metrics", "observability"]
 requires-python = ">=3.13"
 dependencies = [
     "opentelemetry-api",

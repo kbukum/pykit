@@ -2,6 +2,9 @@
 name = "pykit-vector-store"
 description = "Vector store abstraction for similarity search"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["vector-store", "similarity-search", "embeddings", "ai"]
 requires-python = ">=3.13"
 dependencies = [
     "numpy",

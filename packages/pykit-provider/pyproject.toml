@@ -2,6 +2,9 @@
 name = "pykit-provider"
 description = "Provider protocols for request/response, stream, sink, and duplex patterns"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["provider", "protocol", "request-response", "stream"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",

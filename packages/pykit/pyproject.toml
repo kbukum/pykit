@@ -2,6 +2,9 @@
 name = "pykit"
 description = "Lazy-loading facade that re-exports all sub-packages"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["python", "monorepo", "infrastructure", "toolkit"]
 requires-python = ">=3.13"
 dependencies = [
     # Layer 0 — zero internal deps

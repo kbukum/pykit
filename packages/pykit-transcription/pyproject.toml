@@ -2,6 +2,9 @@
 name = "pykit-transcription"
 description = "Chunked audio transcription orchestration with parallel processing"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["transcription", "audio", "speech", "async"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",

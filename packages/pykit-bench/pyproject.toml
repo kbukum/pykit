@@ -2,6 +2,9 @@
 name = "pykit-bench"
 description = "Generic accuracy benchmarking framework"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["benchmark", "accuracy", "evaluation", "testing"]
 requires-python = ">=3.13"
 dependencies = [
     "pydantic",

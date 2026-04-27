@@ -2,6 +2,9 @@
 name = "pykit-httpclient"
 description = "Async HTTP client with httpx and resilience patterns"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["http", "httpx", "client", "async", "resilience"]
 requires-python = ">=3.13"
 dependencies = [
     "httpx",

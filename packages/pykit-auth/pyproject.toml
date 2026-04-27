@@ -2,6 +2,9 @@
 name = "pykit-auth"
 description = "JWT authentication and password hashing"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["auth", "jwt", "authentication", "password", "security"]
 requires-python = ">=3.13"
 dependencies = [
     "pyjwt",

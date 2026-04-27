@@ -2,6 +2,9 @@
 name = "pykit-hook"
 description = "Generic event hook system — subscribe, emit, and handle typed events"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["hooks", "events", "callbacks", "async"]
 requires-python = ">=3.13"
 dependencies = []
 

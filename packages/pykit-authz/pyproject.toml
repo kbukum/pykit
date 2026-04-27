@@ -2,6 +2,9 @@
 name = "pykit-authz"
 description = "Authorization policies and RBAC"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["authorization", "rbac", "policies", "security"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",
