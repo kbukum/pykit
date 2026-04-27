@@ -46,7 +46,7 @@ async def grpc_channel_fixture(
 
 
 @pytest.fixture
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+def event_loop() -> Generator[asyncio.AbstractEventLoop]:
     """Create a new event loop for each test (avoids cross-test contamination)."""
     loop = asyncio.new_event_loop()
     yield loop
