@@ -72,4 +72,4 @@ async def retry[T](
                 cfg.on_retry(attempt, exc, backoff)
             await asyncio.sleep(backoff)
 
-    raise RetryExhaustedError(cfg.max_attempts, last_error)  # type: ignore[arg-type]
+    raise RetryExhaustedError(cfg.max_attempts, last_error) from last_error  # type: ignore[arg-type]

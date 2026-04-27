@@ -33,10 +33,21 @@ class Registry:
         self._lookup[name] = entry
 
     async def start_all(self) -> None:
-        """Start all components in registration order."""
-        for entry in self._entries:
-            await entry.component.start()
-            entry.started = True
+        """Start all components in registration order. Rolls back on partial failure."""
+        import contextlib
+
+        started: list[_Entry] = []
+        try:
+            for entry in self._entries:
+                await entry.component.start()
+                entry.started = True
+                started.append(entry)
+        except Exception:
+            for e in reversed(started):
+                with contextlib.suppress(Exception):
+                    await e.component.stop()
+                e.started = False
+            raise
 
     async def stop_all(self) -> None:
         """Stop all started components in reverse registration order."""
@@ -51,7 +62,7 @@ class Registry:
             finally:
                 entry.started = False
         if errors:
-            raise RuntimeError(f"shutdown errors: {errors}")
+            raise ExceptionGroup("errors during stop_all", errors)
 
     async def health_all(self) -> list[Health]:
         """Return health status for every registered component."""

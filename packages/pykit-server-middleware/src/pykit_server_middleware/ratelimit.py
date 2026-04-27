@@ -106,12 +106,17 @@ class RateLimiter:
         if self._cleanup_task is None:
             self._cleanup_task = asyncio.ensure_future(self._cleanup())
 
-    def stop(self) -> None:
-        """Cancel the background cleanup task."""
+    async def stop(self) -> None:
+        """Cancel and await the background cleanup task."""
         self._stop_event.set()
         if self._cleanup_task is not None:
             self._cleanup_task.cancel()
-            self._cleanup_task = None
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
+            finally:
+                self._cleanup_task = None
 
     def allow(self, key: str, rpm: int) -> tuple[bool, int, int, float, int]:
         """Check whether a request is allowed.
