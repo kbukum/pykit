@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import time
 from dataclasses import dataclass
 
@@ -19,6 +20,15 @@ class JWTConfig:
     issuer: str = ""
     audience: str = ""
     default_ttl: int = 3600
+    leeway_seconds: int = 60
+
+    def __post_init__(self) -> None:
+        if self.algorithm.startswith("HS") and len(self.secret.encode()) < 32:
+            raise ValueError(
+                f"HMAC secret must be at least 32 bytes for {self.algorithm}; "
+                f"got {len(self.secret.encode())} bytes. "
+                "Use a cryptographically random secret of at least 256 bits."
+            )
 
 
 class JWTService:
@@ -60,14 +70,20 @@ class JWTService:
             kwargs["audience"] = self._config.audience
 
         try:
-            return jwt.decode(token, self._config.secret, **kwargs)
+            return jwt.decode(
+                token,
+                self._config.secret,
+                leeway=datetime.timedelta(seconds=self._config.leeway_seconds),
+                options={"require": ["exp", "iat"]},
+                **kwargs,
+            )
         except jwt.PyJWTError as exc:
             raise InvalidInputError(f"invalid token: {exc}") from exc
 
     # -- Utility ---------------------------------------------------------------
 
-    def decode_unverified(self, token: str) -> dict:
-        """Decode a JWT **without** signature verification (debugging only)."""
+    def _decode_unverified(self, token: str) -> dict:
+        """Decode a JWT **without** signature verification — DIAGNOSTIC USE ONLY."""
         try:
             return jwt.decode(token, options={"verify_signature": False}, algorithms=[self._config.algorithm])
         except jwt.PyJWTError as exc:

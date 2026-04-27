@@ -2,6 +2,9 @@
 name = "pykit-auth"
 description = "JWT authentication and password hashing"
 version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["auth", "jwt", "authentication", "password", "security"]
 requires-python = ">=3.13"
 dependencies = [
     "pyjwt",
@@ -15,3 +18,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pykit_auth"]
+
+[project.optional-dependencies]
+argon2 = ["argon2-cffi>=23.1"]
+dev = ["hypothesis>=6", "argon2-cffi>=23.1"]

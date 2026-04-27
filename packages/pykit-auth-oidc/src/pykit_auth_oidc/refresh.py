@@ -3,12 +3,25 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qs
 
 import httpx
 
 from pykit_auth_oidc.types import RefreshConfig, TokenResult
+
+_LOGGER = logging.getLogger(__name__)
+
+_SENSITIVE_FIELDS = re.compile(
+    r'"(client_secret|refresh_token|access_token|code|id_token)"\s*:\s*"[^"]*"'
+)
+
+
+def _redact_token_response(text: str) -> str:
+    """Redact sensitive fields from token endpoint response body."""
+    return _SENSITIVE_FIELDS.sub(r'"\1":"[REDACTED]"', text)
 
 
 class RefreshError(Exception):
@@ -73,8 +86,9 @@ async def refresh_token(
             await client.aclose()
 
     if resp.status_code != 200:
+        _LOGGER.debug("Token refresh failed (body): %s", _redact_token_response(resp.text))
         raise RefreshError(
-            f"refresh failed (status {resp.status_code}): {resp.text}",
+            f"Token refresh failed: HTTP {resp.status_code} {resp.reason_phrase}",
             status_code=resp.status_code,
         )
 

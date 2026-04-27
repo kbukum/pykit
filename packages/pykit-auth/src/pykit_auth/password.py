@@ -3,10 +3,20 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import os
 from enum import StrEnum
 
 import bcrypt
+
+try:
+    from argon2 import PasswordHasher as _Argon2Hasher
+    from argon2.exceptions import VerifyMismatchError as _VerifyMismatchError
+
+    _ARGON2 = _Argon2Hasher()
+    _ARGON2_AVAILABLE = True
+except ImportError:
+    _ARGON2_AVAILABLE = False
 
 
 class HashAlgorithm(StrEnum):
@@ -14,12 +24,13 @@ class HashAlgorithm(StrEnum):
 
     BCRYPT = "bcrypt"
     ARGON2 = "argon2"
+    SCRYPT = "scrypt"
 
 
 class PasswordHasher:
     """Password hashing and verification.
 
-    Supports bcrypt (default) and argon2id via :mod:`hashlib`.
+    Supports bcrypt (default), argon2id via argon2-cffi, and scrypt via stdlib.
     """
 
     def __init__(
@@ -36,13 +47,26 @@ class PasswordHasher:
         """Return a hashed representation of *password*."""
         if self._algorithm == HashAlgorithm.BCRYPT:
             return self._hash_bcrypt(password)
-        return self._hash_argon2(password)
+        if self._algorithm == HashAlgorithm.ARGON2:
+            if not _ARGON2_AVAILABLE:
+                raise RuntimeError(
+                    "argon2-cffi is required for ARGON2. Install with: pip install argon2-cffi"
+                )
+            return _ARGON2.hash(password)
+        return self._hash_scrypt(password)
 
     def verify(self, password: str, hashed: str) -> bool:
         """Return ``True`` if *password* matches *hashed*."""
         if self._algorithm == HashAlgorithm.BCRYPT:
             return self._verify_bcrypt(password, hashed)
-        return self._verify_argon2(password, hashed)
+        if self._algorithm == HashAlgorithm.ARGON2:
+            if not _ARGON2_AVAILABLE:
+                raise RuntimeError("argon2-cffi is required for ARGON2.")
+            try:
+                return _ARGON2.verify(hashed, password)
+            except _VerifyMismatchError:
+                return False
+        return self._verify_scrypt(password, hashed)
 
     # -- Bcrypt ----------------------------------------------------------------
 
@@ -56,9 +80,9 @@ class PasswordHasher:
         except ValueError:
             return False
 
-    # -- Argon2id (stdlib hashlib) ---------------------------------------------
+    # -- Scrypt (stdlib) -------------------------------------------------------
 
-    def _hash_argon2(self, password: str) -> str:
+    def _hash_scrypt(self, password: str) -> str:
         salt = os.urandom(16)
         raw = hashlib.scrypt(
             password.encode(),
@@ -68,10 +92,9 @@ class PasswordHasher:
             p=1,
             dklen=32,
         )
-        # Store as salt$hash in hex so verify can reconstruct.
         return f"{salt.hex()}${raw.hex()}"
 
-    def _verify_argon2(self, password: str, hashed: str) -> bool:
+    def _verify_scrypt(self, password: str, hashed: str) -> bool:
         try:
             salt_hex, hash_hex = hashed.split("$", 1)
             salt = bytes.fromhex(salt_hex)
@@ -87,5 +110,4 @@ class PasswordHasher:
             p=1,
             dklen=len(expected),
         )
-        # Constant-time comparison
-        return len(raw) == len(expected) and all(a == b for a, b in zip(raw, expected, strict=True))
+        return hmac.compare_digest(raw, expected)

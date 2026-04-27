@@ -174,3 +174,62 @@ class BaseServer:
         if self._server is not None and not self._shutdown_event.is_set():
             return Health(name=self.name, status=HealthStatus.HEALTHY, message="serving")
         return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="not running")
+
+    def add_secure_port(
+        self,
+        address: str,
+        credentials: grpc.ServerCredentials,
+    ) -> int:
+        """Bind with TLS/mTLS credentials.
+
+        Args:
+            address: Address to bind, e.g. ``"[::]:443"``.
+            credentials: gRPC server credentials (TLS or mTLS).
+
+        Returns:
+            The port number assigned by the OS (0 if address included explicit port).
+
+        Example::
+
+            from pykit_server import BaseServer
+            import grpc
+
+            server = BaseServer(...)
+            creds = grpc.ssl_server_credentials([(cert_chain, private_key)])
+            server.add_secure_port("[::]:443", creds)
+        """
+        if self._server is None:
+            raise RuntimeError("Server has not been started; call start() first.")
+        return self._server.add_secure_port(address, credentials)
+
+    @classmethod
+    def credentials_from_files(
+        cls,
+        cert_file: str,
+        key_file: str,
+        ca_file: str | None = None,
+    ) -> grpc.ServerCredentials:
+        """Build ``grpc.ServerCredentials`` from PEM file paths.
+
+        Args:
+            cert_file: Path to the server certificate PEM file.
+            key_file: Path to the server private key PEM file.
+            ca_file: Optional path to the CA certificate for mTLS client verification.
+
+        Returns:
+            ``grpc.ServerCredentials`` suitable for ``add_secure_port``.
+        """
+        with open(cert_file, "rb") as f:
+            cert_chain = f.read()
+        with open(key_file, "rb") as f:
+            private_key = f.read()
+        root_certs: bytes | None = None
+        if ca_file:
+            with open(ca_file, "rb") as f:
+                root_certs = f.read()
+        return grpc.ssl_server_credentials(
+            [(private_key, cert_chain)],
+            root_certificates=root_certs,
+            require_client_auth=ca_file is not None,
+        )
+
