@@ -1,0 +1,17 @@
+# Normalize line endings
+* text=auto eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+# Don't diff lock files (but do track them)
+uv.lock -diff merge=union
+
+# Binary files — don't diff or merge
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
