@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Self
 
 import grpc
@@ -15,6 +16,12 @@ if TYPE_CHECKING:
 _GRPC_STATUS_BY_CODE: dict[int, grpc.StatusCode] = {s.value[0]: s for s in grpc.StatusCode}
 
 
+class ErrorClassifier(Enum):
+    TRANSIENT = "transient"   # client should retry
+    PERMANENT = "permanent"   # do not retry
+    WRAPPED = "wrapped"       # wraps a third-party error
+
+
 class AppError(Exception):
     """Base application error with structured error codes and gRPC mapping."""
 
@@ -26,12 +33,14 @@ class AppError(Exception):
         self.http_status = code.http_status
         self.details: dict[str, Any] = {}
         self.cause: Exception | None = None
+        self.classifier: ErrorClassifier = ErrorClassifier.PERMANENT
 
     # Fluent builders
 
     def with_cause(self, cause: Exception) -> Self:
         """Attach the underlying cause of this error."""
         self.cause = cause
+        self.__cause__ = cause  # Python exception chaining
         return self
 
     def with_detail(self, key: str, value: Any) -> Self:
@@ -71,6 +80,11 @@ class AppError(Exception):
         """Whether this is a permission error."""
         return self.code == ErrorCode.FORBIDDEN
 
+    @property
+    def is_wrapped(self) -> bool:
+        """Whether this error wraps a third-party exception."""
+        return self.classifier == ErrorClassifier.WRAPPED
+
     # Serialization
 
     def to_problem_detail(self, instance: str = "") -> ProblemDetail:
@@ -93,10 +107,10 @@ class AppError(Exception):
         return _GRPC_STATUS_BY_CODE[self.code.grpc_code]
 
     def __str__(self) -> str:
-        s = f"{self.code}: {self.message}"
-        if self.cause:
-            s = f"{s} (cause: {self.cause})"
-        return s
+        return f"{self.code}: {self.message}"
+
+    def __repr__(self) -> str:
+        return f"AppError({self.code!r}, {self.message!r}, cause={self.cause!r})"
 
     # Convenience constructors
 
@@ -152,6 +166,14 @@ class AppError(Exception):
     def invalid_token(cls) -> Self:
         """Create an INVALID_TOKEN error."""
         return cls(ErrorCode.INVALID_TOKEN, "Invalid authentication token. Please log in again.")
+
+    @classmethod
+    def wrap(cls, cause: Exception, message: str = "") -> "AppError":
+        """Wrap a third-party exception as an INTERNAL AppError."""
+        msg = message or "An unexpected error occurred."
+        err = cls(ErrorCode.INTERNAL, msg)
+        err.classifier = ErrorClassifier.WRAPPED
+        raise err from cause
 
     @classmethod
     def internal(cls, cause: Exception) -> Self:
