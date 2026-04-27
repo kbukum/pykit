@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import TypeVar, cast
 
 T = TypeVar("T")
 
@@ -11,7 +11,7 @@ def assert_ok(value: T | Exception) -> T:
     """Assert that value is not an exception and return it."""
     if isinstance(value, Exception):
         raise AssertionError(f"Expected Ok, got exception: {value!r}") from value
-    return value
+    return cast(T, value)
 
 
 def assert_err(value: object, exc_type: type[Exception] = Exception) -> Exception:

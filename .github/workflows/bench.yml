@@ -21,4 +21,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
       - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff  # v6
       - name: Run benchmarks (smoke)
-        run: uv run pytest -m benchmark --no-header -q 2>/dev/null || echo "No benchmark markers found yet"
+        run: |
+          uv run pytest -m benchmark --no-header -q 2>/dev/null || status=$?
+          if [ "${status:-0}" -eq 5 ]; then
+            echo "No benchmark markers found yet"
+          elif [ "${status:-0}" -ne 0 ]; then
+            exit "$status"
+          fi

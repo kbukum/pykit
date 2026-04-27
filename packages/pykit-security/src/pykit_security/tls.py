@@ -39,8 +39,11 @@ class TLSConfig:
         return ctx
 
     def build_server(self) -> ssl.SSLContext | None:
-        """Create a server-side ssl.SSLContext (PROTOCOL_TLS_SERVER)."""
-        if not self.is_enabled():
+        """Create a server-side ssl.SSLContext (PROTOCOL_TLS_SERVER).
+
+        Requires cert_file and key_file to be configured.
+        """
+        if not (self.cert_file and self.key_file):
             return None
 
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)

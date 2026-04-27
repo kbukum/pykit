@@ -180,7 +180,7 @@ class TestRegistry:
         r = Registry()
         r.register(MockComponent("db", stop_err=RuntimeError("stop failed")))
         await r.start_all()
-        with pytest.raises(RuntimeError, match="shutdown errors"):
+        with pytest.raises(ExceptionGroup, match="shutdown errors"):
             await r.stop_all()
 
     @pytest.mark.asyncio
@@ -387,13 +387,14 @@ class TestStopAllErrorFormat:
         r.register(MockComponent("cache", stop_err=RuntimeError("cache refused")))
         await r.start_all()
 
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(ExceptionGroup) as exc_info:
             await r.stop_all()
 
         msg = str(exc_info.value)
         assert "shutdown errors" in msg
-        assert "db timeout" in msg
-        assert "cache refused" in msg
+        error_msgs = [str(e) for e in exc_info.value.exceptions]
+        assert "db timeout" in error_msgs or any("db timeout" in m for m in error_msgs)
+        assert "cache refused" in error_msgs or any("cache refused" in m for m in error_msgs)
 
 
 # ---------------------------------------------------------------------------

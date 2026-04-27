@@ -117,12 +117,16 @@ class Registry:
                     return (idx, await self.call(n, ctx, inp))
                 except KeyError:
                     return (idx, error_result(f"tool not found: {n!r}"))
+                except Exception as exc:
+                    return (idx, error_result(str(exc)))
 
             concurrent = await asyncio.gather(
                 *[_run(i, n, inp) for i, n, inp in read_only], return_exceptions=True
             )
             for item in concurrent:
                 if isinstance(item, BaseException):
+                    # Should not happen since _run catches all exceptions,
+                    # but handle cancellation/system errors defensively.
                     results.append((len(results), error_result(str(item))))
                 else:
                     results.append(item)
