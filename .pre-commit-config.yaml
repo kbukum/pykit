@@ -1,0 +1,34 @@
+# Pre-commit hooks for pykit.
+# Install: pip install pre-commit && pre-commit install
+# Run all: pre-commit run --all-files
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: debug-statements
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (strict packages)
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+        args: [packages/pykit_errors, packages/pykit_config, packages/pykit_logging, packages/pykit_provider, packages/pykit_pipeline]
