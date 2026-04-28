@@ -1,4 +1,4 @@
-"""Chainable field validator mirroring gokit validation/."""
+"""Chainable field validator with error accumulation."""
 
 from __future__ import annotations
 
@@ -60,9 +60,13 @@ class Validator:
 
     # -- chainable checks ---------------------------------------------
 
-    def required(self, field: str, value: str) -> Validator:
-        """Value must be a non-blank string."""
-        if not isinstance(value, str) or value.strip() == "":
+    def required(self, field: str, value: object) -> Validator:
+        """Value must not be None, empty string, or empty collection."""
+        if (
+            value is None
+            or (isinstance(value, str) and value.strip() == "")
+            or (isinstance(value, (list, dict, set, tuple)) and len(value) == 0)
+        ):
             self.add_error(field, "is required")
         return self
 
@@ -76,7 +80,7 @@ class Validator:
             self.add_error(field, f"must be at least {min_len} characters")
         return self
 
-    def range_check(
+    def in_range(
         self, field: str, value: int | float, min_val: int | float, max_val: int | float
     ) -> Validator:
         if value < min_val or value > max_val:
@@ -107,6 +111,85 @@ class Validator:
             return self
         if value not in allowed:
             self.add_error(field, f"must be one of: {', '.join(allowed)}")
+        return self
+
+    def required_uuid(self, field: str, value: str) -> Validator:
+        """Value must be a non-empty valid UUID."""
+        if value == "":
+            self.add_error(field, "is required")
+            return self
+        import uuid as _uuid
+
+        try:
+            _uuid.UUID(value)
+        except (ValueError, AttributeError):
+            self.add_error(field, "must be a valid UUID")
+        return self
+
+    def optional_uuid(self, field: str, value: str | None) -> Validator:
+        """Value must be a valid UUID if non-empty. Empty/None values pass."""
+        if value is None or value == "":
+            return self
+        import uuid as _uuid
+
+        try:
+            _uuid.UUID(value)
+        except (ValueError, AttributeError):
+            self.add_error(field, "must be a valid UUID")
+        return self
+
+    def email(self, field: str, value: str) -> Validator:
+        """Value must be a valid email address. Empty values are skipped."""
+        if value == "":
+            return self
+        if not re.match(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$", value):
+            self.add_error(field, "must be a valid email address")
+        return self
+
+    def url(self, field: str, value: str) -> Validator:
+        """Value must be a valid HTTP or HTTPS URL. Empty values are skipped."""
+        if value == "":
+            return self
+        if not value.startswith(("http://", "https://")):
+            self.add_error(field, "must be a valid URL")
+        return self
+
+    def before(self, field: str, value: str, deadline: str) -> Validator:
+        """Value (RFC 3339 datetime string) must be strictly before *deadline*."""
+        if value == "":
+            return self
+        from datetime import datetime
+
+        try:
+            v = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            self.add_error(field, "must be a valid datetime")
+            return self
+        try:
+            d = datetime.fromisoformat(deadline.replace("Z", "+00:00"))
+        except ValueError:
+            return self
+        if v >= d:
+            self.add_error(field, f"must be before {deadline}")
+        return self
+
+    def after(self, field: str, value: str, floor: str) -> Validator:
+        """Value (RFC 3339 datetime string) must be strictly after *floor*."""
+        if value == "":
+            return self
+        from datetime import datetime
+
+        try:
+            v = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            self.add_error(field, "must be a valid datetime")
+            return self
+        try:
+            f = datetime.fromisoformat(floor.replace("Z", "+00:00"))
+        except ValueError:
+            return self
+        if v <= f:
+            self.add_error(field, f"must be after {floor}")
         return self
 
     def custom(self, condition: bool, field: str, message: str) -> Validator:

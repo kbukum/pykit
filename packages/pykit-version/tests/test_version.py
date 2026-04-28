@@ -44,6 +44,9 @@ class TestVersionInfoDataclass:
 class TestGetVersionInfo:
     """get_version_info collects runtime metadata."""
 
+    def setup_method(self) -> None:
+        get_version_info.cache_clear()
+
     def test_returns_version_info(self) -> None:
         info = get_version_info()
         assert isinstance(info, VersionInfo)
@@ -457,6 +460,7 @@ class TestRunGitEdgeCases:
     """_run_git gracefully handles subprocess errors."""
 
     def test_git_oserror_graceful(self) -> None:
+        get_version_info.cache_clear()
         with patch(
             "pykit_version.version.subprocess.run",
             side_effect=OSError("mocked OS error"),
@@ -467,6 +471,7 @@ class TestRunGitEdgeCases:
         assert info.is_dirty is False
 
     def test_git_returns_empty_on_nonzero_exit(self) -> None:
+        get_version_info.cache_clear()
         fake_result = subprocess.CompletedProcess(args=["git"], returncode=1, stdout="", stderr="fatal")
         with patch(
             "pykit_version.version.subprocess.run",
@@ -476,3 +481,29 @@ class TestRunGitEdgeCases:
         assert info.git_commit == ""
         assert info.git_branch == ""
         assert info.is_dirty is False
+
+
+class TestCaching:
+    """get_version_info caches results per package_name."""
+
+    def test_cached_result_is_same_object(self) -> None:
+        get_version_info.cache_clear()
+        a = get_version_info()
+        b = get_version_info()
+        assert a is b
+
+    def test_cache_clear_produces_fresh_result(self) -> None:
+        get_version_info.cache_clear()
+        a = get_version_info()
+        get_version_info.cache_clear()
+        b = get_version_info()
+        assert a is not b
+        assert a.version == b.version
+        assert a.git_commit == b.git_commit
+
+    def test_different_package_names_cached_separately(self) -> None:
+        get_version_info.cache_clear()
+        a = get_version_info("pykit")
+        b = get_version_info("nonexistent-package-xyz")
+        assert a is not b
+        assert b.version == "dev"

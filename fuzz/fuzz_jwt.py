@@ -1,10 +1,13 @@
 """Fuzz test for JWT decode — should never hard-crash on arbitrary input."""
+
 import sys
+
 import atheris
 
 with atheris.instrument_imports():
     try:
         from pykit_auth.jwt import JWTConfig, JWTService  # adjust import path if needed
+
         JWT_AVAILABLE = True
     except ImportError:
         JWT_AVAILABLE = False

@@ -22,7 +22,7 @@ Validator() \
     .max_length("name", name, 100) \
     .min_length("password", password, 8) \
     .pattern("email", email, r"^[\w.+-]+@[\w-]+\.[\w.]+$") \
-    .range_check("age", age, 0, 150) \
+    .in_range("age", age, 0, 150) \
     .one_of("role", role, ["admin", "user", "viewer"]) \
     .custom(start < end, "end_date", "must be after start_date") \
     .validate()  # Raises InvalidInputError if any checks failed
@@ -41,7 +41,7 @@ user = validate_model(UserCreate, {"name": "Alice", "email": "a@b.com", "age": 3
 ## Key Components
 
 - **Validator** — Fluent chainable validator that accumulates `FieldError` instances and raises `InvalidInputError` on `validate()`
-  - Built-in checks: `required`, `max_length`, `min_length`, `range_check`, `min_value`, `max_value`, `pattern`, `one_of`, `custom`
+  - Built-in checks: `required`, `max_length`, `min_length`, `in_range`, `min_value`, `max_value`, `pattern`, `one_of`, `required_uuid`, `optional_uuid`, `email`, `url`, `before`, `after`, `custom`
 - **FieldError** — Dataclass with `field` and `message` for individual validation failures
 - **validate_model()** — Validate a dict against a Pydantic `BaseModel`, converting `ValidationError` to `InvalidInputError` with structured field details
 
