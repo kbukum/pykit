@@ -1,7 +1,8 @@
-"""Build metadata and version info mirroring gokit version/."""
+"""Build metadata and version info."""
 
 from __future__ import annotations
 
+import functools
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -19,6 +20,11 @@ class VersionInfo:
     build_time: str
     python_version: str
     is_release: bool
+    """``True`` when version is not ``"dev"`` and does not contain ``"dirty"``.
+
+    Note: this is based on the *package version string*, not git state.
+    A dirty working tree does not affect this field — use ``is_dirty`` for that.
+    """
     is_dirty: bool
 
 
@@ -38,8 +44,12 @@ def _run_git(*args: str) -> str:
     return ""
 
 
+@functools.lru_cache(maxsize=32)
 def get_version_info(package_name: str = "pykit") -> VersionInfo:
-    """Collect version metadata from package info, git, and the runtime."""
+    """Collect version metadata from package info, git, and the runtime.
+
+    Results are cached per ``package_name`` to avoid repeated subprocess calls.
+    """
     # Package version via importlib.metadata
     try:
         pkg_version = version(package_name)

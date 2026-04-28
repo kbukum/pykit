@@ -42,9 +42,6 @@ def add_correlation_id(logger: Any, method_name: str, event_dict: dict[str, Any]
 def schema_normalizer(service_name: str, environment: str = "development") -> structlog.types.Processor:
     """Create a processor that adds standard service fields to every log entry.
 
-    Ensures every log entry carries the unified schema fields shared across
-    gokit, rskit, and pykit.
-
     Args:
         service_name: The name of the service emitting logs.
         environment: Deployment environment (e.g. ``"production"``, ``"development"``).
@@ -84,7 +81,8 @@ def setup_logging(
 
     Args:
         level: Log level (DEBUG, INFO, WARNING, ERROR).
-        log_format: "json" for production, "console" for development, "auto" to detect.
+        log_format: "json" for production, "console" for development,
+            "auto" to detect (uses JSON when stderr is not a TTY, console otherwise).
         service_name: Added to every log entry.
         masking: Masking configuration. Defaults to ``MaskingConfig(enabled=True)``.
         sampling: Sampling configuration. ``None`` disables sampling.
@@ -94,7 +92,7 @@ def setup_logging(
     """
     global _otlp_bridge
     if log_format == "auto":
-        log_format = "console"
+        log_format = "console" if sys.stderr.isatty() else "json"
 
     if masking is None:
         masking = MaskingConfig()
@@ -103,7 +101,7 @@ def setup_logging(
     log_level = getattr(logging, level.upper(), logging.INFO)
     logging.basicConfig(level=log_level, stream=sys.stderr, format="%(message)s")
 
-    # Suppress noisy Kafka client internals — reconnection is handled by pykit
+    # Suppress noisy Kafka client internals
     logging.getLogger("aiokafka").setLevel(logging.CRITICAL)
     logging.getLogger("kafka").setLevel(logging.CRITICAL)
 
@@ -131,7 +129,7 @@ def setup_logging(
     if masking.enabled:
         shared_processors.append(masking_processor(DefaultMasker(masking)))
 
-    # OTLP bridge — inserted AFTER masking so exported logs are already masked
+    # OTLP bridge — must be after masking so exported logs are already masked
     if otlp and otlp.enabled:
         try:
             bridge = OTLPLogBridge(config=otlp, service_name=service_name, environment=environment)

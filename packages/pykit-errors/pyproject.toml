@@ -1,6 +1,6 @@
 [project]
 name = "pykit-errors"
-description = "Standard error types with error codes, gRPC status mapping, and RFC 7807 support"
+description = "Standard error types with error codes, gRPC status mapping, and RFC 9457 support"
 version = "0.1.0"
 readme = "README.md"
 license = { text = "MIT" }

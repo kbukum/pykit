@@ -1,10 +1,11 @@
 """Fuzz test for pykit-errors ProblemDetail serialization."""
+
 import sys
+
 import atheris
 
 with atheris.instrument_imports():
     from pykit_errors import AppError, ErrorCode
-    from pykit_errors.response import ProblemDetail
 
 
 def TestOneInput(data: bytes) -> None:

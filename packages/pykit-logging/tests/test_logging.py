@@ -105,16 +105,27 @@ class TestSetupLoggingConfiguration:
 
     def test_auto_format_defaults_to_console(self, monkeypatch) -> None:
         buf = io.StringIO()
+        buf.isatty = lambda: True  # type: ignore[assignment]
         monkeypatch.setattr(sys, "stderr", buf)
         setup_logging(level="DEBUG", log_format="auto", service_name="test-svc")
         get_logger("auto-test").info("auto msg")
         output = buf.getvalue()
         assert "auto msg" in output
-        # auto→console should not produce JSON
+        # auto with TTY should not produce JSON
         with __import__("contextlib").suppress(json.JSONDecodeError):
             json.loads(output.strip())
-            # If valid JSON, auto resolved to json — fail
-            raise AssertionError("auto format should resolve to console, not json")  # pragma: no cover
+            raise AssertionError("auto format should resolve to console when TTY")  # pragma: no cover
+
+    def test_auto_format_resolves_to_json_without_tty(self, monkeypatch) -> None:
+        buf = io.StringIO()
+        buf.isatty = lambda: False  # type: ignore[assignment]
+        monkeypatch.setattr(sys, "stderr", buf)
+        setup_logging(level="DEBUG", log_format="auto", service_name="test-svc")
+        get_logger("auto-test").info("auto json msg")
+        output = buf.getvalue().strip()
+        # auto without TTY should produce JSON
+        parsed = json.loads(output)
+        assert parsed["event"] == "auto json msg"
 
     def test_log_level_debug(self, monkeypatch) -> None:
         logger, buf = _json_logger(monkeypatch, level="DEBUG")

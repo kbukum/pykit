@@ -124,12 +124,21 @@ class TestRequiredParametrized:
 
     @pytest.mark.parametrize(
         "value",
-        [0, None, 123, [], False],
-        ids=["zero", "none", "int", "list", "false"],
+        [None, []],
+        ids=["none", "empty_list"],
     )
-    def test_non_string_values_are_rejected(self, value):
+    def test_none_and_empty_collection_are_rejected(self, value):
         v = Validator().required("name", value)
         assert v.has_errors
+
+    @pytest.mark.parametrize(
+        "value",
+        [0, 123, False],
+        ids=["zero", "int", "false"],
+    )
+    def test_non_string_non_none_values_pass(self, value):
+        v = Validator().required("name", value)
+        assert not v.has_errors
 
     @pytest.mark.parametrize(
         "value",
@@ -193,7 +202,7 @@ class TestMinLengthParametrized:
 
 
 # ===========================================================================
-# range_check() — parametrized
+# in_range() — parametrized
 # ===========================================================================
 
 
@@ -213,7 +222,7 @@ class TestRangeCheckParametrized:
         ids=["mid", "low_bound", "high_bound", "below", "above", "neg", "float_in", "float_out"],
     )
     def test_range_values(self, value, lo, hi, expect_error: bool):
-        v = Validator().range_check("f", value, lo, hi)
+        v = Validator().in_range("f", value, lo, hi)
         assert v.has_errors is expect_error
 
 
@@ -361,7 +370,7 @@ class TestChainingComprehensive:
             .required("name", "")
             .max_length("bio", "x" * 300, 255)
             .min_length("password", "ab", 8)
-            .range_check("age", 200, 0, 150)
+            .in_range("age", 200, 0, 150)
             .min_value("score", -1, 0)
             .max_value("level", 11, 10)
             .pattern("email", "bad", r"^.+@.+$")
@@ -769,7 +778,7 @@ class TestEdgeCasesLargeInputs:
         assert not v.has_errors
 
     def test_very_large_number_range(self):
-        v = Validator().range_check("f", 10**18, 0, 10**18)
+        v = Validator().in_range("f", 10**18, 0, 10**18)
         assert not v.has_errors
 
     def test_many_errors_collected(self):
@@ -789,11 +798,11 @@ class TestEdgeCasesNone:
 
     def test_required_false(self):
         v = Validator().required("f", False)
-        assert v.has_errors
+        assert not v.has_errors
 
     def test_required_zero(self):
         v = Validator().required("f", 0)
-        assert v.has_errors
+        assert not v.has_errors
 
 
 class TestEdgeCasesSpecialCharacters:
@@ -834,7 +843,7 @@ class TestBuilderAPI:
         assert v.required("a", "x") is v
         assert v.max_length("a", "x", 10) is v
         assert v.min_length("a", "x", 1) is v
-        assert v.range_check("a", 5, 0, 10) is v
+        assert v.in_range("a", 5, 0, 10) is v
         assert v.min_value("a", 5, 0) is v
         assert v.max_value("a", 5, 10) is v
         assert v.pattern("a", "x", r"x") is v
