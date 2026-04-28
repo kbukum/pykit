@@ -1,13 +1,21 @@
 name: Bench
 
+# Performance regression detector. Uses github-action-benchmark to compare
+# pytest-benchmark results and post as a PR comment.
+
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+    paths:
+      - '**/*.py'
+      - '**/pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/bench.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -15,18 +23,42 @@ concurrency:
 
 jobs:
   bench:
-    name: Benchmarks (smoke)
+    name: Benchmark
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+
       - name: Install dependencies
         run: uv sync --all-packages
-      - name: Run benchmarks (smoke)
+
+      - name: Run benchmarks
         run: |
-          uv run pytest -m benchmark -p no:xdist -o "addopts=--tb=short -q --import-mode=importlib" --no-header || status=$?
+          uv run pytest -m benchmark -p no:xdist \
+            -o "addopts=--tb=short -q --import-mode=importlib" \
+            --no-header \
+            --benchmark-json=output.json \
+            --benchmark-disable-gc \
+            --benchmark-min-rounds=5 || status=$?
           if [ "${status:-0}" -eq 5 ]; then
-            echo "No benchmark markers found yet"
+            echo "No benchmark markers found — skipping"
+            echo '{"benchmarks": []}' > output.json
           elif [ "${status:-0}" -ne 0 ]; then
             exit "$status"
           fi
+
+      - name: Store benchmark result
+        if: hashFiles('output.json') != ''
+        uses: benchmark-action/github-action-benchmark@a60cea5bc7b49e15c1f58f411161f99e0df48372  # v1.22.0
+        with:
+          tool: 'pytest'
+          output-file-path: output.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-on-alert: true
+          alert-threshold: '150%'
+          summary-always: true
+          comment-always: true
+          fail-on-alert: false
+          external-data-json-path: ./benchmark-data.json
