@@ -35,6 +35,9 @@ class ErrorCode(StrEnum):
     DATABASE_ERROR = "DATABASE_ERROR"
     EXTERNAL_SERVICE = "EXTERNAL_SERVICE_ERROR"
 
+    # Lifecycle
+    CANCELED = "CANCELED"
+
     @property
     def is_retryable(self) -> bool:
         """Whether operations failing with this code should be retried."""
@@ -79,6 +82,7 @@ _HTTP_STATUS_MAP: dict[ErrorCode, int] = {
     ErrorCode.INTERNAL: 500,
     ErrorCode.DATABASE_ERROR: 500,
     ErrorCode.EXTERNAL_SERVICE: 500,
+    ErrorCode.CANCELED: 499,
 }
 
 _GRPC_CODE_MAP: dict[ErrorCode, int] = {
@@ -99,4 +103,5 @@ _GRPC_CODE_MAP: dict[ErrorCode, int] = {
     ErrorCode.INTERNAL: 13,  # INTERNAL
     ErrorCode.DATABASE_ERROR: 13,  # INTERNAL
     ErrorCode.EXTERNAL_SERVICE: 13,  # INTERNAL
+    ErrorCode.CANCELED: 1,  # CANCELED
 }

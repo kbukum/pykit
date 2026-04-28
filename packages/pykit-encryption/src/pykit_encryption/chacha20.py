@@ -1,4 +1,4 @@
-"""AES-256-GCM encryption backend.
+"""ChaCha20-Poly1305 encryption backend.
 
 Uses PBKDF2-SHA256 key derivation (600,000 iterations, random 16-byte salt).
 Ciphertext format: base64(salt[16] || nonce[12] || ciphertext).
@@ -10,7 +10,7 @@ import base64
 import os
 
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 _SALT_SIZE = 16
@@ -19,8 +19,8 @@ _PBKDF2_ITERATIONS = 600_000
 _KEY_LEN = 32
 
 
-class AESGCMEncryptor:
-    """AES-256-GCM authenticated encryption with PBKDF2-SHA256 key derivation."""
+class ChaCha20Encryptor:
+    """ChaCha20-Poly1305 authenticated encryption with PBKDF2-SHA256 key derivation."""
 
     def __init__(self, key: str) -> None:
         self._passphrase = key.encode()
@@ -39,7 +39,7 @@ class AESGCMEncryptor:
         salt = os.urandom(_SALT_SIZE)
         key = self._derive_key(salt)
         nonce = os.urandom(_NONCE_SIZE)
-        ct = AESGCM(key).encrypt(nonce, plaintext.encode(), None)
+        ct = ChaCha20Poly1305(key).encrypt(nonce, plaintext.encode(), None)
         return base64.standard_b64encode(salt + nonce + ct).decode()
 
     def decrypt(self, ciphertext: str) -> str:
@@ -51,4 +51,4 @@ class AESGCMEncryptor:
         nonce = data[_SALT_SIZE : _SALT_SIZE + _NONCE_SIZE]
         ct = data[_SALT_SIZE + _NONCE_SIZE :]
         key = self._derive_key(salt)
-        return AESGCM(key).decrypt(nonce, ct, None).decode()
+        return ChaCha20Poly1305(key).decrypt(nonce, ct, None).decode()

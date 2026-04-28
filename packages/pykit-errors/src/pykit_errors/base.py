@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, Never, Self
 
 import grpc
 
@@ -171,8 +171,21 @@ class AppError(Exception):
         return cls(ErrorCode.INVALID_TOKEN, "Invalid authentication token. Please log in again.")
 
     @classmethod
-    def wrap(cls, cause: Exception, message: str = "") -> AppError:
-        """Wrap a third-party exception as an INTERNAL AppError."""
+    def raise_wrapped(cls, cause: Exception, message: str = "") -> Never:
+        """Raise an INTERNAL AppError wrapping a third-party exception.
+
+        Unlike other constructors that return an ``AppError``, this method
+        **raises** immediately — following the Pythonic convention that
+        exceptions are raised, not returned.
+
+        Args:
+            cause: The original exception to wrap.
+            message: Optional override message. Defaults to a generic message.
+
+        Raises:
+            AppError: Always raised with ``ErrorClassifier.WRAPPED`` and the
+                original *cause* chained via ``raise ... from cause``.
+        """
         msg = message or "An unexpected error occurred."
         err = cls(ErrorCode.INTERNAL, msg)
         err.classifier = ErrorClassifier.WRAPPED
@@ -224,6 +237,13 @@ class AppError(Exception):
     def rate_limited(cls) -> Self:
         """Create a RATE_LIMITED error."""
         return cls(ErrorCode.RATE_LIMITED, "Too many requests. Please wait and try again.")
+
+    @classmethod
+    def canceled(cls, operation: str) -> Self:
+        """Create a CANCELED error."""
+        return cls(ErrorCode.CANCELED, f"Operation '{operation}' was canceled.").with_detail(
+            "operation", operation
+        )
 
 
 # Backward-compatible subclasses

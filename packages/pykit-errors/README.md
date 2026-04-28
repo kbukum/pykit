@@ -1,6 +1,6 @@
 # pykit-errors
 
-Standard error types with error codes, fluent builders, RFC 7807 responses, and gRPC status mapping.
+Standard error types with error codes, fluent builders, RFC 9457 responses, and gRPC status mapping.
 
 ## Installation
 
@@ -13,7 +13,7 @@ uv add pykit-errors
 ## Quick Start
 
 ```python
-from pykit_errors import AppError, ErrorCode, ErrorResponse
+from pykit_errors import AppError, ErrorCode, ProblemDetail
 
 # Convenience constructors with fluent builders
 err = AppError.not_found("User", "abc-123")
@@ -29,8 +29,8 @@ print(code.is_retryable)  # False
 # gRPC integration
 grpc_status = err.to_grpc_status()  # grpc.StatusCode.NOT_FOUND
 
-# RFC 7807 error responses
-resp = ErrorResponse.from_app_error(err)
+# RFC 9457 error responses
+resp = ProblemDetail.from_app_error(err)
 resp.to_dict()
 # {"type": "https://pykit.dev/errors/not-found", "title": "NOT_FOUND",
 #  "status": 404, "detail": "User 'abc-123' not found"}
@@ -38,10 +38,10 @@ resp.to_dict()
 
 ## Key Components
 
-- **ErrorCode** — StrEnum with 17 error codes across 5 categories (connection, resource, validation, auth, internal); each code maps to HTTP status, gRPC code, and retryability via `http_status`, `grpc_code`, and `is_retryable` properties
+- **ErrorCode** — StrEnum with 18 error codes across 6 categories (connection, resource, validation, auth, internal, lifecycle); each code maps to HTTP status, gRPC code, and retryability via `http_status`, `grpc_code`, and `is_retryable` properties
 - **AppError** — Base exception with fluent builder pattern: `with_cause()`, `with_detail()`, `with_details()`, `with_retryable()`; query helpers: `is_retryable`, `is_not_found`, `is_unauthorized`, `is_forbidden`
-- **Convenience constructors** — `AppError.not_found()`, `.already_exists()`, `.conflict()`, `.invalid_input()`, `.missing_field()`, `.invalid_format()`, `.unauthorized()`, `.forbidden()`, `.token_expired()`, `.invalid_token()`, `.internal()`, `.database_error()`, `.external_service()`, `.service_unavailable()`, `.connection_failed()`, `.timeout()`, `.rate_limited()`
-- **ErrorResponse** — Frozen dataclass for RFC 7807 JSON serialization; `from_app_error()` class method and `to_dict()` for API responses
+- **Convenience constructors** — `AppError.not_found()`, `.already_exists()`, `.conflict()`, `.invalid_input()`, `.missing_field()`, `.invalid_format()`, `.unauthorized()`, `.forbidden()`, `.token_expired()`, `.invalid_token()`, `.internal()`, `.database_error()`, `.external_service()`, `.service_unavailable()`, `.connection_failed()`, `.timeout()`, `.rate_limited()`, `.canceled()`
+- **ProblemDetail** — Frozen dataclass for RFC 9457 JSON serialization; `from_app_error()` class method and `to_dict()` for API responses
 - **to_grpc_status()** — Converts any `AppError` to the corresponding `grpc.StatusCode`
 - **NotFoundError / InvalidInputError / ServiceUnavailableError / TimeoutError** — Backward-compatible subclasses for direct instantiation
 

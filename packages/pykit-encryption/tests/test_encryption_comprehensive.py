@@ -347,14 +347,14 @@ class TestSecurity:
         # All 1000 nonces should be unique
         assert len(nonces) == 1000
 
-    def test_aesgcm_ciphertext_contains_nonce_plus_tag(self) -> None:
-        """Ciphertext = nonce (12) + encrypted_data + GCM tag (16)."""
+    def test_aesgcm_ciphertext_contains_salt_nonce_plus_tag(self) -> None:
+        """Ciphertext = salt (16) + nonce (12) + encrypted_data + GCM tag (16)."""
         enc = AESGCMEncryptor("key")
         plaintext = "exactly 16 bytes"
         ct = enc.encrypt(plaintext)
         raw = base64.standard_b64decode(ct)
-        # nonce(12) + ciphertext(len(plaintext)) + tag(16)
-        expected_min = 12 + len(plaintext.encode()) + 16
+        # salt(16) + nonce(12) + ciphertext(len(plaintext)) + tag(16)
+        expected_min = 16 + 12 + len(plaintext.encode()) + 16
         assert len(raw) == expected_min
 
     def test_different_keys_derive_different_internal_keys(self) -> None:

@@ -290,6 +290,7 @@ _ALL_HTTP_STATUS_MAP = [
     (ErrorCode.INTERNAL, 500),
     (ErrorCode.DATABASE_ERROR, 500),
     (ErrorCode.EXTERNAL_SERVICE, 500),
+    (ErrorCode.CANCELED, 499),
 ]
 
 
@@ -328,6 +329,7 @@ _ALL_GRPC_CODE_MAP = [
     (ErrorCode.INTERNAL, 13),
     (ErrorCode.DATABASE_ERROR, 13),
     (ErrorCode.EXTERNAL_SERVICE, 13),
+    (ErrorCode.CANCELED, 1),
 ]
 
 

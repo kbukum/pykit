@@ -31,7 +31,7 @@ from pykit_logging import setup_logging, get_logger
 # Configure once at startup — masking is on by default
 setup_logging(
     level="INFO",
-    log_format="json",          # "json" | "console" | "auto"
+    log_format="json",          # "json" | "console" | "auto" (TTY=console, non-TTY=json)
     service_name="my-service",
 )
 
@@ -244,6 +244,8 @@ All three kits (gokit, pykit, rskit) share the same structured field names:
 | `trace_id` | Distributed trace ID |
 | `span_id` | Span ID within trace |
 | `correlation_id` | Cross-service correlation |
+| `user_id` | User identifier |
+| `request_id` | HTTP request identifier |
 | `duration_ms` | Duration in milliseconds |
 | `timestamp` | ISO 8601 timestamp |
 | `level` | Log level |

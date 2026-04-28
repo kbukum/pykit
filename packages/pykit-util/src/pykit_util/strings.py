@@ -9,9 +9,13 @@ _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
 
 def coalesce[T](*values: T | None) -> T | None:
-    """Return the first truthy value, or ``None``."""
+    """Return the first non-``None`` value, or ``None``.
+
+    Preserves falsy-but-valid values such as ``0``, ``""``, and ``False``
+    — only ``None`` is skipped.
+    """
     for v in values:
-        if v:
+        if v is not None:
             return v
     return None
 
