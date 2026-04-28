@@ -72,7 +72,7 @@ dev = [
     "import-linter",
     "aiokafka>=0.13.0",
     "cramjam>=2.11.0",
-    "argon2-cffi>=23.1",
+    "argon2-cffi>=25.1.0",
 ]
 
 [tool.uv.workspace]
