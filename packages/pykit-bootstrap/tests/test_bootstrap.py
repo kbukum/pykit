@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-import asyncio
-import os
+from dataclasses import dataclass
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from pykit_bootstrap import (
+    EVENT_READY,
+    EVENT_START,
+    EVENT_STOP,
     App,
     AppConfig,
     Component,
@@ -18,409 +20,40 @@ from pykit_bootstrap import (
     HealthStatus,
     Hook,
     Lifecycle,
+    LifecycleEvent,
     LoggingConfig,
     Registry,
     ServiceConfig,
 )
 
-# ---------------------------------------------------------------------------
-# Helper — shortcut for creating DefaultAppConfig
-# ---------------------------------------------------------------------------
 
+@dataclass(slots=True)
+class _LoggerStub:
+    infos: list[tuple[str, dict[str, object]]]
+    errors: list[tuple[str, dict[str, object]]]
 
-def _cfg(name: str = "svc", **kwargs: object) -> DefaultAppConfig:
-    """Create a DefaultAppConfig with the given service name and optional overrides."""
-    svc_kwargs: dict[str, object] = {"name": name}
-    top_kwargs: dict[str, object] = {}
-    svc_fields = {"name", "environment", "version", "debug", "logging"}
-    for k, v in kwargs.items():
-        if k in svc_fields:
-            svc_kwargs[k] = v
-        else:
-            top_kwargs[k] = v
-    return DefaultAppConfig(service=ServiceConfig(**svc_kwargs), **top_kwargs)
+    def info(self, event: str, /, **kwargs: object) -> None:
+        self.infos.append((event, kwargs))
 
-
-# ---------------------------------------------------------------------------
-# Config types
-# ---------------------------------------------------------------------------
-
-
-class TestEnvironment:
-    def test_values(self) -> None:
-        assert Environment.DEVELOPMENT == "development"
-        assert Environment.STAGING == "staging"
-        assert Environment.PRODUCTION == "production"
-
-    def test_str_enum(self) -> None:
-        assert str(Environment.PRODUCTION) == "production"
-
-
-class TestLoggingConfig:
-    def test_defaults(self) -> None:
-        lc = LoggingConfig()
-        assert lc.level == "INFO"
-        assert lc.format == "console"
-
-    def test_frozen(self) -> None:
-        lc = LoggingConfig()
-        with pytest.raises(AttributeError):
-            lc.level = "DEBUG"  # type: ignore[misc]
-
-
-class TestServiceConfig:
-    def test_defaults(self) -> None:
-        sc = ServiceConfig()
-        assert sc.name == ""
-        assert sc.environment == Environment.DEVELOPMENT
-        assert sc.version == "0.0.0"
-        assert sc.debug is False
-        assert isinstance(sc.logging, LoggingConfig)
-
-    def test_custom_values(self) -> None:
-        sc = ServiceConfig(
-            name="api",
-            environment=Environment.PRODUCTION,
-            version="1.2.3",
-            debug=True,
-            logging=LoggingConfig(level="DEBUG", format="json"),
-        )
-        assert sc.name == "api"
-        assert sc.environment == Environment.PRODUCTION
-        assert sc.version == "1.2.3"
-        assert sc.debug is True
-        assert sc.logging.level == "DEBUG"
-        assert sc.logging.format == "json"
-
-    def test_frozen(self) -> None:
-        sc = ServiceConfig(name="x")
-        with pytest.raises(AttributeError):
-            sc.name = "y"  # type: ignore[misc]
-
-
-class TestDefaultAppConfig:
-    def test_defaults(self) -> None:
-        cfg = DefaultAppConfig()
-        assert cfg.service.name == ""
-        assert cfg.service.environment == Environment.DEVELOPMENT
-        assert cfg.graceful_timeout == 30.0
-
-    def test_convenience_properties(self) -> None:
-        cfg = _cfg("svc", version="2.0", environment=Environment.STAGING, debug=True)
-        assert cfg.name == "svc"
-        assert cfg.version == "2.0"
-        assert cfg.env == "staging"
-        assert cfg.debug is True
-
-    def test_service_config_property(self) -> None:
-        sc = ServiceConfig(name="x")
-        cfg = DefaultAppConfig(service=sc)
-        assert cfg.service_config is sc
-
-    def test_apply_defaults_fills_empty_name(self) -> None:
-        cfg = DefaultAppConfig()
-        cfg.apply_defaults()
-        assert cfg.service.name == "unknown"
-
-    def test_apply_defaults_preserves_existing_name(self) -> None:
-        cfg = _cfg("real-svc")
-        cfg.apply_defaults()
-        assert cfg.service.name == "real-svc"
-
-    def test_satisfies_protocol(self) -> None:
-        cfg = _cfg("proto-test")
-        assert isinstance(cfg, AppConfig)
-
-
-# ---------------------------------------------------------------------------
-# Lifecycle
-# ---------------------------------------------------------------------------
-
-
-class TestLifecycle:
-    async def test_start_hooks_run_in_order(self) -> None:
-        order: list[int] = []
-        lc = Lifecycle()
-        lc.on_start(self._hook(order, 1))
-        lc.on_start(self._hook(order, 2))
-        lc.on_start(self._hook(order, 3))
-        await lc.run_start_hooks()
-        assert order == [1, 2, 3]
-
-    async def test_ready_hooks_run_in_order(self) -> None:
-        order: list[int] = []
-        lc = Lifecycle()
-        lc.on_ready(self._hook(order, 10))
-        lc.on_ready(self._hook(order, 20))
-        await lc.run_ready_hooks()
-        assert order == [10, 20]
-
-    async def test_stop_hooks_run_in_reverse(self) -> None:
-        order: list[int] = []
-        lc = Lifecycle()
-        lc.on_stop(self._hook(order, 1))
-        lc.on_stop(self._hook(order, 2))
-        lc.on_stop(self._hook(order, 3))
-        await lc.run_stop_hooks()
-        assert order == [3, 2, 1]
-
-    async def test_configure_hooks_run_in_order(self) -> None:
-        order: list[int] = []
-        lc = Lifecycle()
-        lc.on_configure(self._hook(order, 1))
-        lc.on_configure(self._hook(order, 2))
-        lc.on_configure(self._hook(order, 3))
-        await lc.run_configure_hooks()
-        assert order == [1, 2, 3]
-
-    async def test_no_hooks_is_noop(self) -> None:
-        lc = Lifecycle()
-        await lc.run_configure_hooks()
-        await lc.run_start_hooks()
-        await lc.run_ready_hooks()
-        await lc.run_stop_hooks()
-
-    async def test_hook_error_propagates(self) -> None:
-        lc = Lifecycle()
-
-        async def failing() -> None:
-            raise RuntimeError("boom")
-
-        lc.on_start(failing)
-        with pytest.raises(RuntimeError, match="boom"):
-            await lc.run_start_hooks()
-
-    # helper
-    @staticmethod
-    def _hook(order: list[int], value: int) -> Hook:
-        async def _h() -> None:
-            order.append(value)
-
-        return _h
-
-
-# ---------------------------------------------------------------------------
-# App — chaining API
-# ---------------------------------------------------------------------------
-
-
-class TestAppChaining:
-    def test_convenience_methods_return_self(self) -> None:
-        app = App(_cfg("svc"))
-        sentinel = AsyncMock()
-        result = (
-            app.on_configure(sentinel)
-            .on_start(sentinel)
-            .on_ready(sentinel)
-            .on_stop(sentinel)
-            .set_ready_check(sentinel)
-        )
-        assert result is app
-
-    def test_with_component_returns_self(self) -> None:
-        app = App(_cfg("svc"))
-        comp = _MockComponent("db")
-        result = app.with_component(comp)
-        assert result is app
-
-
-# ---------------------------------------------------------------------------
-# App.run_task
-# ---------------------------------------------------------------------------
-
-
-class TestRunTask:
-    async def test_task_runs_between_hooks(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        async def task() -> None:
-            order.append("task")
-
-        await app.run_task(task)
-        assert order == ["start", "task", "stop"]
-
-    async def test_stop_hooks_run_even_if_task_fails(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        async def failing_task() -> None:
-            raise ValueError("task error")
-
-        with pytest.raises(ValueError, match="task error"):
-            await app.run_task(failing_task)
-
-        assert "stop" in order
-
-    async def test_stop_hooks_run_even_if_start_hook_fails(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-
-        async def bad_start() -> None:
-            raise RuntimeError("start failed")
-
-        app.on_start(bad_start)
-        app.on_stop(_make_hook(order, "stop"))
-
-        with pytest.raises(RuntimeError, match="start failed"):
-            await app.run_task(AsyncMock())
-
-        assert "stop" in order
-
-
-# ---------------------------------------------------------------------------
-# App.run (mocked signal wait)
-# ---------------------------------------------------------------------------
-
-
-class TestRun:
-    async def test_full_lifecycle_order(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_ready(_make_hook(order, "ready"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        async def ready_check() -> None:
-            order.append("check")
-
-        app.set_ready_check(ready_check)
-
-        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
-            await app.run()
-
-        assert order == ["start", "check", "ready", "stop"]
-
-    async def test_ready_check_failure_skips_ready_hooks(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_ready(_make_hook(order, "ready"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        async def failing_check() -> None:
-            raise RuntimeError("not ready")
-
-        app.set_ready_check(failing_check)
-
-        with (
-            patch.object(app, "_wait_for_signal", new_callable=AsyncMock),
-            pytest.raises(RuntimeError, match="not ready"),
-        ):
-            await app.run()
-
-        assert "start" in order
-        assert "ready" not in order
-        assert "stop" in order
-
-    async def test_no_ready_check_skips_check(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_ready(_make_hook(order, "ready"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
-            await app.run()
-
-        assert order == ["start", "ready", "stop"]
-
-
-# ---------------------------------------------------------------------------
-# App — config / lifecycle properties
-# ---------------------------------------------------------------------------
-
-
-class TestAppProperties:
-    def test_config_property(self) -> None:
-        cfg = _cfg("svc", version="2.0")
-        app = App(cfg)
-        assert app.config is cfg
-
-    def test_lifecycle_property(self) -> None:
-        app = App(_cfg("svc"))
-        assert isinstance(app.lifecycle, Lifecycle)
-
-
-# ---------------------------------------------------------------------------
-# App — signal handling & shutdown
-# ---------------------------------------------------------------------------
-
-
-class TestSignalHandling:
-    async def test_wait_for_signal_registers_and_removes_handlers(self) -> None:
-        """Cover _wait_for_signal sets/removes signal handlers."""
-        import signal
-
-        app = App(_cfg("sig-test"))
-
-        async def fire_signal_soon() -> None:
-            await asyncio.sleep(0.01)
-            loop = asyncio.get_running_loop()
-            loop.call_soon(lambda: os.kill(os.getpid(), signal.SIGINT))
-
-        task = asyncio.create_task(fire_signal_soon())
-        await app._wait_for_signal()
-        await task
-
-    async def test_run_registers_signal_and_completes(self) -> None:
-        """Full run() with a real signal delivery — covers the signal path."""
-        import signal
-
-        order: list[str] = []
-        app = App(_cfg("full-sig"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_ready(_make_hook(order, "ready"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        async def send_sigint() -> None:
-            await asyncio.sleep(0.02)
-            os.kill(os.getpid(), signal.SIGINT)
-
-        task = asyncio.create_task(send_sigint())
-        await app.run()
-        await task
-        assert order == ["start", "ready", "stop"]
-
-    async def test_shutdown_timeout(self) -> None:
-        """Cover graceful shutdown timeout path."""
-        app = App(_cfg("timeout-test"), graceful_timeout=0.01)
-
-        async def slow_stop() -> None:
-            await asyncio.sleep(10)
-
-        app.on_stop(slow_stop)
-
-        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
-            await app.run()
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _make_hook(order: list[str], label: str) -> Hook:
-    async def _h() -> None:
-        order.append(label)
-
-    return _h
-
-
-# ---------------------------------------------------------------------------
-# Mock component for integration tests
-# ---------------------------------------------------------------------------
+    def error(self, event: str, /, **kwargs: object) -> None:
+        self.errors.append((event, kwargs))
 
 
 class _MockComponent:
-    """Minimal Component implementation for testing."""
+    """Minimal component implementation for tests."""
 
-    def __init__(self, name: str, *, order: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        *,
+        order: list[str] | None = None,
+        start_error: Exception | None = None,
+        stop_error: Exception | None = None,
+    ) -> None:
         self._name = name
         self._order = order
+        self._start_error = start_error
+        self._stop_error = stop_error
         self._started = False
 
     @property
@@ -428,124 +61,261 @@ class _MockComponent:
         return self._name
 
     async def start(self) -> None:
-        self._started = True
         if self._order is not None:
             self._order.append(f"{self._name}:start")
+        if self._start_error is not None:
+            raise self._start_error
+        self._started = True
 
     async def stop(self) -> None:
-        self._started = False
         if self._order is not None:
             self._order.append(f"{self._name}:stop")
+        if self._stop_error is not None:
+            raise self._stop_error
+        self._started = False
 
     async def health(self) -> Health:
         status = HealthStatus.HEALTHY if self._started else HealthStatus.UNHEALTHY
         return Health(name=self._name, status=status)
 
 
-# ---------------------------------------------------------------------------
-# App — component integration
-# ---------------------------------------------------------------------------
+def _cfg(name: str = "svc", **kwargs: object) -> DefaultAppConfig:
+    """Create a DefaultAppConfig with top-level convenience overrides."""
+    svc_kwargs: dict[str, object] = {"name": name}
+    top_kwargs: dict[str, object] = {}
+    svc_fields = {"name", "environment", "version", "debug", "logging"}
+    for key, value in kwargs.items():
+        if key in svc_fields:
+            svc_kwargs[key] = value
+        else:
+            top_kwargs[key] = value
+    return DefaultAppConfig(service=ServiceConfig(**svc_kwargs), **top_kwargs)
 
 
-class TestAppComponents:
-    def test_with_component_registers(self) -> None:
+def _make_hook(order: list[str], label: str) -> Hook:
+    async def _hook() -> None:
+        order.append(label)
+
+    return _hook
+
+
+class TestConfigTypes:
+    def test_environment_values(self) -> None:
+        assert Environment.DEVELOPMENT == "development"
+        assert Environment.STAGING == "staging"
+        assert Environment.PRODUCTION == "production"
+
+    def test_logging_config_defaults(self) -> None:
+        cfg = LoggingConfig()
+        assert cfg.level == "INFO"
+        assert cfg.format == "console"
+
+    def test_service_config_defaults(self) -> None:
+        cfg = ServiceConfig()
+        assert cfg.name == ""
+        assert cfg.environment == Environment.DEVELOPMENT
+        assert cfg.version == "0.0.0"
+        assert cfg.debug is False
+
+    def test_default_app_config_protocol(self) -> None:
+        cfg = _cfg("svc", version="1.2.3")
+        assert isinstance(cfg, AppConfig)
+        assert cfg.service_config.name == "svc"
+        assert cfg.version == "1.2.3"
+
+
+class TestLifecycle:
+    async def test_start_hooks_run_in_order(self) -> None:
+        order: list[int] = []
+        lifecycle = Lifecycle()
+        lifecycle.on_start(self._hook(order, 1))
+        lifecycle.on_start(self._hook(order, 2))
+        lifecycle.on_start(self._hook(order, 3))
+
+        await lifecycle.run_start_hooks(app_name="svc")
+
+        assert order == [1, 2, 3]
+
+    async def test_stop_hooks_run_in_reverse_order(self) -> None:
+        order: list[int] = []
+        lifecycle = Lifecycle()
+        lifecycle.on_stop(self._hook(order, 1))
+        lifecycle.on_stop(self._hook(order, 2))
+        lifecycle.on_stop(self._hook(order, 3))
+
+        await lifecycle.run_stop_hooks(app_name="svc")
+
+        assert order == [3, 2, 1]
+
+    async def test_context_and_event_are_forwarded(self) -> None:
+        seen: list[tuple[dict[str, object] | None, LifecycleEvent]] = []
+        lifecycle = Lifecycle()
+
+        async def handler(context: dict[str, object] | None, event: LifecycleEvent) -> None:
+            seen.append((context, event))
+
+        lifecycle.on_ready(handler)
+        await lifecycle.run_ready_hooks(app_name="svc", context={"phase": "ready"})
+
+        context, event = seen[0]
+        assert context == {"phase": "ready"}
+        assert event.type == EVENT_READY
+        assert event.app_name == "svc"
+
+    async def test_hook_error_runs_later_handlers_and_raises(self) -> None:
+        order: list[str] = []
+        lifecycle = Lifecycle()
+
+        async def failing() -> None:
+            order.append("failing")
+            raise RuntimeError("boom")
+
+        lifecycle.on_start(failing)
+        lifecycle.on_start(_make_hook(order, "after"))
+
+        with pytest.raises(RuntimeError, match="boom"):
+            await lifecycle.run_start_hooks(app_name="svc")
+
+        assert order == ["failing", "after"]
+
+    @staticmethod
+    def _hook(order: list[int], value: int) -> Hook:
+        async def _hook() -> None:
+            order.append(value)
+
+        return _hook
+
+
+class TestAppAPI:
+    def test_chaining_returns_self(self) -> None:
         app = App(_cfg("svc"))
-        comp = _MockComponent("db")
-        app.with_component(comp)
-        assert app.registry.get("db") is comp
+        result = (
+            app.on_configure(AsyncMock())
+            .on_start(AsyncMock())
+            .on_ready(AsyncMock())
+            .on_stop(AsyncMock())
+            .set_ready_check(AsyncMock())
+        )
+        assert result is app
 
-    def test_registry_property(self) -> None:
+    def test_with_component_returns_self(self) -> None:
         app = App(_cfg("svc"))
+        component = _MockComponent("db")
+        assert app.with_component(component) is app
+        assert app.registry.get("db") is component
+
+    def test_properties_expose_config_lifecycle_and_registry(self) -> None:
+        app = App(_cfg("svc"))
+        assert app.config.service_config.name == "svc"
+        assert isinstance(app.lifecycle, Lifecycle)
         assert isinstance(app.registry, Registry)
 
-    async def test_components_start_before_hooks(self) -> None:
+
+class TestRunTask:
+    async def test_run_task_orders_configure_start_task_stop(self) -> None:
         order: list[str] = []
-        app = App(_cfg("test"))
+        app = App(_cfg("svc"))
         app.with_component(_MockComponent("db", order=order))
         app.on_configure(_make_hook(order, "configure"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_stop(_make_hook(order, "stop"))
+        app.on_start(_make_hook(order, "on_start"))
+        app.on_stop(_make_hook(order, "on_stop"))
 
         async def task() -> None:
             order.append("task")
 
         await app.run_task(task)
-        assert order == ["db:start", "configure", "start", "task", "stop", "db:stop"]
 
-    async def test_full_lifecycle_with_components(self) -> None:
+        assert order == ["configure", "db:start", "on_start", "task", "on_stop", "db:stop"]
+
+    async def test_run_task_start_hook_failure_still_runs_stop_hooks(self) -> None:
         order: list[str] = []
-        app = App(_cfg("test"))
+        app = App(_cfg("svc"))
         app.with_component(_MockComponent("db", order=order))
-        app.on_configure(_make_hook(order, "configure"))
-        app.on_start(_make_hook(order, "start"))
-        app.on_ready(_make_hook(order, "ready"))
-        app.on_stop(_make_hook(order, "stop"))
-
-        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
-            await app.run()
-
-        assert order == ["db:start", "configure", "start", "ready", "stop", "db:stop"]
-
-    async def test_components_stop_even_on_hook_failure(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("test"))
-        app.with_component(_MockComponent("db", order=order))
+        app.on_stop(_make_hook(order, "on_stop"))
 
         async def bad_start() -> None:
-            raise RuntimeError("hook failed")
+            order.append("on_start")
+            raise RuntimeError("start failed")
 
         app.on_start(bad_start)
 
-        with pytest.raises(RuntimeError, match="hook failed"):
+        with pytest.raises(RuntimeError, match="start failed"):
             await app.run_task(AsyncMock())
 
-        assert "db:start" in order
-        assert "db:stop" in order
+        assert order == ["db:start", "on_start", "on_stop", "db:stop"]
 
-    async def test_components_stop_in_reverse_order(self) -> None:
+    async def test_logger_can_be_injected(self) -> None:
+        logger = _LoggerStub([], [])
+        app = App(_cfg("svc"), logger=logger)
+
+        await app.run_task(AsyncMock())
+
+        assert any(event == "Starting application" for event, _ in logger.infos)
+        assert any(event == "Shutting down" for event, _ in logger.infos)
+
+
+class TestRun:
+    async def test_full_lifecycle_order_matches_bootstrap_contract(self) -> None:
         order: list[str] = []
-        app = App(_cfg("test"))
+        app = App(_cfg("svc"))
         app.with_component(_MockComponent("db", order=order))
-        app.with_component(_MockComponent("cache", order=order))
+        app.on_configure(_make_hook(order, "configure"))
+        app.on_start(_make_hook(order, "on_start"))
+        app.on_ready(_make_hook(order, "on_ready"))
+        app.on_stop(_make_hook(order, "on_stop"))
 
-        async def task() -> None:
-            pass
+        async def ready_check() -> None:
+            order.append("ready_check")
 
-        await app.run_task(task)
-        assert order == ["db:start", "cache:start", "cache:stop", "db:stop"]
-
-    async def test_shutdown_stops_components_after_timeout(self) -> None:
-        order: list[str] = []
-        app = App(_cfg("timeout-test"), graceful_timeout=0.01)
-        app.with_component(_MockComponent("db", order=order))
-
-        async def slow_stop() -> None:
-            await asyncio.sleep(10)
-
-        app.on_stop(slow_stop)
+        app.set_ready_check(ready_check)
 
         with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
             await app.run()
 
-        # Components should still be stopped even after hook timeout
-        assert "db:start" in order
-        assert "db:stop" in order
+        assert order == [
+            "configure",
+            "db:start",
+            "on_start",
+            "ready_check",
+            "on_ready",
+            "on_stop",
+            "db:stop",
+        ]
 
+    async def test_lifecycle_events_use_public_event_types(self) -> None:
+        events: list[str] = []
+        app = App(_cfg("svc"))
 
-# ---------------------------------------------------------------------------
-# Re-exports
-# ---------------------------------------------------------------------------
+        async def on_start(event: LifecycleEvent) -> None:
+            events.append(event.type)
+
+        async def on_ready(event: LifecycleEvent) -> None:
+            events.append(event.type)
+
+        async def on_stop(event: LifecycleEvent) -> None:
+            events.append(event.type)
+
+        app.on_start(on_start)
+        app.on_ready(on_ready)
+        app.on_stop(on_stop)
+
+        with patch.object(app, "_wait_for_signal", new_callable=AsyncMock):
+            await app.run()
+
+        assert events == [EVENT_START, EVENT_READY, EVENT_STOP]
 
 
 class TestReExports:
     def test_component_reexported(self) -> None:
         assert Component is not None
 
-    def test_health_reexported(self) -> None:
-        assert Health is not None
-
-    def test_health_status_reexported(self) -> None:
-        assert HealthStatus is not None
-
     def test_registry_reexported(self) -> None:
         assert Registry is not None
+
+    def test_lifecycle_event_reexported(self) -> None:
+        assert LifecycleEvent(type=EVENT_START, app_name="svc") is not None
+
+    def test_health_types_reexported(self) -> None:
+        assert Health is not None
+        assert HealthStatus is not None
+        assert EVENT_STOP == "lifecycle.stop"

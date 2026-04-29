@@ -8,6 +8,21 @@ from datetime import UTC, datetime
 from typing import Protocol, runtime_checkable
 
 
+class State(enum.IntEnum):
+    """Lifecycle state for a registered component."""
+
+    CREATED = 0
+    STARTING = 1
+    RUNNING = 2
+    STOPPING = 3
+    STOPPED = 4
+    FAILED = 5
+
+    def __str__(self) -> str:
+        """Return the lowercase state name."""
+        return self.name.lower()
+
+
 class HealthStatus(enum.StrEnum):
     """Health state of a component."""
 

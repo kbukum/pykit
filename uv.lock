@@ -2299,6 +2299,7 @@ source = { editable = "packages/pykit-bootstrap" }
 dependencies = [
     { name = "pykit-component" },
     { name = "pykit-errors" },
+    { name = "pykit-hook" },
     { name = "pykit-logging" },
 ]
 
@@ -2306,6 +2307,7 @@ dependencies = [
 requires-dist = [
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
+    { name = "pykit-hook", editable = "packages/pykit-hook" },
     { name = "pykit-logging", editable = "packages/pykit-logging" },
 ]
 
@@ -3113,10 +3115,12 @@ dev = [
     { name = "pykit" },
     { name = "pykit-agent" },
     { name = "pykit-auth" },
+    { name = "pykit-auth-apikey" },
     { name = "pykit-auth-oidc" },
     { name = "pykit-authz" },
     { name = "pykit-bench" },
     { name = "pykit-bootstrap" },
+    { name = "pykit-chain" },
     { name = "pykit-component" },
     { name = "pykit-config" },
     { name = "pykit-dag" },
@@ -3185,10 +3189,12 @@ dev = [
     { name = "pykit", editable = "packages/pykit" },
     { name = "pykit-agent", editable = "packages/pykit-agent" },
     { name = "pykit-auth", editable = "packages/pykit-auth" },
+    { name = "pykit-auth-apikey", editable = "packages/pykit-auth-apikey" },
     { name = "pykit-auth-oidc", editable = "packages/pykit-auth-oidc" },
     { name = "pykit-authz", editable = "packages/pykit-authz" },
     { name = "pykit-bench", editable = "packages/pykit-bench" },
     { name = "pykit-bootstrap", editable = "packages/pykit-bootstrap" },
+    { name = "pykit-chain", editable = "packages/pykit-chain" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-config", editable = "packages/pykit-config" },
     { name = "pykit-dag", editable = "packages/pykit-dag" },

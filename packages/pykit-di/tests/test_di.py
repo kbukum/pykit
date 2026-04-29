@@ -296,6 +296,7 @@ class TestRegistrationMode:
         assert RegistrationMode.EAGER == "eager"
         assert RegistrationMode.LAZY == "lazy"
         assert RegistrationMode.SINGLETON == "singleton"
+        assert RegistrationMode.TRANSIENT == "transient"
 
     def test_is_str(self) -> None:
         assert isinstance(RegistrationMode.EAGER, str)

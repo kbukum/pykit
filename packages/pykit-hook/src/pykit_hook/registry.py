@@ -2,10 +2,21 @@
 
 from __future__ import annotations
 
+import inspect
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 
-from pykit_hook.types import Action, Event, EventType, Handler, Result
+from pykit_hook.types import (
+    Action,
+    Event,
+    EventType,
+    Handler,
+    HookContext,
+    Result,
+    continue_with_error,
+)
+
+type HandlerResult = Result | Awaitable[Result]
 
 
 class Registry:
@@ -38,26 +49,67 @@ class Registry:
 
         return unsubscribe
 
-    def emit(self, event: Event) -> Result:
+    def emit(
+        self,
+        event: Event,
+        context: HookContext | None = None,
+        *,
+        reverse: bool = False,
+    ) -> Result:
         """Emit an event and run all registered handlers sequentially.
-
-        - First ``ABORT`` result short-circuits and returns immediately.
-        - ``MODIFY`` results chain: the ``modified_data`` is carried forward.
-        - If no handlers return ``ABORT`` or ``MODIFY``, returns ``CONTINUE``.
 
         Args:
             event: The hook event to emit.
+            context: Optional context forwarded to context-aware handlers.
+            reverse: Whether to traverse handlers in reverse registration order.
 
         Returns:
             Aggregated hook result.
         """
-        handlers = self._handlers.get(event.type, [])
         last_result = Result()
-        for handler in handlers:
-            result = handler(event)
+        for handler in self._iter_handlers(event.type, reverse=reverse):
+            try:
+                result: Result = self._invoke_handler(handler, event, context)  # type: ignore[assignment]
+            except Exception as exc:
+                result = continue_with_error(exc)
+
             if result.action == Action.ABORT:
                 return result
-            if result.action == Action.MODIFY:
+            if result.action != Action.CONTINUE or result.error is not None:
+                last_result = result
+        return last_result
+
+    async def emit_async(
+        self,
+        event: Event,
+        context: HookContext | None = None,
+        *,
+        reverse: bool = False,
+    ) -> Result:
+        """Emit an event and await any async handlers.
+
+        Args:
+            event: The hook event to emit.
+            context: Optional context forwarded to context-aware handlers.
+            reverse: Whether to traverse handlers in reverse registration order.
+
+        Returns:
+            Aggregated hook result.
+        """
+        last_result = Result()
+        for handler in self._iter_handlers(event.type, reverse=reverse):
+            try:
+                outcome = self._invoke_handler(handler, event, context)
+                if inspect.isawaitable(outcome):
+                    result: Result = await outcome
+                else:
+                    result = outcome
+            except Exception as exc:
+                result = continue_with_error(exc)
+
+            if result.action == Action.ABORT:
+                return result
+            if result.action != Action.CONTINUE or result.error is not None:
                 last_result = result
         return last_result
 
@@ -73,6 +125,33 @@ class Registry:
         else:
             self._handlers.clear()
 
+    def _iter_handlers(self, event_type: EventType, *, reverse: bool = False) -> list[Handler]:
+        handlers = list(self._handlers.get(event_type, []))
+        if reverse:
+            handlers.reverse()
+        return handlers
 
-# Backwards-compatible alias
+    @staticmethod
+    def _invoke_handler(
+        handler: Handler,
+        event: Event,
+        context: HookContext | None,
+    ) -> HandlerResult:
+        signature = inspect.signature(handler)
+        positional = [
+            parameter
+            for parameter in signature.parameters.values()
+            if parameter.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+        ]
+        if (
+            any(
+                parameter.kind == inspect.Parameter.VAR_POSITIONAL
+                for parameter in signature.parameters.values()
+            )
+            or len(positional) >= 2
+        ):
+            return handler(context, event)
+        return handler(event)
+
+
 HookRegistry = Registry

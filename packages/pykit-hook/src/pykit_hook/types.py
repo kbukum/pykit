@@ -3,32 +3,23 @@
 from __future__ import annotations
 
 import enum
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
-
-# ---------------------------------------------------------------------------
-# Event type alias
-# ---------------------------------------------------------------------------
+from typing import Protocol, runtime_checkable
 
 EventType = str
 """String identifier for an event category (e.g. ``"pre_tool_call"``)."""
 
-# ---------------------------------------------------------------------------
-# Event protocol
-# ---------------------------------------------------------------------------
+type HookContext = dict[str, object] | object
+"""Optional context passed to handlers during emission."""
 
 
 @runtime_checkable
 class Event(Protocol):
     """Any object with a ``type`` attribute is a valid hook event."""
 
-    type: EventType
-
-
-# ---------------------------------------------------------------------------
-# Action / Result
-# ---------------------------------------------------------------------------
+    @property
+    def type(self) -> EventType: ...
 
 
 class Action(enum.Enum):
@@ -39,24 +30,19 @@ class Action(enum.Enum):
     MODIFY = "modify"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Result:
     """Result returned by a hook handler."""
 
     action: Action = Action.CONTINUE
-    modified_data: Any = None
+    modified_data: object | None = None
     reason: str = ""
+    error: Exception | None = None
 
 
-# ---------------------------------------------------------------------------
-# Handler type
-# ---------------------------------------------------------------------------
-
-Handler = Callable[[Event], Result]
-
-# ---------------------------------------------------------------------------
-# Convenience factories
-# ---------------------------------------------------------------------------
+# Handler is any callable — the registry inspects the signature at runtime
+# to decide whether to pass (event,) or (context, event).
+type Handler = Callable[..., Result | Awaitable[Result]]
 
 
 def continue_() -> Result:
@@ -64,19 +50,25 @@ def continue_() -> Result:
     return Result()
 
 
+def continue_with_error(err: Exception) -> Result:
+    """Return a CONTINUE result that records an error."""
+    return Result(reason=str(err), error=err)
+
+
 def abort(reason: str = "") -> Result:
     """Return an ABORT result."""
     return Result(action=Action.ABORT, reason=reason)
 
 
-def modify(data: Any, reason: str = "") -> Result:
+def abort_with_error(err: Exception) -> Result:
+    """Return an ABORT result that records an error."""
+    return Result(action=Action.ABORT, reason=str(err), error=err)
+
+
+def modify(data: object, reason: str = "") -> Result:
     """Return a MODIFY result."""
     return Result(action=Action.MODIFY, modified_data=data, reason=reason)
 
-
-# ---------------------------------------------------------------------------
-# Backwards-compatible aliases
-# ---------------------------------------------------------------------------
 
 HookEvent = Event
 HookResult = Result

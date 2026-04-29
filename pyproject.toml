@@ -8,6 +8,8 @@ dependencies = []
 dev = [
     "pykit",
     "pykit-auth",
+    "pykit-auth-apikey",
+    "pykit-chain",
     "pykit-errors",
     "pykit-config",
     "pykit-integration",
@@ -103,7 +105,9 @@ pykit                = { workspace = true }
 pykit-agent          = { workspace = true }
 pykit-llm-providers = { workspace = true }
 pykit-auth           = { workspace = true }
+pykit-auth-apikey    = { workspace = true }
 pykit-auth-oidc      = { workspace = true }
+pykit-chain          = { workspace = true }
 pykit-authz          = { workspace = true }
 pykit-integration    = { workspace = true }
 pykit-bench          = { workspace = true }
