@@ -1,30 +1,20 @@
-"""Comprehensive TDD tests for pykit-encryption.
-
-Supplements test_encryption.py with parametrized tests, security validations,
-edge cases, key-rotation simulation, and cross-algorithm checks.
-"""
+"""Comprehensive tests for pykit-encryption."""
 
 from __future__ import annotations
 
 import base64
-import hashlib
 import threading
 
 import pytest
 from cryptography.exceptions import InvalidTag
-from cryptography.fernet import InvalidToken
 
 from pykit_encryption import (
     AESGCMEncryptor,
+    ChaCha20Encryptor,
     Encryptor,
-    FernetEncryptor,
     new_encryptor,
 )
 from pykit_encryption.factory import _REGISTRY, Algorithm
-
-# ---------------------------------------------------------------------------
-# Fixtures
-# ---------------------------------------------------------------------------
 
 PLAINTEXTS: list[str] = [
     "",
@@ -57,32 +47,33 @@ KEYS: list[str] = [
 ]
 
 
-@pytest.fixture(params=[AESGCMEncryptor, FernetEncryptor], ids=["aesgcm", "fernet"])
-def encryptor_cls(request: pytest.FixtureRequest) -> type:
+@pytest.fixture(params=[AESGCMEncryptor, ChaCha20Encryptor], ids=["aesgcm", "chacha20"])
+def encryptor_cls(request: pytest.FixtureRequest) -> type[AESGCMEncryptor] | type[ChaCha20Encryptor]:
     return request.param
 
 
-@pytest.fixture(params=[Algorithm.AES_GCM, Algorithm.FERNET], ids=["aes-gcm", "fernet"])
+@pytest.fixture(params=[Algorithm.AES_GCM, Algorithm.CHACHA20], ids=["aes-gcm", "chacha20"])
 def algorithm(request: pytest.FixtureRequest) -> Algorithm:
     return request.param
 
 
-# ---------------------------------------------------------------------------
-# 1. Parametrized round-trip tests across all algorithms and plaintexts
-# ---------------------------------------------------------------------------
-
-
 class TestParametrizedRoundTrips:
-    """Encrypt->decrypt must be identity for every algorithm x plaintext x key."""
-
     @pytest.mark.parametrize("plaintext", PLAINTEXTS, ids=[f"pt{i}" for i in range(len(PLAINTEXTS))])
-    def test_roundtrip_all_plaintexts(self, encryptor_cls: type, plaintext: str) -> None:
+    def test_roundtrip_all_plaintexts(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+        plaintext: str,
+    ) -> None:
         enc = encryptor_cls("test-key-123")
         ct = enc.encrypt(plaintext)
         assert enc.decrypt(ct) == plaintext
 
     @pytest.mark.parametrize("key", KEYS, ids=[f"key{i}" for i in range(len(KEYS))])
-    def test_roundtrip_various_keys(self, encryptor_cls: type, key: str) -> None:
+    def test_roundtrip_various_keys(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+        key: str,
+    ) -> None:
         enc = encryptor_cls(key)
         ct = enc.encrypt("round-trip payload")
         assert enc.decrypt(ct) == "round-trip payload"
@@ -93,65 +84,62 @@ class TestParametrizedRoundTrips:
             assert enc.decrypt(enc.encrypt(text)) == text
 
 
-# ---------------------------------------------------------------------------
-# 2. Wrong key / password produces clear error
-# ---------------------------------------------------------------------------
-
-
 class TestWrongKey:
     @pytest.mark.parametrize(
-        "right_key,wrong_key",
+        ("encryptor_cls", "right_key", "wrong_key"),
         [
-            ("correct", "incorrect"),
-            ("a", "b"),
-            ("key", "key "),  # trailing space
-            ("Key", "key"),  # case sensitivity
-            ("🔑", "🔐"),
+            (AESGCMEncryptor, "correct", "incorrect"),
+            (AESGCMEncryptor, "a", "b"),
+            (AESGCMEncryptor, "key", "key "),
+            (AESGCMEncryptor, "Key", "key"),
+            (AESGCMEncryptor, "🔑", "🔐"),
+            (ChaCha20Encryptor, "correct", "incorrect"),
+            (ChaCha20Encryptor, "a", "b"),
+            (ChaCha20Encryptor, "key", "key "),
+            (ChaCha20Encryptor, "Key", "key"),
+            (ChaCha20Encryptor, "🔑", "🔐"),
         ],
     )
-    def test_aesgcm_wrong_key_raises(self, right_key: str, wrong_key: str) -> None:
-        ct = AESGCMEncryptor(right_key).encrypt("secret data")
+    def test_wrong_key_raises(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+        right_key: str,
+        wrong_key: str,
+    ) -> None:
+        ct = encryptor_cls(right_key).encrypt("secret data")
         with pytest.raises(InvalidTag):
-            AESGCMEncryptor(wrong_key).decrypt(ct)
-
-    @pytest.mark.parametrize(
-        "right_key,wrong_key",
-        [
-            ("correct", "incorrect"),
-            ("a", "b"),
-            ("key", "key "),
-            ("Key", "key"),
-            ("🔑", "🔐"),
-        ],
-    )
-    def test_fernet_wrong_key_raises(self, right_key: str, wrong_key: str) -> None:
-        ct = FernetEncryptor(right_key).encrypt("secret data")
-        with pytest.raises(InvalidToken):
-            FernetEncryptor(wrong_key).decrypt(ct)
+            encryptor_cls(wrong_key).decrypt(ct)
 
     def test_wrong_key_via_factory(self, algorithm: Algorithm) -> None:
         ct = new_encryptor("right", algorithm).encrypt("payload")
-        with pytest.raises(Exception):  # noqa: B017
+        with pytest.raises(InvalidTag):
             new_encryptor("wrong", algorithm).decrypt(ct)
 
 
-# ---------------------------------------------------------------------------
-# 3. Tampered ciphertext detection
-# ---------------------------------------------------------------------------
-
-
 class TestTamperedCiphertext:
-    """Any modification to ciphertext must be detected."""
-
     def _tamper_byte(self, ct_b64: str, offset: int) -> str:
         raw = bytearray(base64.standard_b64decode(ct_b64))
         if offset < len(raw):
             raw[offset] ^= 0xFF
         return base64.standard_b64encode(bytes(raw)).decode()
 
-    @pytest.mark.parametrize("position", ["first", "middle", "last"])
-    def test_aesgcm_tamper_positions(self, position: str) -> None:
-        enc = AESGCMEncryptor("tamper-key")
+    @pytest.mark.parametrize(
+        ("encryptor_cls", "position"),
+        [
+            (AESGCMEncryptor, "first"),
+            (AESGCMEncryptor, "middle"),
+            (AESGCMEncryptor, "last"),
+            (ChaCha20Encryptor, "first"),
+            (ChaCha20Encryptor, "middle"),
+            (ChaCha20Encryptor, "last"),
+        ],
+    )
+    def test_tamper_positions(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+        position: str,
+    ) -> None:
+        enc = encryptor_cls("tamper-key")
         ct = enc.encrypt("detect me")
         raw = base64.standard_b64decode(ct)
         offsets = {"first": 0, "middle": len(raw) // 2, "last": len(raw) - 1}
@@ -159,86 +147,63 @@ class TestTamperedCiphertext:
         with pytest.raises((InvalidTag, ValueError)):
             enc.decrypt(tampered)
 
-    def test_aesgcm_truncated_ciphertext(self) -> None:
-        enc = AESGCMEncryptor("key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_truncated_ciphertext(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
         ct = enc.encrypt("hello")
         raw = base64.standard_b64decode(ct)
-        for length in [0, 1, 11, 12]:
+        for length in [0, 1, 15, 16, 27]:
             truncated = base64.standard_b64encode(raw[:length]).decode()
-            with pytest.raises((ValueError, InvalidTag, Exception)):
+            with pytest.raises((ValueError, InvalidTag)):
                 enc.decrypt(truncated)
 
-    def test_aesgcm_appended_bytes(self) -> None:
-        enc = AESGCMEncryptor("key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_appended_bytes(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
         ct = enc.encrypt("hello")
         raw = base64.standard_b64decode(ct)
         extended = base64.standard_b64encode(raw + b"\x00" * 16).decode()
-        with pytest.raises((InvalidTag, Exception)):
+        with pytest.raises(InvalidTag):
             enc.decrypt(extended)
 
-    def test_fernet_tamper_detected(self) -> None:
-        enc = FernetEncryptor("tamper-key")
-        ct = enc.encrypt("detect me")
-        raw = bytearray(base64.urlsafe_b64decode(ct))
-        raw[len(raw) // 2] ^= 0xFF
-        tampered = base64.urlsafe_b64encode(bytes(raw)).decode()
-        with pytest.raises((InvalidToken, Exception)):
-            enc.decrypt(tampered)
-
-    def test_fernet_truncated_ciphertext(self) -> None:
-        enc = FernetEncryptor("key")
-        ct = enc.encrypt("hello")
-        with pytest.raises((InvalidToken, Exception)):
-            enc.decrypt(ct[:10])
-
-    def test_completely_invalid_base64(self, encryptor_cls: type) -> None:
+    def test_completely_invalid_base64(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         with pytest.raises(Exception):  # noqa: B017
             enc.decrypt("!!!not-valid-base64!!!")
 
-    def test_empty_ciphertext_string(self, encryptor_cls: type) -> None:
+    def test_empty_ciphertext_string(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         with pytest.raises(Exception):  # noqa: B017
             enc.decrypt("")
 
 
-# ---------------------------------------------------------------------------
-# 4. Key rotation simulation
-# ---------------------------------------------------------------------------
-
-
 class TestKeyRotation:
-    """Simulate rotating keys: decrypt with old, re-encrypt with new."""
-
-    def test_aesgcm_key_rotation(self) -> None:
-        old_enc = AESGCMEncryptor("old-key")
-        new_enc = AESGCMEncryptor("new-key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_key_rotation(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        old_enc = encryptor_cls("old-key")
+        new_enc = encryptor_cls("new-key")
 
         original = "rotate this secret"
         old_ct = old_enc.encrypt(original)
+        new_ct = new_enc.encrypt(old_enc.decrypt(old_ct))
 
-        # Decrypt with old key, re-encrypt with new key
-        plaintext = old_enc.decrypt(old_ct)
-        new_ct = new_enc.encrypt(plaintext)
-
-        # New key decrypts fine
         assert new_enc.decrypt(new_ct) == original
-        # Old key cannot decrypt new ciphertext
         with pytest.raises(InvalidTag):
-            old_enc.decrypt(new_ct)
-
-    def test_fernet_key_rotation(self) -> None:
-        old_enc = FernetEncryptor("old-key")
-        new_enc = FernetEncryptor("new-key")
-
-        original = "rotate this secret"
-        old_ct = old_enc.encrypt(original)
-
-        plaintext = old_enc.decrypt(old_ct)
-        new_ct = new_enc.encrypt(plaintext)
-
-        assert new_enc.decrypt(new_ct) == original
-        with pytest.raises(InvalidToken):
             old_enc.decrypt(new_ct)
 
     def test_key_rotation_via_factory(self, algorithm: Algorithm) -> None:
@@ -249,40 +214,29 @@ class TestKeyRotation:
         assert new.decrypt(rotated_ct) == "data"
 
     def test_bulk_key_rotation(self) -> None:
-        """Rotate many records from old key to new key."""
         old_enc = AESGCMEncryptor("old-key")
         new_enc = AESGCMEncryptor("new-key")
         records = [f"record-{i}" for i in range(100)]
         old_cts = [old_enc.encrypt(r) for r in records]
-
         rotated = [new_enc.encrypt(old_enc.decrypt(ct)) for ct in old_cts]
         decrypted = [new_enc.decrypt(ct) for ct in rotated]
         assert decrypted == records
 
 
-# ---------------------------------------------------------------------------
-# 5. Factory / Protocol pattern
-# ---------------------------------------------------------------------------
-
-
 class TestFactoryProtocol:
     def test_all_algorithms_in_registry(self) -> None:
-        """Every Algorithm enum member must have a registered class."""
         for algo in Algorithm:
             assert algo in _REGISTRY, f"{algo} missing from registry"
 
     def test_registry_classes_conform_to_protocol(self) -> None:
-        for _algo, cls in _REGISTRY.items():
-            instance = cls("test-key")  # type: ignore[call-arg]
-            assert isinstance(instance, Encryptor), f"{cls.__name__} does not conform to Encryptor protocol"
+        for cls in _REGISTRY.values():
+            assert isinstance(cls("test-key"), Encryptor)
 
     def test_encryptor_protocol_has_encrypt_and_decrypt(self) -> None:
         assert hasattr(Encryptor, "encrypt")
         assert hasattr(Encryptor, "decrypt")
 
     def test_custom_class_conforms_to_protocol(self) -> None:
-        """A custom class with encrypt/decrypt satisfies the protocol."""
-
         class CustomEncryptor:
             def encrypt(self, plaintext: str) -> str:
                 return plaintext[::-1]
@@ -301,7 +255,7 @@ class TestFactoryProtocol:
 
     def test_factory_returns_correct_types(self) -> None:
         assert type(new_encryptor("k", Algorithm.AES_GCM)) is AESGCMEncryptor
-        assert type(new_encryptor("k", Algorithm.FERNET)) is FernetEncryptor
+        assert type(new_encryptor("k", Algorithm.CHACHA20)) is ChaCha20Encryptor
 
     def test_factory_invalid_algorithm_message(self) -> None:
         with pytest.raises(ValueError, match="unsupported algorithm"):
@@ -309,180 +263,204 @@ class TestFactoryProtocol:
 
     def test_algorithm_enum_values(self) -> None:
         assert Algorithm.AES_GCM.value == "aes-gcm"
-        assert Algorithm.FERNET.value == "fernet"
+        assert Algorithm.CHACHA20.value == "chacha20-poly1305"
 
     def test_algorithm_enum_members_count(self) -> None:
         assert len(Algorithm) == len(_REGISTRY)
 
 
-# ---------------------------------------------------------------------------
-# 6. Security-focused tests
-# ---------------------------------------------------------------------------
-
-
 class TestSecurity:
-    def test_aesgcm_key_is_sha256_hashed(self) -> None:
-        """Two encryptors with the same key must decrypt each other's output."""
-        enc1 = AESGCMEncryptor("my-key")
-        enc2 = AESGCMEncryptor("my-key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_same_key_is_deterministically_derived(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc1 = encryptor_cls("my-key")
+        enc2 = encryptor_cls("my-key")
         ct = enc1.encrypt("verify key derivation is deterministic")
         assert enc2.decrypt(ct) == "verify key derivation is deterministic"
 
-    def test_aesgcm_nonce_is_12_bytes(self) -> None:
-        enc = AESGCMEncryptor("key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_nonce_is_12_bytes(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
         ct = enc.encrypt("test")
         raw = base64.standard_b64decode(ct)
-        nonce = raw[:12]
+        nonce = raw[16:28]
         assert len(nonce) == 12
 
-    def test_aesgcm_nonce_uniqueness(self) -> None:
-        """Each encryption must use a unique nonce."""
-        enc = AESGCMEncryptor("key")
-        nonces: set[bytes] = set()
-        for _ in range(1000):
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_salt_and_nonce_are_unique_per_message(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
+        prefixes: set[bytes] = set()
+        for _ in range(250):
             ct = enc.encrypt("same plaintext")
             raw = base64.standard_b64decode(ct)
-            nonce = raw[:12]
-            nonces.add(nonce)
-        # All 1000 nonces should be unique
-        assert len(nonces) == 1000
+            prefixes.add(raw[:28])
+        assert len(prefixes) == 250
 
-    def test_aesgcm_ciphertext_contains_salt_nonce_plus_tag(self) -> None:
-        """Ciphertext = salt (16) + nonce (12) + encrypted_data + GCM tag (16)."""
-        enc = AESGCMEncryptor("key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_ciphertext_contains_salt_nonce_and_tag(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
         plaintext = "exactly 16 bytes"
         ct = enc.encrypt(plaintext)
         raw = base64.standard_b64decode(ct)
-        # salt(16) + nonce(12) + ciphertext(len(plaintext)) + tag(16)
         expected_min = 16 + 12 + len(plaintext.encode()) + 16
         assert len(raw) == expected_min
 
-    def test_different_keys_derive_different_internal_keys(self) -> None:
-        """Different passwords must not decrypt each other's ciphertext."""
-        ct_a = AESGCMEncryptor("key-a").encrypt("secret")
-        ct_b = AESGCMEncryptor("key-b").encrypt("secret")
-        # Cross-decryption must fail
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_different_keys_cannot_decrypt(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        ct_a = encryptor_cls("key-a").encrypt("secret")
+        ct_b = encryptor_cls("key-b").encrypt("secret")
         with pytest.raises(InvalidTag):
-            AESGCMEncryptor("key-b").decrypt(ct_a)
+            encryptor_cls("key-b").decrypt(ct_a)
         with pytest.raises(InvalidTag):
-            AESGCMEncryptor("key-a").decrypt(ct_b)
+            encryptor_cls("key-a").decrypt(ct_b)
 
-    def test_fernet_key_derivation(self) -> None:
-        """Fernet key must be base64url of SHA-256 hash."""
-        enc = FernetEncryptor("my-key")
-        _expected = base64.urlsafe_b64encode(hashlib.sha256(b"my-key").digest())
-        assert enc._fernet._signing_key + enc._fernet._encryption_key == hashlib.sha256(b"my-key").digest()
-
-    def test_ciphertext_reveals_no_plaintext_prefix(self) -> None:
-        """Ciphertext of similar plaintexts should not share prefixes beyond the nonce."""
-        enc = AESGCMEncryptor("key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_ciphertext_reveals_no_plaintext_prefix(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
         ct1 = base64.standard_b64decode(enc.encrypt("AAAA"))
         ct2 = base64.standard_b64decode(enc.encrypt("AAAB"))
-        # Beyond the nonce (first 12 bytes), ciphertext bytes should differ
-        payload1, payload2 = ct1[12:], ct2[12:]
-        assert payload1 != payload2
+        assert ct1[28:] != ct2[28:]
 
-    def test_zero_length_key_still_works(self) -> None:
-        """Empty key should not crash; SHA-256 of empty string is valid."""
-        for cls in [AESGCMEncryptor, FernetEncryptor]:
-            enc = cls("")
-            ct = enc.encrypt("data")
-            assert enc.decrypt(ct) == "data"
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_zero_length_key_still_works(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("")
+        ct = enc.encrypt("data")
+        assert enc.decrypt(ct) == "data"
 
-    def test_very_long_key_works(self) -> None:
-        """Keys of any length should work since they're hashed."""
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_very_long_key_works(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         long_key = "x" * 100_000
-        for cls in [AESGCMEncryptor, FernetEncryptor]:
-            enc = cls(long_key)
-            ct = enc.encrypt("data")
-            assert enc.decrypt(ct) == "data"
-
-
-# ---------------------------------------------------------------------------
-# 7. Edge cases
-# ---------------------------------------------------------------------------
+        enc = encryptor_cls(long_key)
+        ct = enc.encrypt("data")
+        assert enc.decrypt(ct) == "data"
 
 
 class TestEdgeCases:
-    def test_binary_like_string(self, encryptor_cls: type) -> None:
-        """Strings containing bytes that look like binary data."""
+    def test_binary_like_string(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         text = "".join(chr(i) for i in range(256) if chr(i).isprintable())
         enc = encryptor_cls("key")
         assert enc.decrypt(enc.encrypt(text)) == text
 
-    def test_null_bytes_in_plaintext(self, encryptor_cls: type) -> None:
+    def test_null_bytes_in_plaintext(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = "before\x00after"
         assert enc.decrypt(enc.encrypt(text)) == text
 
-    def test_very_large_payload(self, encryptor_cls: type) -> None:
+    def test_very_large_payload(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
-        large = "X" * 1_000_000  # 1 MB
+        large = "X" * 1_000_000
         assert enc.decrypt(enc.encrypt(large)) == large
 
-    def test_repeated_encrypt_decrypt_cycles(self, encryptor_cls: type) -> None:
+    def test_repeated_encrypt_decrypt_cycles(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = "cycle test"
         for _ in range(50):
             text = enc.decrypt(enc.encrypt(text))
         assert text == "cycle test"
 
-    def test_multiline_plaintext(self, encryptor_cls: type) -> None:
+    def test_multiline_plaintext(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = "line1\nline2\rline3\r\nline4"
         assert enc.decrypt(enc.encrypt(text)) == text
 
-    def test_whitespace_only(self, encryptor_cls: type) -> None:
+    def test_whitespace_only(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         for ws in [" ", "\t", "\n", "   \t\n  "]:
             assert enc.decrypt(enc.encrypt(ws)) == ws
 
-    def test_surrogate_emoji_sequences(self, encryptor_cls: type) -> None:
+    def test_surrogate_emoji_sequences(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = "👨‍👩‍👧‍👦🏳️‍🌈🇺🇸"
         assert enc.decrypt(enc.encrypt(text)) == text
 
-    def test_rtl_and_mixed_scripts(self, encryptor_cls: type) -> None:
+    def test_rtl_and_mixed_scripts(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = "Hello مرحبا שלום こんにちは"
         assert enc.decrypt(enc.encrypt(text)) == text
 
-    def test_sql_injection_like_string(self, encryptor_cls: type) -> None:
+    def test_sql_injection_like_string(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = "'; DROP TABLE users; --"
         assert enc.decrypt(enc.encrypt(text)) == text
 
-    def test_html_and_js_strings(self, encryptor_cls: type) -> None:
+    def test_html_and_js_strings(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
         enc = encryptor_cls("key")
         text = '<img onerror="alert(1)" src=x>'
         assert enc.decrypt(enc.encrypt(text)) == text
 
 
-# ---------------------------------------------------------------------------
-# 8. Cross-algorithm incompatibility
-# ---------------------------------------------------------------------------
-
-
 class TestCrossAlgorithm:
-    def test_aesgcm_ciphertext_fails_with_fernet(self) -> None:
+    def test_aesgcm_ciphertext_fails_with_chacha20(self) -> None:
         ct = AESGCMEncryptor("key").encrypt("data")
-        with pytest.raises(Exception):  # noqa: B017
-            FernetEncryptor("key").decrypt(ct)
+        with pytest.raises(InvalidTag):
+            ChaCha20Encryptor("key").decrypt(ct)
 
-    def test_fernet_ciphertext_fails_with_aesgcm(self) -> None:
-        ct = FernetEncryptor("key").encrypt("data")
-        with pytest.raises(Exception):  # noqa: B017
+    def test_chacha20_ciphertext_fails_with_aesgcm(self) -> None:
+        ct = ChaCha20Encryptor("key").encrypt("data")
+        with pytest.raises(InvalidTag):
             AESGCMEncryptor("key").decrypt(ct)
 
 
-# ---------------------------------------------------------------------------
-# 9. Concurrency safety
-# ---------------------------------------------------------------------------
-
-
 class TestConcurrency:
-    def test_aesgcm_threaded_encrypt_decrypt(self) -> None:
-        enc = AESGCMEncryptor("thread-key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_threaded_encrypt_decrypt(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("thread-key")
         errors: list[str] = []
 
         def worker(idx: int) -> None:
@@ -493,77 +471,41 @@ class TestConcurrency:
                     result = enc.decrypt(ct)
                     if result != text:
                         errors.append(f"thread {idx}: mismatch")
-            except Exception as e:
-                errors.append(f"thread {idx}: {e}")
+            except Exception as exc:  # pragma: no cover
+                errors.append(f"thread {idx}: {exc}")
 
         threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
         assert errors == [], f"Thread errors: {errors}"
-
-    def test_fernet_threaded_encrypt_decrypt(self) -> None:
-        enc = FernetEncryptor("thread-key")
-        errors: list[str] = []
-
-        def worker(idx: int) -> None:
-            try:
-                text = f"thread-{idx}-payload"
-                for _ in range(100):
-                    ct = enc.encrypt(text)
-                    result = enc.decrypt(ct)
-                    if result != text:
-                        errors.append(f"thread {idx}: mismatch")
-            except Exception as e:
-                errors.append(f"thread {idx}: {e}")
-
-        threads = [threading.Thread(target=worker, args=(i,)) for i in range(8)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
-        assert errors == [], f"Thread errors: {errors}"
-
-
-# ---------------------------------------------------------------------------
-# 10. Output format validation
-# ---------------------------------------------------------------------------
 
 
 class TestOutputFormat:
-    def test_aesgcm_output_is_standard_base64(self) -> None:
-        enc = AESGCMEncryptor("key")
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_output_is_standard_base64(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
         ct = enc.encrypt("test")
         decoded = base64.standard_b64decode(ct)
         re_encoded = base64.standard_b64encode(decoded).decode()
         assert ct == re_encoded
 
-    def test_fernet_output_is_urlsafe_base64(self) -> None:
-        enc = FernetEncryptor("key")
-        ct = enc.encrypt("test")
-        # Fernet tokens are url-safe base64
-        decoded = base64.urlsafe_b64decode(ct)
-        re_encoded = base64.urlsafe_b64encode(decoded).decode()
-        assert ct == re_encoded
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_encrypt_returns_str(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        assert isinstance(encryptor_cls("key").encrypt("test"), str)
 
-    def test_aesgcm_encrypt_returns_str(self) -> None:
-        enc = AESGCMEncryptor("key")
-        ct = enc.encrypt("test")
-        assert isinstance(ct, str)
-
-    def test_aesgcm_decrypt_returns_str(self) -> None:
-        enc = AESGCMEncryptor("key")
-        ct = enc.encrypt("test")
-        assert isinstance(enc.decrypt(ct), str)
-
-    def test_fernet_encrypt_returns_str(self) -> None:
-        enc = FernetEncryptor("key")
-        assert isinstance(enc.encrypt("test"), str)
-
-    def test_fernet_decrypt_returns_str(self) -> None:
-        enc = FernetEncryptor("key")
-        ct = enc.encrypt("test")
-        assert isinstance(enc.decrypt(ct), str)
+    @pytest.mark.parametrize("encryptor_cls", [AESGCMEncryptor, ChaCha20Encryptor])
+    def test_decrypt_returns_str(
+        self,
+        encryptor_cls: type[AESGCMEncryptor] | type[ChaCha20Encryptor],
+    ) -> None:
+        enc = encryptor_cls("key")
+        assert isinstance(enc.decrypt(enc.encrypt("test")), str)

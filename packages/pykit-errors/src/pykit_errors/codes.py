@@ -36,7 +36,7 @@ class ErrorCode(StrEnum):
     EXTERNAL_SERVICE = "EXTERNAL_SERVICE_ERROR"
 
     # Lifecycle
-    CANCELED = "CANCELED"
+    CANCELLED = "CANCELLED"
 
     @property
     def is_retryable(self) -> bool:
@@ -81,8 +81,8 @@ _HTTP_STATUS_MAP: dict[ErrorCode, int] = {
     ErrorCode.INVALID_TOKEN: 401,
     ErrorCode.INTERNAL: 500,
     ErrorCode.DATABASE_ERROR: 500,
-    ErrorCode.EXTERNAL_SERVICE: 500,
-    ErrorCode.CANCELED: 499,
+    ErrorCode.EXTERNAL_SERVICE: 502,
+    ErrorCode.CANCELLED: 499,
 }
 
 _GRPC_CODE_MAP: dict[ErrorCode, int] = {
@@ -103,5 +103,5 @@ _GRPC_CODE_MAP: dict[ErrorCode, int] = {
     ErrorCode.INTERNAL: 13,  # INTERNAL
     ErrorCode.DATABASE_ERROR: 13,  # INTERNAL
     ErrorCode.EXTERNAL_SERVICE: 13,  # INTERNAL
-    ErrorCode.CANCELED: 1,  # CANCELED
+    ErrorCode.CANCELLED: 1,  # CANCELLED
 }

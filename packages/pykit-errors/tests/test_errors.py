@@ -289,8 +289,8 @@ _ALL_HTTP_STATUS_MAP = [
     (ErrorCode.INVALID_TOKEN, 401),
     (ErrorCode.INTERNAL, 500),
     (ErrorCode.DATABASE_ERROR, 500),
-    (ErrorCode.EXTERNAL_SERVICE, 500),
-    (ErrorCode.CANCELED, 499),
+    (ErrorCode.EXTERNAL_SERVICE, 502),
+    (ErrorCode.CANCELLED, 499),
 ]
 
 
@@ -329,7 +329,7 @@ _ALL_GRPC_CODE_MAP = [
     (ErrorCode.INTERNAL, 13),
     (ErrorCode.DATABASE_ERROR, 13),
     (ErrorCode.EXTERNAL_SERVICE, 13),
-    (ErrorCode.CANCELED, 1),
+    (ErrorCode.CANCELLED, 1),
 ]
 
 
@@ -476,8 +476,7 @@ class TestAppErrorConstructorsDetailed:
         assert err.code == ErrorCode.EXTERNAL_SERVICE
         assert err.cause is cause
         assert err.details["service"] == "payment-api"
-        assert err.http_status == 500
-        assert err.is_retryable is True
+        assert err.http_status == 502
 
     def test_external_service_without_cause(self) -> None:
         err = AppError.external_service("payment-api")

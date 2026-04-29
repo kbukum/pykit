@@ -9,7 +9,6 @@ from pykit_encryption import (
     Algorithm,
     ChaCha20Encryptor,
     Encryptor,
-    FernetEncryptor,
     new_encryptor,
 )
 
@@ -29,10 +28,6 @@ class TestFactory:
         enc = new_encryptor("key", Algorithm.CHACHA20)
         assert isinstance(enc, ChaCha20Encryptor)
 
-    def test_fernet_explicit(self) -> None:
-        enc = new_encryptor("key", Algorithm.FERNET)
-        assert isinstance(enc, FernetEncryptor)
-
     def test_roundtrip_all_algorithms(self) -> None:
         for algo in Algorithm:
             enc = new_encryptor("test-key", algo)
@@ -46,7 +41,6 @@ class TestFactory:
     def test_all_implementations_are_encryptors(self) -> None:
         assert isinstance(AESGCMEncryptor("k"), Encryptor)
         assert isinstance(ChaCha20Encryptor("k"), Encryptor)
-        assert isinstance(FernetEncryptor("k"), Encryptor)
 
     def test_cross_algorithm_incompatibility(self) -> None:
         """Ciphertext from one algorithm cannot be decrypted by another."""

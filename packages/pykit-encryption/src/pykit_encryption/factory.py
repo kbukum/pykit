@@ -7,7 +7,8 @@ from enum import Enum
 from pykit_encryption.aesgcm import AESGCMEncryptor
 from pykit_encryption.base import Encryptor
 from pykit_encryption.chacha20 import ChaCha20Encryptor
-from pykit_encryption.fernet import FernetEncryptor
+
+type EncryptorClass = type[AESGCMEncryptor] | type[ChaCha20Encryptor]
 
 
 class Algorithm(Enum):
@@ -15,13 +16,11 @@ class Algorithm(Enum):
 
     AES_GCM = "aes-gcm"
     CHACHA20 = "chacha20-poly1305"
-    FERNET = "fernet"
 
 
-_REGISTRY: dict[Algorithm, type[Encryptor]] = {
+_REGISTRY: dict[Algorithm, EncryptorClass] = {
     Algorithm.AES_GCM: AESGCMEncryptor,
     Algorithm.CHACHA20: ChaCha20Encryptor,
-    Algorithm.FERNET: FernetEncryptor,
 }
 
 
@@ -41,4 +40,4 @@ def new_encryptor(key: str, algorithm: Algorithm = Algorithm.AES_GCM) -> Encrypt
     cls = _REGISTRY.get(algorithm)
     if cls is None:
         raise ValueError(f"unsupported algorithm: {algorithm!r}")
-    return cls(key)  # type: ignore[call-arg]
+    return cls(key)
