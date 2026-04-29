@@ -3177,7 +3177,7 @@ dev = [
 dev = [
     { name = "aiokafka", specifier = ">=0.13.0" },
     { name = "aiosqlite" },
-    { name = "argon2-cffi", specifier = ">=23.1" },
+    { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "cramjam", specifier = ">=2.11.0" },
     { name = "fakeredis" },
     { name = "import-linter" },
@@ -3239,7 +3239,7 @@ dev = [
     { name = "pytest-asyncio" },
     { name = "pytest-benchmark" },
     { name = "pytest-cov" },
-    { name = "pytest-xdist", specifier = ">=3" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "ruff" },
 ]
 

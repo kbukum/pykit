@@ -40,7 +40,7 @@ resp.to_dict()
 
 - **ErrorCode** — StrEnum with 18 error codes across 6 categories (connection, resource, validation, auth, internal, lifecycle); each code maps to HTTP status, gRPC code, and retryability via `http_status`, `grpc_code`, and `is_retryable` properties
 - **AppError** — Base exception with fluent builder pattern: `with_cause()`, `with_detail()`, `with_details()`, `with_retryable()`; query helpers: `is_retryable`, `is_not_found`, `is_unauthorized`, `is_forbidden`
-- **Convenience constructors** — `AppError.not_found()`, `.already_exists()`, `.conflict()`, `.invalid_input()`, `.missing_field()`, `.invalid_format()`, `.unauthorized()`, `.forbidden()`, `.token_expired()`, `.invalid_token()`, `.internal()`, `.database_error()`, `.external_service()`, `.service_unavailable()`, `.connection_failed()`, `.timeout()`, `.rate_limited()`, `.canceled()`
+- **Convenience constructors** — `AppError.not_found()`, `.already_exists()`, `.conflict()`, `.invalid_input()`, `.missing_field()`, `.invalid_format()`, `.unauthorized()`, `.forbidden()`, `.token_expired()`, `.invalid_token()`, `.internal()`, `.database_error()`, `.external_service()`, `.service_unavailable()`, `.connection_failed()`, `.timeout()`, `.rate_limited()`, `.cancelled()`
 - **ProblemDetail** — Frozen dataclass for RFC 9457 JSON serialization; `from_app_error()` class method and `to_dict()` for API responses
 - **to_grpc_status()** — Converts any `AppError` to the corresponding `grpc.StatusCode`
 - **NotFoundError / InvalidInputError / ServiceUnavailableError / TimeoutError** — Backward-compatible subclasses for direct instantiation

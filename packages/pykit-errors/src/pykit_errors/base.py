@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Never, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import grpc
 
@@ -171,27 +171,6 @@ class AppError(Exception):
         return cls(ErrorCode.INVALID_TOKEN, "Invalid authentication token. Please log in again.")
 
     @classmethod
-    def raise_wrapped(cls, cause: Exception, message: str = "") -> Never:
-        """Raise an INTERNAL AppError wrapping a third-party exception.
-
-        Unlike other constructors that return an ``AppError``, this method
-        **raises** immediately — following the Pythonic convention that
-        exceptions are raised, not returned.
-
-        Args:
-            cause: The original exception to wrap.
-            message: Optional override message. Defaults to a generic message.
-
-        Raises:
-            AppError: Always raised with ``ErrorClassifier.WRAPPED`` and the
-                original *cause* chained via ``raise ... from cause``.
-        """
-        msg = message or "An unexpected error occurred."
-        err = cls(ErrorCode.INTERNAL, msg)
-        err.classifier = ErrorClassifier.WRAPPED
-        raise err from cause
-
-    @classmethod
     def internal(cls, cause: Exception) -> Self:
         """Create an INTERNAL error wrapping a cause."""
         return cls(ErrorCode.INTERNAL, "An unexpected error occurred.").with_cause(cause)
@@ -239,9 +218,9 @@ class AppError(Exception):
         return cls(ErrorCode.RATE_LIMITED, "Too many requests. Please wait and try again.")
 
     @classmethod
-    def canceled(cls, operation: str) -> Self:
-        """Create a CANCELED error."""
-        return cls(ErrorCode.CANCELED, f"Operation '{operation}' was canceled.").with_detail(
+    def cancelled(cls, operation: str) -> Self:
+        """Create a CANCELLED error."""
+        return cls(ErrorCode.CANCELLED, f"Operation '{operation}' was cancelled.").with_detail(
             "operation", operation
         )
 
