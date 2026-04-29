@@ -730,7 +730,7 @@ class TestRegistrationModeExtended:
             assert isinstance(mode, str)
 
     def test_mode_count(self) -> None:
-        assert len(RegistrationMode) == 3
+        assert len(RegistrationMode) == 4
 
     def test_modes_distinct(self) -> None:
         modes = [m.value for m in RegistrationMode]

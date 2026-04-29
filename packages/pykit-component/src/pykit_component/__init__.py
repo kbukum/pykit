@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pykit_component.interfaces import Component, Describable, Description, Health, HealthStatus
-from pykit_component.registry import Registry
+from pykit_component.interfaces import Component, Describable, Description, Health, HealthStatus, State
+from pykit_component.registry import Registry, StopResult
 
 __all__ = [
     "Component",
@@ -12,4 +12,6 @@ __all__ = [
     "Health",
     "HealthStatus",
     "Registry",
+    "State",
+    "StopResult",
 ]

@@ -6,12 +6,15 @@ from pykit_hook.types import (
     Event,
     EventType,
     Handler,
+    HookContext,
     HookEvent,
     HookHandler,
     HookResult,
     Result,
     abort,
+    abort_with_error,
     continue_,
+    continue_with_error,
     modify,
 )
 
@@ -20,6 +23,7 @@ __all__ = [
     "Event",
     "EventType",
     "Handler",
+    "HookContext",
     "HookEvent",
     "HookHandler",
     "HookRegistry",
@@ -27,6 +31,8 @@ __all__ = [
     "Registry",
     "Result",
     "abort",
+    "abort_with_error",
     "continue_",
+    "continue_with_error",
     "modify",
 ]

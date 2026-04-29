@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from pykit_component import Component, Description, Health, HealthStatus, Registry
+from pykit_component import Component, Description, Health, HealthStatus, Registry, State
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -297,7 +297,7 @@ class TestCancelledError:
         await r.start_all()
         # Replace with a component that cancels on stop
         r._entries[0].component = CancellingComponent("cancel-on-stop")
-        r._entries[0].started = True
+        r._entries[0].state = State.RUNNING
         with pytest.raises(asyncio.CancelledError):
             await r.stop_all()
 

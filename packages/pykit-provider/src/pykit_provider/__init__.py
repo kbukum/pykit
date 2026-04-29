@@ -12,17 +12,35 @@ from pykit_provider.base import (
     StreamProvider,
 )
 from pykit_provider.func import RequestResponseFunc
+from pykit_provider.middleware import (
+    DuplexMiddleware,
+    Middleware,
+    SinkMiddleware,
+    StreamMiddleware,
+    chain,
+    chain_duplex,
+    chain_sink,
+    chain_stream,
+)
 from pykit_provider.operation_registry import OperationBinding, OperationRegistry
 
 __all__ = [
     "BoxIterator",
     "Duplex",
+    "DuplexMiddleware",
     "DuplexStream",
+    "Middleware",
     "OperationBinding",
     "OperationRegistry",
     "Provider",
     "RequestResponse",
     "RequestResponseFunc",
     "Sink",
+    "SinkMiddleware",
+    "StreamMiddleware",
     "StreamProvider",
+    "chain",
+    "chain_duplex",
+    "chain_sink",
+    "chain_stream",
 ]
