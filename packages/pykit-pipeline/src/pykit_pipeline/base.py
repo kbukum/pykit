@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import inspect
 import time
 from abc import abstractmethod
@@ -121,12 +122,18 @@ class Pipeline[T]:
                         if value is None:
                             break
                         await input_queue.put(value)
+                except asyncio.CancelledError:
+                    raise
                 except Exception as exc:
                     await _put_safely(output_queue, _QueueMessage(error=exc))
                     stop_event.set()
                 finally:
                     for _ in range(concurrency):
-                        await input_queue.put(None)
+                        if stop_event.is_set():
+                            with contextlib.suppress(asyncio.QueueFull):
+                                input_queue.put_nowait(None)
+                        else:
+                            await input_queue.put(None)
 
             async def worker() -> None:
                 try:
@@ -136,12 +143,19 @@ class Pipeline[T]:
                             return
                         result = await _resolve_value(fn(value))
                         await output_queue.put(_QueueMessage(value=result))
+                except asyncio.CancelledError:
+                    raise
                 except Exception as exc:
                     if not stop_event.is_set():
                         stop_event.set()
                         await _put_safely(output_queue, _QueueMessage(error=exc))
                 finally:
-                    await _put_safely(output_queue, _QueueMessage(done=True))
+                    done_message = _QueueMessage[U](done=True)
+                    if stop_event.is_set():
+                        with contextlib.suppress(asyncio.QueueFull):
+                            output_queue.put_nowait(done_message)
+                    else:
+                        await _put_safely(output_queue, done_message)
 
             producer = asyncio.create_task(produce())
             workers = [asyncio.create_task(worker()) for _ in range(concurrency)]
@@ -169,12 +183,19 @@ class Pipeline[T]:
                         if value is None:
                             return
                         await output_queue.put(_QueueMessage(value=value))
+                except asyncio.CancelledError:
+                    raise
                 except Exception as exc:
                     if not stop_event.is_set():
                         stop_event.set()
                         await _put_safely(output_queue, _QueueMessage(error=exc))
                 finally:
-                    await _put_safely(output_queue, _QueueMessage(done=True))
+                    done_message = _QueueMessage[T](done=True)
+                    if stop_event.is_set():
+                        with contextlib.suppress(asyncio.QueueFull):
+                            output_queue.put_nowait(done_message)
+                    else:
+                        await _put_safely(output_queue, done_message)
 
             tasks = [asyncio.create_task(forward(iterator)) for iterator in iterators]
             return _QueueIter(
@@ -215,10 +236,17 @@ class Pipeline[T]:
                         if value is None:
                             break
                         await queue.put(_QueueMessage(value=value))
+                except asyncio.CancelledError:
+                    raise
                 except Exception as exc:
                     await _put_safely(queue, _QueueMessage(error=exc))
                 finally:
-                    await _put_safely(queue, _QueueMessage(done=True))
+                    done_message = _QueueMessage[T](done=True)
+                    if stop_event.is_set():
+                        with contextlib.suppress(asyncio.QueueFull):
+                            queue.put_nowait(done_message)
+                    else:
+                        await _put_safely(queue, done_message)
 
             producer = asyncio.create_task(produce())
             return _DebounceIter(
@@ -237,7 +265,7 @@ class Pipeline[T]:
     def take(self, n: int) -> Pipeline[T]:
         """Emit at most *n* values."""
         if n <= 0:
-            return Pipeline(lambda: _EmptyIter())
+            return Pipeline(_EmptyIter)
         create = self._create
         return Pipeline(lambda: _TakeIter(create(), n))
 
@@ -273,10 +301,17 @@ class Pipeline[T]:
                         if value is None:
                             break
                         await queue.put(_QueueMessage(value=value))
+                except asyncio.CancelledError:
+                    raise
                 except Exception as exc:
                     await _put_safely(queue, _QueueMessage(error=exc))
                 finally:
-                    await _put_safely(queue, _QueueMessage(done=True))
+                    done_message = _QueueMessage[T](done=True)
+                    if stop_event.is_set():
+                        with contextlib.suppress(asyncio.QueueFull):
+                            queue.put_nowait(done_message)
+                    else:
+                        await _put_safely(queue, done_message)
 
             producer = asyncio.create_task(produce())
             return _QueueIter(
@@ -351,7 +386,8 @@ async def _put_safely[T](queue: asyncio.Queue[_QueueMessage[T]], message: _Queue
     try:
         await queue.put(message)
     except asyncio.CancelledError:
-        pass
+        # The iterator is closing; dropping the terminal queue message is safe.
+        return
 
 
 class _QueueIter[T](PipelineIterator[T]):
@@ -629,10 +665,8 @@ class _DebounceIter[T](PipelineIterator[T]):
                 done, pending = await asyncio.wait(wait_tasks, return_when=asyncio.FIRST_COMPLETED)
                 for task in pending:
                     task.cancel()
-                    try:
+                    with contextlib.suppress(asyncio.CancelledError):
                         await task
-                    except asyncio.CancelledError:
-                        pass
 
                 completed = done.pop()
                 if has_value and timer_task is not None and completed == timer_task:
@@ -649,10 +683,8 @@ class _DebounceIter[T](PipelineIterator[T]):
         finally:
             if timer_task is not None:
                 timer_task.cancel()
-                try:
+                with contextlib.suppress(asyncio.CancelledError):
                     await timer_task
-                except asyncio.CancelledError:
-                    pass
 
     async def close(self) -> None:
         if self._closed:
