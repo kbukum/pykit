@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import time
 from collections import deque
 from collections.abc import Callable, Coroutine
@@ -113,11 +112,15 @@ class WorkerPool:
             await asyncio.wait_for(asyncio.shield(entry.future), timeout=timeout)
         except TimeoutError:
             entry.future.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            try:
                 await entry.future
+            except asyncio.CancelledError:
+                pass
             entry.task.status = TaskStatus.FAILED
             entry.events.append(error_event(task_id, message="task timed out"))
         except asyncio.CancelledError:
+            # Swallow cancellation of the waiter: return latest known task state
+            # rather than propagating. The worker future remains tracked by pool lifecycle.
             pass
 
         return self._build_result(entry)
@@ -130,8 +133,10 @@ class WorkerPool:
 
         if entry.future is not None and not entry.future.done():
             entry.future.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            try:
                 await entry.future
+            except asyncio.CancelledError:
+                pass
 
         if entry.task.status in {TaskStatus.PENDING, TaskStatus.RUNNING}:
             entry.task.status = TaskStatus.CANCELLED

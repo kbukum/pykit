@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 from collections.abc import Callable
 
 from pykit_stateful.accumulator import Accumulator
@@ -80,8 +79,10 @@ class Manager[K, V]:
         self._closed = True
         if self._cleanup_task is not None:
             self._cleanup_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            try:
                 await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
         async with self._lock:
             accumulators = list(self._accumulators.values())
             self._accumulators.clear()

@@ -5,11 +5,14 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import TypeVar
 
 from pykit_resilience.bulkhead import Bulkhead, BulkheadConfig
 from pykit_resilience.circuit_breaker import CircuitBreaker, CircuitBreakerConfig
 from pykit_resilience.rate_limiter import RateLimiter, RateLimiterConfig
 from pykit_resilience.retry import RetryConfig, retry
+
+_T = TypeVar("_T")
 
 
 @dataclass(frozen=True)
@@ -34,26 +37,26 @@ class Policy:
             CircuitBreaker(config.circuit_breaker) if config.circuit_breaker is not None else None
         )
 
-    async def execute[T](self, fn: Callable[[], Awaitable[T]]) -> T:
+    async def execute(self, fn: Callable[[], Awaitable[_T]]) -> _T:
         """Execute *fn* through the configured resilience stack."""
 
-        async def execute_retry() -> T:
+        async def execute_retry() -> _T:
             if self._config.retry is None:
                 return await fn()
             return await retry(fn, self._config.retry)
 
-        async def execute_timeout() -> T:
+        async def execute_timeout() -> _T:
             if self._config.timeout is None:
                 return await execute_retry()
             async with asyncio.timeout(self._config.timeout):
                 return await execute_retry()
 
-        async def execute_circuit_breaker() -> T:
+        async def execute_circuit_breaker() -> _T:
             if self._circuit_breaker is None:
                 return await execute_timeout()
             return await self._circuit_breaker.execute(execute_timeout)
 
-        async def execute_bulkhead() -> T:
+        async def execute_bulkhead() -> _T:
             if self._bulkhead is None:
                 return await execute_circuit_breaker()
             return await self._bulkhead.execute(execute_circuit_breaker)

@@ -80,8 +80,10 @@ async def _communicate(
         for task in (stdout_task, stderr_task):
             if not task.done():
                 task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
+                try:
                     await task
+                except asyncio.CancelledError:
+                    pass
 
 
 async def _read_stream(

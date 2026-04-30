@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import inspect
 import time
 from abc import abstractmethod
@@ -349,8 +348,10 @@ async def _resolve_value[T](value: T | Awaitable[T]) -> T:
 
 
 async def _put_safely[T](queue: asyncio.Queue[_QueueMessage[T]], message: _QueueMessage[T]) -> None:
-    with contextlib.suppress(asyncio.CancelledError):
+    try:
         await queue.put(message)
+    except asyncio.CancelledError:
+        pass
 
 
 class _QueueIter[T](PipelineIterator[T]):
@@ -628,8 +629,10 @@ class _DebounceIter[T](PipelineIterator[T]):
                 done, pending = await asyncio.wait(wait_tasks, return_when=asyncio.FIRST_COMPLETED)
                 for task in pending:
                     task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError):
+                    try:
                         await task
+                    except asyncio.CancelledError:
+                        pass
 
                 completed = done.pop()
                 if has_value and timer_task is not None and completed == timer_task:
@@ -646,8 +649,10 @@ class _DebounceIter[T](PipelineIterator[T]):
         finally:
             if timer_task is not None:
                 timer_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
+                try:
                     await timer_task
+                except asyncio.CancelledError:
+                    pass
 
     async def close(self) -> None:
         if self._closed:

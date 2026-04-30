@@ -36,8 +36,8 @@ class TestAccumulatorTTL:
 class TestManager:
     @pytest.mark.asyncio
     async def test_get_or_create_reuses_accumulator(self) -> None:
-        async def on_flush(items: list[int]) -> None:
-            del items
+        async def on_flush(_items: list[int]) -> None:
+            pass
 
         manager = Manager(lambda _key: Accumulator(AccumulatorConfig(), on_flush), cleanup_interval=0)
         first = await manager.get_or_create("alpha")
@@ -68,8 +68,8 @@ class TestManager:
 
     @pytest.mark.asyncio
     async def test_cleanup_removes_expired_accumulators(self) -> None:
-        async def on_flush(items: list[int]) -> None:
-            del items
+        async def on_flush(_items: list[int]) -> None:
+            pass
 
         manager = Manager(
             lambda _key: Accumulator(AccumulatorConfig(ttl=0.05), on_flush),
@@ -81,11 +81,13 @@ class TestManager:
 
     @pytest.mark.asyncio
     async def test_delete_reports_presence(self) -> None:
-        async def on_flush(items: list[int]) -> None:
-            del items
+        async def on_flush(_items: list[int]) -> None:
+            pass
 
         manager = Manager(lambda _key: Accumulator(AccumulatorConfig(), on_flush), cleanup_interval=0)
         await manager.push("session", 1)
-        assert await manager.delete("session") is True
-        assert await manager.delete("missing") is False
+        deleted_session = await manager.delete("session")
+        assert deleted_session is True
+        deleted_missing = await manager.delete("missing")
+        assert deleted_missing is False
         await manager.close()
