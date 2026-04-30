@@ -36,7 +36,7 @@ def shutdown_providers() -> Iterator[list[TracerProvider | MeterProvider]]:
         for provider in providers:
             try:
                 provider.shutdown()
-            except Exception:  # noqa: BLE001 - shutdown must never fail teardown
+            except Exception:
                 pass
         # Reset the OTel global singletons so subsequent tests can re-install.
         trace._TRACER_PROVIDER = None

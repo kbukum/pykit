@@ -115,9 +115,7 @@ class TestDispatchStrategies:
 @pytest.mark.asyncio
 async def test_blocked_submit_unblocks_on_shutdown() -> None:
     gate = asyncio.Event()
-    pool = WorkerPool(
-        PoolConfig(max_workers=1, max_pending_tasks=0, overflow_policy=OverflowPolicy.BLOCK)
-    )
+    pool = WorkerPool(PoolConfig(max_workers=1, max_pending_tasks=0, overflow_policy=OverflowPolicy.BLOCK))
 
     async def block() -> None:
         await gate.wait()

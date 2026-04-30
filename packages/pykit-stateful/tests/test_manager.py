@@ -126,7 +126,9 @@ async def test_manager_acquire_reuses_accumulator() -> None:
     async def on_flush(_items: list[int]) -> None:
         return None
 
-    manager: Manager[str, int] = Manager(lambda _key: Accumulator(AccumulatorConfig(), on_flush), cleanup_interval=0)
+    manager: Manager[str, int] = Manager(
+        lambda _key: Accumulator(AccumulatorConfig(), on_flush), cleanup_interval=0
+    )
     first = await manager.acquire("key")
     second = await manager.acquire("key")
     assert first is second
@@ -146,7 +148,9 @@ async def test_aclose_is_idempotent_and_cancels_cleanup() -> None:
     await accumulator.aclose()
     assert task.cancelled()
 
-    manager: Manager[str, int] = Manager(lambda _key: Accumulator(AccumulatorConfig(), on_flush), cleanup_interval=0.2)
+    manager: Manager[str, int] = Manager(
+        lambda _key: Accumulator(AccumulatorConfig(), on_flush), cleanup_interval=0.2
+    )
     await manager.get_or_create("key")
     cleanup_task = manager._cleanup_task
     assert cleanup_task is not None
