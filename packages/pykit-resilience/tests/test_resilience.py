@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Comprehensive tests for pykit-resilience."""
 
 from __future__ import annotations

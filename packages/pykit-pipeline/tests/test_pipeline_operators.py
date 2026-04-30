@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Tests for additional pipeline operators."""
 
 from __future__ import annotations

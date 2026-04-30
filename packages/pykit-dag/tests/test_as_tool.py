@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Tests for as_tool — wrapping a DAG as a RequestResponse provider."""
 
 from __future__ import annotations

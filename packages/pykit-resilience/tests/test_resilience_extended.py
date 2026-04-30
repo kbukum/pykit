@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Extended TDD tests for pykit-resilience — filling gaps in the existing suite."""
 
 from __future__ import annotations

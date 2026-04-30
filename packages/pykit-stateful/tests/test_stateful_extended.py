@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Extended tests for pykit-stateful: edge cases, concurrency, custom triggers."""
 
 from __future__ import annotations
