@@ -34,6 +34,28 @@ total = await collect(reduce(Pipeline.from_list([1, 2, 3]), 0, lambda acc, x: ac
 # total: [6]
 ```
 
+## Operator parity
+
+The Group 03 operator catalog is intentionally aligned with gokit and rskit. Rows stay in the same cross-kit order.
+
+| Operator | pykit API | Notes |
+|---|---|---|
+| map | `Pipeline.map(fn)` | Synchronous item transform. |
+| filter | `Pipeline.filter(predicate)` | Keeps matching values. |
+| batch | `Pipeline.batch(size)` | Fixed-size batches, final partial batch emitted. |
+| window | `Pipeline.tumbling_window(size)` | Non-overlapping count window. |
+| sliding | `Pipeline.sliding_window(size, step=1)` | Overlapping count window. |
+| fan_out | `Pipeline.fan_out(*fns)` | Applies multiple sync/async functions per item. |
+| parallel | `Pipeline.parallel(concurrency, fn)` | Concurrent unordered map. |
+| merge | `Pipeline.merge(*others)` | Concurrent unordered merge. |
+| partition | `Pipeline.partition(predicate)` | Splits into matching and non-matching pipelines. |
+| throttle | `Pipeline.throttle(interval)` | Drops values faster than interval. |
+| debounce | `Pipeline.debounce(interval)` | Emits latest value after quiet period. |
+| distinct | `Pipeline.distinct()` | Emits first occurrence of each value. |
+| take | `Pipeline.take(n)` | Emits at most `n` values. |
+| skip | `Pipeline.skip(n)` | Skips first `n` values. |
+| buffer | `Pipeline.buffer(size)` | Inserts bounded async producer buffer. |
+
 ## Key Components
 
 - **Pipeline[T]** — Lazy, pull-based async data pipeline with chainable operators (`map`, `filter`, `tap`, `flat_map`)
