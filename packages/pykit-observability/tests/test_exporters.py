@@ -28,6 +28,9 @@ def shutdown_providers() -> Iterator[list[TracerProvider | MeterProvider]]:
     Without an explicit shutdown the threads keep retrying — to localhost:4318 in
     CI — and prevent pytest from exiting cleanly. This fixture also resets the
     global OTel singletons so the next test can install its own provider.
+
+    NOTE: callers should also patch the HTTP exporter classes via
+    ``patch_otlp_exporters`` to avoid real network connections that block shutdown.
     """
     providers: list[TracerProvider | MeterProvider] = []
     try:
@@ -36,7 +39,7 @@ def shutdown_providers() -> Iterator[list[TracerProvider | MeterProvider]]:
         for provider in providers:
             try:
                 provider.shutdown()
-            except Exception:
+            except Exception:  # shutdown must never propagate in teardown
                 pass
         # Reset the OTel global singletons so subsequent tests can re-install.
         trace._TRACER_PROVIDER = None
@@ -45,6 +48,45 @@ def shutdown_providers() -> Iterator[list[TracerProvider | MeterProvider]]:
 
         _metrics_internal._METER_PROVIDER = None
         _metrics_internal._METER_PROVIDER_SET_ONCE._done = False
+
+
+@pytest.fixture
+def patch_otlp_exporters() -> Iterator[None]:
+    """Patch OTLP HTTP exporter classes to prevent real network connections.
+
+    The real OTLPSpanExporter / OTLPMetricExporter spawn background threads that
+    retry failed connections for tens of seconds.  Even after provider.shutdown()
+    the thread can block pytest exit.  Patching with a no-op mock ensures the
+    exporter thread completes instantly, making shutdown() fast and deterministic
+    in unit tests.
+
+    Tests that need this fixture still verify provider type and global-singleton
+    wiring — which is all they need to assert.
+    """
+    from unittest.mock import MagicMock, patch
+
+    from opentelemetry.sdk.metrics.export import MetricExportResult
+
+    mock_span_exporter = MagicMock()
+    mock_span_exporter.export.return_value = None
+    mock_span_exporter.shutdown.return_value = None
+
+    mock_metric_exporter = MagicMock()
+    mock_metric_exporter.export.return_value = MetricExportResult.SUCCESS
+    mock_metric_exporter.shutdown.return_value = None
+    mock_metric_exporter.force_flush.return_value = True
+
+    with (
+        patch(
+            "pykit_observability.exporters.OTLPSpanExporter",
+            return_value=mock_span_exporter,
+        ),
+        patch(
+            "pykit_observability.exporters.OTLPMetricExporter",
+            return_value=mock_metric_exporter,
+        ),
+    ):
+        yield
 
 
 class TestOtlpExporterConfig:
@@ -180,7 +222,9 @@ class TestSetupOtlpTracing:
     """Tests for setup_otlp_tracing function."""
 
     def test_setup_otlp_tracing_default(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test setup_otlp_tracing with default config."""
         provider = setup_otlp_tracing("test-service")
@@ -190,7 +234,9 @@ class TestSetupOtlpTracing:
         assert hasattr(provider, "get_tracer")
 
     def test_setup_otlp_tracing_custom_config(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test setup_otlp_tracing with custom config."""
         config = OtlpExporterConfig(
@@ -202,7 +248,9 @@ class TestSetupOtlpTracing:
         assert provider is not None
 
     def test_setup_otlp_tracing_sets_global_provider(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test that setup_otlp_tracing sets global provider."""
         from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
@@ -212,7 +260,9 @@ class TestSetupOtlpTracing:
         assert isinstance(provider, SDKTracerProvider)
 
     def test_setup_otlp_tracing_returns_tracer_provider(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test that setup_otlp_tracing returns a valid TracerProvider."""
         from opentelemetry.sdk.trace import TracerProvider as SDKTracerProvider
@@ -227,7 +277,9 @@ class TestSetupOtlpMetrics:
     """Tests for setup_otlp_metrics function."""
 
     def test_setup_otlp_metrics_default(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test setup_otlp_metrics with default config."""
         provider = setup_otlp_metrics("test-service")
@@ -236,7 +288,9 @@ class TestSetupOtlpMetrics:
         assert hasattr(provider, "get_meter")
 
     def test_setup_otlp_metrics_custom_config(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test setup_otlp_metrics with custom config."""
         config = OtlpExporterConfig(
@@ -248,7 +302,9 @@ class TestSetupOtlpMetrics:
         assert provider is not None
 
     def test_setup_otlp_metrics_sets_global_provider(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test that setup_otlp_metrics sets global provider."""
         from opentelemetry.sdk.metrics import MeterProvider as SDKMeterProvider
@@ -258,7 +314,9 @@ class TestSetupOtlpMetrics:
         assert isinstance(provider, SDKMeterProvider)
 
     def test_setup_otlp_metrics_returns_meter_provider(
-        self, shutdown_providers: list[TracerProvider | MeterProvider]
+        self,
+        shutdown_providers: list[TracerProvider | MeterProvider],
+        patch_otlp_exporters: None,
     ) -> None:
         """Test that setup_otlp_metrics returns a valid MeterProvider."""
         from opentelemetry.sdk.metrics import MeterProvider as SDKMeterProvider
