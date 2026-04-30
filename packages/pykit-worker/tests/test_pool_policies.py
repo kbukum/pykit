@@ -110,3 +110,61 @@ class TestDispatchStrategies:
         gate.set()
         await asyncio.gather(*(pool.wait(task.id) for task in tasks))
         await pool.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_blocked_submit_unblocks_on_shutdown() -> None:
+    gate = asyncio.Event()
+    pool = WorkerPool(
+        PoolConfig(max_workers=1, max_pending_tasks=0, overflow_policy=OverflowPolicy.BLOCK)
+    )
+
+    async def block() -> None:
+        await gate.wait()
+
+    await pool.submit("first", block)
+    await asyncio.sleep(0.01)
+    submit_task = asyncio.create_task(pool.submit("second", block))
+    await asyncio.sleep(0.01)
+    assert not submit_task.done()
+
+    await pool.shutdown(graceful=False)
+
+    with pytest.raises(RuntimeError, match="pool is shut down"):
+        await submit_task
+    gate.set()
+
+
+@pytest.mark.asyncio
+async def test_drop_oldest_skips_running_and_acquiring_entries() -> None:
+    running_gate = asyncio.Event()
+    release_gate = asyncio.Event()
+    pool = WorkerPool(
+        PoolConfig(max_workers=1, max_pending_tasks=1, overflow_policy=OverflowPolicy.DROP_OLDEST)
+    )
+
+    async def block(value: int) -> int:
+        if value == 1:
+            running_gate.set()
+            await release_gate.wait()
+        return value
+
+    first = await pool.submit("first", block, 1)
+    await running_gate.wait()
+    second = await pool.submit("second", block, 2)
+    third = await pool.submit("third", block, 3)
+
+    release_gate.set()
+    first_result = await pool.wait(first.id)
+    second_result = await pool.wait(second.id)
+    third_result = await pool.wait(third.id)
+
+    assert first_result.status == TaskStatus.COMPLETED
+    assert second_result.status == TaskStatus.CANCELLED
+    assert third_result.status == TaskStatus.COMPLETED
+    await pool.shutdown()
+
+
+def test_pool_config_rejects_zero_workers() -> None:
+    with pytest.raises(ValueError, match="max_workers"):
+        PoolConfig(max_workers=0)
