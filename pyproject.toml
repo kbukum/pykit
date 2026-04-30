@@ -217,6 +217,7 @@ source_pkgs = [
     "pykit_transcription",
 ]
 branch = true
+data_file = ".cache/coverage/.coverage"
 
 [tool.coverage.report]
 show_missing = true
