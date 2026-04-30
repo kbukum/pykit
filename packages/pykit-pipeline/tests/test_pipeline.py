@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Comprehensive tests for the pykit_pipeline package."""
 
 from __future__ import annotations

@@ -14,12 +14,16 @@ from pykit_resilience.degradation import (
     ServiceHealth,
     ServiceStatus,
 )
-from pykit_resilience.rate_limiter import (
-    RateLimitedError,
-    RateLimiter,
-    RateLimiterConfig,
+from pykit_resilience.policy import Policy, PolicyConfig
+from pykit_resilience.rate_limiter import RateLimitedError, RateLimiter, RateLimiterConfig
+from pykit_resilience.retry import (
+    ConstantBackoff,
+    ExponentialBackoff,
+    LinearBackoff,
+    RetryConfig,
+    RetryExhaustedError,
+    retry,
 )
-from pykit_resilience.retry import RetryConfig, RetryExhaustedError, retry
 
 __all__ = [
     "Bulkhead",
@@ -28,7 +32,12 @@ __all__ = [
     "CircuitBreaker",
     "CircuitBreakerConfig",
     "CircuitOpenError",
+    "ConstantBackoff",
     "DegradationManager",
+    "ExponentialBackoff",
+    "LinearBackoff",
+    "Policy",
+    "PolicyConfig",
     "RateLimitedError",
     "RateLimiter",
     "RateLimiterConfig",

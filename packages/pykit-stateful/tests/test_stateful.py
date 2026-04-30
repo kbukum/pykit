@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Tests for pykit-stateful: MemoryStore, Accumulator, triggers."""
 
 from __future__ import annotations

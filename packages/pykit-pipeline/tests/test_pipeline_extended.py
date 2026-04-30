@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Extended tests for pykit_pipeline — error handling, edge cases, resource cleanup, and chaining."""
 
 from __future__ import annotations

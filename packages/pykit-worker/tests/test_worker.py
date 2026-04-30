@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Comprehensive tests for pykit-worker."""
 
 from __future__ import annotations

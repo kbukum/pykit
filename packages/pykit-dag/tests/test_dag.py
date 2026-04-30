@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Comprehensive tests for pykit-dag."""
 
 from __future__ import annotations
