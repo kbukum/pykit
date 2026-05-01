@@ -73,15 +73,16 @@ For rapid iteration:
 ```bash
 make help                     # see available targets
 make check-fast               # format + lint + typecheck only (~15s)
-make test-unit                # fast unit tests only (parallel)
+make test-unit                # fast test set (parallel)
 make test-affected            # test only packages changed vs main
 make check                    # full validation before PR
 ```
 
 Test markers:
-- `@pytest.mark.unit` — fast, isolated
-- `@pytest.mark.integration` — requires external services
-- `@pytest.mark.e2e` — full stack, slow
+- Tests without markers run as part of `make test-unit` (default fast set)
+- `@pytest.mark.integration` — requires external services (excluded from fast tests)
+- `@pytest.mark.e2e` — full stack, slow (excluded from fast tests)
+- `@pytest.mark.benchmark` — performance tests (excluded from fast tests)
 
 ---
 

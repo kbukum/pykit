@@ -87,10 +87,14 @@ test-affected:
 	if [ -z "$$CHANGED" ]; then \
 		echo "No changes detected, running all tests"; \
 		uv run pytest; \
+	elif echo "$$CHANGED" | grep -qvE '^packages/'; then \
+		echo "Root/config files changed, running all tests"; \
+		uv run pytest; \
 	else \
 		PKGS=$$(echo "$$CHANGED" | grep -E '^packages/' | cut -d/ -f2 | sort -u); \
 		if [ -z "$$PKGS" ]; then \
-			echo "No package changes detected"; \
+			echo "No package changes detected, running all tests"; \
+			uv run pytest; \
 		else \
 			echo "Affected packages: $$PKGS"; \
 			PATHS=$$(echo "$$PKGS" | sed 's|^|packages/|' | tr '\n' ' '); \
@@ -98,7 +102,7 @@ test-affected:
 		fi; \
 	fi
 
-## Run only unit tests (fast, no I/O)
+## Run fast tests (excludes integration/e2e/benchmark)
 test-unit:
 	@uv run pytest -m "not integration and not e2e and not benchmark" -n auto --dist worksteal
 
@@ -144,7 +148,7 @@ help:
 	@echo "  make test               [P=] [T=]  Run tests"
 	@echo "  make test-coverage      [P=] [T=]  Run tests with coverage"
 	@echo "  make test-affected                  Run tests for changed packages"
-	@echo "  make test-unit                      Run unit tests only"
+	@echo "  make test-unit                      Run fast tests (excludes integration/e2e/benchmark)"
 	@echo "  make lint               [P=]       Run ruff check"
 	@echo "  make typecheck          [P=]       Run mypy"
 	@echo "  make fmt                            Format code"

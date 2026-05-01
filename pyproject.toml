@@ -161,7 +161,7 @@ pykit-transcription  = { workspace = true }
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["packages"]
-addopts = "--tb=short -q --import-mode=importlib -n auto --dist worksteal -m 'not integration and not benchmark'"
+addopts = "--tb=short -q --import-mode=importlib -n auto --dist worksteal -m 'not integration and not e2e and not benchmark'"
 markers = [
     "unit: Fast isolated unit tests (no I/O, no network)",
     "integration: Integration tests requiring external services",
