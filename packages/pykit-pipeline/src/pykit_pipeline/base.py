@@ -665,8 +665,8 @@ class _DebounceIter[T](PipelineIterator[T]):
                 done, pending = await asyncio.wait(wait_tasks, return_when=asyncio.FIRST_COMPLETED)
                 for task in pending:
                     task.cancel()
-                    with contextlib.suppress(asyncio.CancelledError):
-                        await task
+                if pending:
+                    await asyncio.gather(*pending, return_exceptions=True)
 
                 # asyncio.wait can complete multiple tasks in the same event-loop
                 # tick (e.g., timer and queue both become ready simultaneously).
@@ -693,8 +693,7 @@ class _DebounceIter[T](PipelineIterator[T]):
         finally:
             if timer_task is not None:
                 timer_task.cancel()
-                with contextlib.suppress(asyncio.CancelledError):
-                    await timer_task
+                await asyncio.gather(timer_task, return_exceptions=True)
 
     async def close(self) -> None:
         if self._closed:

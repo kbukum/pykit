@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -103,10 +102,8 @@ class Accumulator[V]:
         self._closed = True
         if self._ttl_task is not None:
             self._ttl_task.cancel()
-            # Await the cancelled task so it finishes before we return.
-            # suppress() absorbs the CancelledError raised by the completed task.
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._ttl_task  # intentional: drain the task
+            # Drain the cancelled task before returning so its teardown completes.
+            await asyncio.gather(self._ttl_task, return_exceptions=True)
             self._ttl_task = None
 
     async def close(self) -> None:

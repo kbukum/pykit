@@ -129,9 +129,10 @@ async def test_blocked_submit_unblocks_on_shutdown() -> None:
     await pool.shutdown(graceful=False)
 
     # Awaiting submit_task surfaces the RuntimeError it raised while blocked in
-    # _ensure_capacity_locked() after shutdown was signalled.
+    # _ensure_capacity_locked() after shutdown was signalled. Assignment avoids
+    # CodeQL's "expression-as-statement" false-positive on await.
     with pytest.raises(RuntimeError, match="pool is shut down"):
-        await submit_task
+        _ = await submit_task
     gate.set()
 
 
@@ -189,7 +190,7 @@ async def test_wait_cancellation_propagates_to_caller() -> None:
 
     wait_coro.cancel()
     with pytest.raises(asyncio.CancelledError):
-        await wait_coro
+        _ = await wait_coro
 
     # Worker task is still running — gate hasn't been set yet.
     entry = pool._tasks.get(task.id)

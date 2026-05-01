@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 from collections.abc import Callable
 
 from pykit_stateful.accumulator import Accumulator
@@ -104,10 +103,8 @@ class Manager[K, V]:
         self._closed = True
         if self._cleanup_task is not None:
             self._cleanup_task.cancel()
-            # Await the cancelled task so it finishes before we proceed.
-            # suppress() absorbs the CancelledError raised by the completed task.
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._cleanup_task  # intentional: drain the task
+            # Drain the cancelled task before proceeding so teardown completes.
+            await asyncio.gather(self._cleanup_task, return_exceptions=True)
             self._cleanup_task = None
         async with self._lock:
             accumulators = list(self._accumulators.values())
