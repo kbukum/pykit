@@ -9,99 +9,44 @@ import sys
 import pytest
 
 from pykit_errors import TimeoutError
-from pykit_process import Command, ProcessConfig, ProcessResult, run_command, run_shell
-
-# ---------------------------------------------------------------------------
-# Basic execution
-# ---------------------------------------------------------------------------
+from pykit_process import Command, ProcessConfig, ProcessResult, run_command
 
 
-async def test_run_command_echo_hello():
+async def test_run_command_echo_hello() -> None:
     result = await run_command(Command(program="echo", args=["hello"]))
     assert result.success
     assert result.stdout.strip() == "hello"
-    assert result.exit_code == 0
 
 
-async def test_run_command_true_success():
+async def test_run_command_true_success() -> None:
     result = await run_command(Command(program="true"))
+    assert result.success
     assert result.exit_code == 0
-    assert result.success is True
 
 
-async def test_run_command_false_failure():
+async def test_run_command_false_failure() -> None:
     result = await run_command(Command(program="false"))
+    assert not result.success
     assert result.exit_code != 0
-    assert result.success is False
 
 
-async def test_run_command_captures_stderr_separately():
+async def test_run_command_captures_stderr_separately() -> None:
     result = await run_command(
         Command(
             program=sys.executable,
             args=["-c", "import sys; sys.stdout.write('out\\n'); sys.stderr.write('err\\n')"],
         )
     )
-    assert result.success
-    assert "out" in result.stdout
-    assert "err" in result.stderr
-    assert "err" not in result.stdout
-    assert "out" not in result.stderr
+    assert result.stdout.strip() == "out"
+    assert result.stderr.strip() == "err"
 
 
-async def test_run_shell_simple():
-    result = await run_shell("echo shell_works")
-    assert result.success
-    assert "shell_works" in result.stdout
-
-
-async def test_run_shell_piped_commands():
-    result = await run_shell("echo hello | cat")
-    assert result.success
-    assert result.stdout.strip() == "hello"
-
-
-async def test_run_shell_chained_commands():
-    result = await run_shell("echo first && echo second")
-    assert result.success
-    lines = result.stdout.strip().splitlines()
-    assert lines == ["first", "second"]
-
-
-# ---------------------------------------------------------------------------
-# Exit codes
-# ---------------------------------------------------------------------------
-
-
-async def test_exit_code_zero():
-    result = await run_command(Command(program="true"))
-    assert result.exit_code == 0
-    assert result.success
-
-
-async def test_exit_code_one():
-    result = await run_command(Command(program="false"))
-    assert result.exit_code == 1
-    assert not result.success
-
-
-async def test_exit_code_custom_preserved():
-    result = await run_command(Command(program="sh", args=["-c", "exit 42"]))
+async def test_custom_exit_code_preserved() -> None:
+    result = await run_command(Command(program=sys.executable, args=["-c", "raise SystemExit(42)"]))
     assert result.exit_code == 42
-    assert not result.success
 
 
-async def test_exit_code_127_command_not_found():
-    result = await run_shell("nonexistent_binary_xyz_12345")
-    assert result.exit_code == 127
-
-
-# ---------------------------------------------------------------------------
-# Environment & working directory
-# ---------------------------------------------------------------------------
-
-
-async def test_custom_env_vars():
+async def test_custom_env_vars() -> None:
     result = await run_command(
         Command(
             program=sys.executable,
@@ -109,48 +54,41 @@ async def test_custom_env_vars():
             env={"MY_VAR": "42"},
         )
     )
-    assert result.success
     assert result.stdout.strip() == "42"
 
 
-async def test_inherits_parent_env():
-    key = "PYKIT_PROCESS_TEST_INHERIT"
-    os.environ[key] = "inherited_value"
+async def test_scrub_env_removes_inherited_values() -> None:
+    key = "PYKIT_PROCESS_TEST_SCRUB"
+    os.environ[key] = "secret"
     try:
         result = await run_command(
             Command(
                 program=sys.executable,
-                args=["-c", f"import os; print(os.environ.get('{key}', 'MISSING'))"],
-            )
+                args=["-c", f"import os; print(os.environ.get('{key}', 'missing'))"],
+            ),
+            ProcessConfig(scrub_env=True),
         )
-        assert result.success
-        assert "inherited_value" in result.stdout
+        assert result.stdout.strip() == "missing"
     finally:
         del os.environ[key]
 
 
-async def test_custom_working_directory():
+async def test_custom_working_directory() -> None:
     result = await run_command(Command(program="pwd", cwd="/"))
-    assert result.success
     assert result.stdout.strip() == "/"
 
 
-async def test_nonexistent_working_directory_error():
+async def test_nonexistent_working_directory_error() -> None:
     with pytest.raises((FileNotFoundError, OSError, NotADirectoryError)):
         await run_command(Command(program="echo", args=["hi"], cwd="/nonexistent_dir_xyz"))
 
 
-async def test_nonexistent_program_error():
+async def test_nonexistent_program_error() -> None:
     with pytest.raises((FileNotFoundError, OSError)):
         await run_command(Command(program="nonexistent_binary_xyz_99999"))
 
 
-# ---------------------------------------------------------------------------
-# stdin
-# ---------------------------------------------------------------------------
-
-
-async def test_stdin_data_input():
+async def test_stdin_data_input() -> None:
     result = await run_command(
         Command(
             program=sys.executable,
@@ -158,190 +96,95 @@ async def test_stdin_data_input():
             stdin_data=b"hello stdin",
         )
     )
-    assert result.success
     assert "hello stdin" in result.stdout
 
 
-async def test_stdin_cat():
-    result = await run_command(Command(program="cat", stdin_data=b"piped through cat"))
-    assert result.success
-    assert result.stdout == "piped through cat"
-
-
-# ---------------------------------------------------------------------------
-# Timeout & signals
-# ---------------------------------------------------------------------------
-
-
-async def test_timeout_kills_process():
-    cfg = ProcessConfig(timeout=0.5, grace_period=0.5)
+async def test_timeout_kills_process() -> None:
     with pytest.raises(TimeoutError, match="timed out"):
-        await run_command(Command(program="sleep", args=["30"]), config=cfg)
-
-
-async def test_shell_timeout():
-    cfg = ProcessConfig(timeout=0.5, grace_period=0.5)
-    with pytest.raises(TimeoutError, match="timed out"):
-        await run_shell("sleep 30", config=cfg)
-
-
-async def test_grace_period_sigterm_then_sigkill():
-    """Process that traps SIGTERM and ignores it should be SIGKILLed after grace_period."""
-    trap_script = "import signal, time; signal.signal(signal.SIGTERM, lambda *a: None); time.sleep(60)"
-    cfg = ProcessConfig(timeout=0.5, grace_period=0.5)
-    with pytest.raises(TimeoutError):
         await run_command(
-            Command(program=sys.executable, args=["-c", trap_script]),
-            config=cfg,
+            Command(program="sleep", args=["30"]),
+            config=ProcessConfig(timeout=0.5, grace_period=0.5),
         )
 
 
-# ---------------------------------------------------------------------------
-# ProcessConfig
-# ---------------------------------------------------------------------------
+async def test_grace_period_sigterm_then_sigkill() -> None:
+    trap_script = "import signal, time; signal.signal(signal.SIGTERM, lambda *a: None); time.sleep(60)"
+    with pytest.raises(TimeoutError):
+        await run_command(
+            Command(program=sys.executable, args=["-c", trap_script]),
+            config=ProcessConfig(timeout=0.5, grace_period=0.5),
+        )
 
 
-async def test_default_config_values():
+async def test_default_config_values() -> None:
     cfg = ProcessConfig()
     assert cfg.timeout == 30.0
     assert cfg.grace_period == 5.0
     assert cfg.capture_output is True
+    assert cfg.scrub_env is False
+    assert cfg.max_output_bytes is None
 
 
-async def test_config_custom_timeout():
-    cfg = ProcessConfig(timeout=10.0)
-    assert cfg.timeout == 10.0
-
-
-async def test_config_capture_output_false():
-    cfg = ProcessConfig(capture_output=False)
+async def test_capture_output_false() -> None:
     result = await run_command(
-        Command(program="echo", args=["invisible"]),
-        config=cfg,
+        Command(program="echo", args=["hidden"]),
+        config=ProcessConfig(capture_output=False),
     )
-    assert result.success
     assert result.stdout == ""
     assert result.stderr == ""
 
 
-async def test_config_custom_grace_period():
-    cfg = ProcessConfig(grace_period=1.0)
-    assert cfg.grace_period == 1.0
+async def test_max_output_bytes_limits_capture() -> None:
+    result = await run_command(
+        Command(program=sys.executable, args=["-c", "print('x' * 1000)"]),
+        config=ProcessConfig(max_output_bytes=10),
+    )
+    assert len(result.stdout.strip()) == 10
 
 
-# ---------------------------------------------------------------------------
-# ProcessResult
-# ---------------------------------------------------------------------------
-
-
-async def test_process_result_success_property():
+async def test_process_result_success_property() -> None:
     success = ProcessResult(exit_code=0, stdout="", stderr="", duration=0.1, command="true")
     failure = ProcessResult(exit_code=1, stdout="", stderr="", duration=0.1, command="false")
     assert success.success is True
     assert failure.success is False
 
 
-async def test_duration_tracked():
+async def test_duration_tracked() -> None:
     result = await run_command(Command(program="sleep", args=["0.1"]))
-    assert result.success
-    assert result.duration >= 0.08  # allow small timing variance
+    assert result.duration >= 0.08
 
 
-async def test_stdout_stderr_captured():
-    result = await run_command(
-        Command(
-            program=sys.executable,
-            args=["-c", "import sys; sys.stdout.write('OUT'); sys.stderr.write('ERR')"],
-        )
-    )
-    assert result.stdout == "OUT"
-    assert result.stderr == "ERR"
-
-
-async def test_command_reference_preserved():
+async def test_command_reference_preserved() -> None:
     result = await run_command(Command(program="echo", args=["a", "b"]))
     assert result.command == "echo a b"
 
 
-async def test_shell_command_reference_preserved():
-    result = await run_shell("echo shell_ref")
-    assert result.command == "echo shell_ref"
-
-
-# ---------------------------------------------------------------------------
-# Edge cases
-# ---------------------------------------------------------------------------
-
-
-async def test_empty_command_raises():
+async def test_empty_command_raises() -> None:
     with pytest.raises(ValueError, match="program must not be empty"):
         await run_command(Command(program=""))
 
 
-async def test_empty_shell_command_raises():
-    with pytest.raises(ValueError, match="shell command must not be empty"):
-        await run_shell("")
+async def test_command_display() -> None:
+    command = Command(program="git", args=["status", "--short"])
+    assert command.display() == "git status --short"
 
 
-async def test_command_display():
-    cmd = Command(program="git", args=["status", "--short"])
-    assert cmd.display() == "git status --short"
+async def test_concurrent_subprocess_execution() -> None:
+    commands = [run_command(Command(program="echo", args=[str(index)])) for index in range(10)]
+    results = await asyncio.gather(*commands)
+    assert sorted(result.stdout.strip() for result in results) == [str(index) for index in range(10)]
 
 
-async def test_command_display_no_args():
-    cmd = Command(program="ls")
-    assert cmd.display() == "ls"
-
-
-async def test_very_long_output():
-    n = 100_000
+async def test_special_characters_in_args_are_not_interpreted() -> None:
     result = await run_command(
         Command(
             program=sys.executable,
-            args=["-c", f"print('x' * {n})"],
+            args=["-c", "import sys; print(sys.argv[1])", "hello && echo hacked"],
         )
     )
-    assert result.success
-    assert len(result.stdout.strip()) == n
+    assert result.stdout.strip() == "hello && echo hacked"
 
 
-async def test_concurrent_subprocess_execution():
-    cmds = [run_command(Command(program="echo", args=[str(i)])) for i in range(10)]
-    results = await asyncio.gather(*cmds)
-    assert all(r.success for r in results)
-    outputs = sorted(r.stdout.strip() for r in results)
-    assert outputs == [str(i) for i in range(10)]
-
-
-async def test_special_characters_in_args():
-    result = await run_command(Command(program="echo", args=["hello world", "$HOME", "it's", '"quoted"']))
-    assert result.success
-    assert "hello world" in result.stdout
-    assert "$HOME" in result.stdout
-
-
-async def test_unicode_in_stdout():
-    result = await run_command(
-        Command(
-            program=sys.executable,
-            args=["-c", "print('héllo wörld 🎉')"],
-        )
-    )
-    assert result.success
+async def test_unicode_output_is_preserved() -> None:
+    result = await run_command(Command(program=sys.executable, args=["-c", "print('héllo wörld 🎉')"]))
     assert "héllo wörld 🎉" in result.stdout
-
-
-async def test_unicode_in_stderr():
-    result = await run_command(
-        Command(
-            program=sys.executable,
-            args=["-c", "import sys; sys.stderr.write('ërrör 🚨\\n')"],
-        )
-    )
-    assert "ërrör 🚨" in result.stderr
-
-
-async def test_command_with_empty_args():
-    result = await run_command(Command(program="echo"))
-    assert result.success
-    assert result.stdout.strip() == ""

@@ -56,6 +56,4 @@ The foundational decision is [ADR 0001 — Layered package architecture](adr/000
 
 ## Further Reading
 
-- [`docs/PYKIT_LIBRARY_DESIGN.md`](PYKIT_LIBRARY_DESIGN.md) — detailed design document
 - [`docs/PACKAGES.md`](PACKAGES.md) — per-package descriptions and status
-- [`docs/CROSS_SIBLING_MATRIX.md`](CROSS_SIBLING_MATRIX.md) — gokit / rskit parity matrix

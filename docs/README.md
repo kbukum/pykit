@@ -24,8 +24,3 @@
 |-----|-------|--------|
 | [0000](adr/0000-template.md) | Template | — |
 | [0001](adr/0001-layered-package-architecture.md) | Layered package architecture | Accepted |
-
-## Cross-Sibling Parity
-
-- [Cross-Sibling Matrix](CROSS_SIBLING_MATRIX.md) — pykit / gokit / rskit parity matrix
-- [pykit Library Design](PYKIT_LIBRARY_DESIGN.md) — detailed design document

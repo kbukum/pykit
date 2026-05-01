@@ -17,8 +17,7 @@ class Command:
 
     def display(self) -> str:
         """Human-readable command string."""
-        parts = [self.program, *self.args]
-        return " ".join(parts)
+        return " ".join([self.program, *self.args])
 
 
 @dataclass(frozen=True)
@@ -43,3 +42,5 @@ class ProcessConfig:
     timeout: float = 30.0
     grace_period: float = 5.0
     capture_output: bool = True
+    scrub_env: bool = False
+    max_output_bytes: int | None = None

@@ -1,4 +1,4 @@
-"""Retry pattern with exponential backoff and jitter."""
+"""Retry pattern with configurable backoff strategies."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import math
 import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
+from typing import Protocol
 
 from pykit_errors import AppError
 from pykit_errors.codes import ErrorCode
@@ -24,6 +25,38 @@ class RetryExhaustedError(AppError):
         )
 
 
+class BackoffStrategy(Protocol):
+    """Strategy for computing retry backoff durations."""
+
+    def calculate(self, attempt: int, config: RetryConfig) -> float:
+        """Return the backoff delay for *attempt*."""
+
+
+@dataclass(frozen=True)
+class ExponentialBackoff:
+    """Backoff strategy that grows exponentially per retry attempt."""
+
+    def calculate(self, attempt: int, config: RetryConfig) -> float:
+        return config.initial_backoff * math.pow(config.backoff_factor, attempt - 1)
+
+
+@dataclass(frozen=True)
+class ConstantBackoff:
+    """Backoff strategy that uses a constant delay for each retry."""
+
+    def calculate(self, attempt: int, config: RetryConfig) -> float:
+        del attempt
+        return config.initial_backoff
+
+
+@dataclass(frozen=True)
+class LinearBackoff:
+    """Backoff strategy that grows linearly with each retry attempt."""
+
+    def calculate(self, attempt: int, config: RetryConfig) -> float:
+        return config.initial_backoff * attempt
+
+
 @dataclass
 class RetryConfig:
     """Configuration for retry behavior."""
@@ -35,11 +68,13 @@ class RetryConfig:
     jitter: float = 0.1
     retry_if: Callable[[Exception], bool] | None = None
     on_retry: Callable[[int, Exception, float], None] | None = None
+    backoff_strategy: BackoffStrategy | None = None
 
 
 def _calculate_backoff(attempt: int, config: RetryConfig) -> float:
-    """Calculate backoff duration with exponential growth and jitter."""
-    backoff = config.initial_backoff * math.pow(config.backoff_factor, attempt - 1)
+    """Calculate backoff duration with the configured strategy and jitter."""
+    strategy = config.backoff_strategy or ExponentialBackoff()
+    backoff = strategy.calculate(attempt, config)
     if config.jitter > 0:
         jitter_range = backoff * config.jitter
         backoff += random.uniform(-jitter_range, jitter_range)
