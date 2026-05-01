@@ -63,9 +63,25 @@ uv sync
 uv run pytest
 ```
 
-The workspace is structured as a **uv workspace monorepo** with 44 independent
+The workspace is structured as a **uv workspace monorepo** with 55 independent
 packages under `packages/`. Each package has its own `pyproject.toml`,
 `src/<package_name>/` layout, and `tests/` directory.
+
+## Quick Development Workflow
+
+For rapid iteration:
+```bash
+make help                     # see available targets
+make check-fast               # format + lint + typecheck only (~15s)
+make test-unit                # fast unit tests only (parallel)
+make test-affected            # test only packages changed vs main
+make check                    # full validation before PR
+```
+
+Test markers:
+- `@pytest.mark.unit` — fast, isolated
+- `@pytest.mark.integration` — requires external services
+- `@pytest.mark.e2e` — full stack, slow
 
 ---
 
