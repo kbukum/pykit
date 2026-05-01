@@ -9,8 +9,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from prometheus_client import REGISTRY
 
-from pykit_server_middleware.prometheus import PrometheusMiddleware
-from pykit_server_middleware.tracing import TracingMiddleware
+from pykit_server.middleware import PrometheusMiddleware, TracingMiddleware
 
 # ---------------------------------------------------------------------------
 # Helpers

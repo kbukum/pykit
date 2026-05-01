@@ -1,6 +1,6 @@
 # pykit-httpclient
 
-Async HTTP client with authentication, error classification, and component lifecycle management.
+Async HTTP client with authentication, bounded redirects, resilience policy integration, and component lifecycle management.
 
 ## Installation
 
@@ -15,12 +15,14 @@ uv add pykit-httpclient
 ```python
 import asyncio
 from pykit_httpclient import HttpClient, HttpConfig, AuthConfig, HttpError
+from pykit_resilience import PolicyConfig, RetryConfig
 
 config = HttpConfig(
     base_url="https://api.example.com",
     timeout=30.0,
     auth=AuthConfig(type="bearer", token="my-token"),
-    max_retries=3,
+    resilience=PolicyConfig(retry=RetryConfig(max_attempts=3)),
+    max_redirects=5,
 )
 client = HttpClient(config)
 

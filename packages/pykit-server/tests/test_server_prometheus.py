@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from prometheus_client import REGISTRY
 
-from pykit_server_middleware.prometheus import PrometheusMiddleware
+from pykit_server.middleware import PrometheusMiddleware
 
 
 def _get_sample_value(name: str, labels: dict[str, str]) -> float | None:

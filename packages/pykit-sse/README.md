@@ -1,6 +1,6 @@
 # pykit-sse
 
-Server-Sent Events hub for real-time client communication with async queue-based delivery and component lifecycle.
+Server-Sent Events hub for real-time client communication with bounded queue delivery, backpressure handling, and component lifecycle.
 
 ## Installation
 

@@ -590,9 +590,9 @@ class TestConfigEdgeCases:
         assert cfg.timeout == 30.0
         assert cfg.headers == {}
         assert cfg.auth is None
-        assert cfg.max_retries == 3
-        assert cfg.retry_backoff == 0.5
+        assert cfg.resilience is None
         assert cfg.follow_redirects is True
+        assert cfg.max_redirects == 5
 
     def test_auth_defaults(self):
         auth = AuthConfig()

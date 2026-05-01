@@ -1,6 +1,6 @@
 # pykit-discovery
 
-Service discovery and load balancing with pluggable providers and multiple balancing strategies.
+Service discovery and load balancing with pluggable providers, multiple balancing strategies, and resilience-backed self-registration.
 
 ## Installation
 

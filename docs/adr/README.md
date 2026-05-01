@@ -22,4 +22,7 @@ as the starting point.
 
 | #     | Title                                              | Status   |
 |-------|----------------------------------------------------|----------|
-| 0001  | [Layered package architecture](0001-layered-package-architecture.md) | Accepted |
+| [0000](0000-template.md) | Template | — |
+| [0001](0001-layered-package-architecture.md) | Layered Package Architecture | Accepted |
+
+The current layering summary lives in [`../architecture.md`](../architecture.md).

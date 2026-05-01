@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import threading
 import time
+from collections.abc import Awaitable, Callable, Iterator, MutableMapping
+from typing import Any, cast
 
 import pytest
 
-from pykit_server_middleware.ratelimit import (
+from pykit_server.middleware import (
     RateLimitConfig,
     RateLimiter,
     RateLimitMiddleware,
@@ -16,15 +19,20 @@ from pykit_server_middleware.ratelimit import (
     user_based_key,
 )
 
+ASGIMessage = MutableMapping[str, Any]
+Scope = MutableMapping[str, Any]
+Receive = Callable[[], Awaitable[ASGIMessage]]
+Send = Callable[[ASGIMessage], Awaitable[None]]
+
 
 def _make_scope(
     method: str = "GET",
     path: str = "/api/test",
     client: tuple[str, int] = ("127.0.0.1", 8000),
     headers: list[tuple[bytes, bytes]] | None = None,
-    state: dict | None = None,
-) -> dict:
-    scope: dict = {
+    state: dict[str, Any] | None = None,
+) -> Scope:
+    scope: Scope = {
         "type": "http",
         "method": method,
         "path": path,
@@ -37,8 +45,9 @@ def _make_scope(
     return scope
 
 
-async def _simple_app(scope, receive, send):
+async def _simple_app(scope: Scope, receive: Receive, send: Send) -> None:
     """Minimal ASGI app that returns 200."""
+    del scope, receive
     await send(
         {
             "type": "http.response.start",
@@ -49,20 +58,31 @@ async def _simple_app(scope, receive, send):
     await send({"type": "http.response.body", "body": b"OK"})
 
 
-async def _receive():
+async def _receive() -> ASGIMessage:
     return {"type": "http.request", "body": b""}
 
 
-async def _collect(lst, msg):
-    lst.append(msg)
+def _collector(messages: list[ASGIMessage]) -> Send:
+    async def _send(message: ASGIMessage) -> None:
+        messages.append(message)
+
+    return _send
 
 
-async def _noop():
-    pass
+async def _noop_send(message: ASGIMessage) -> None:
+    _ = message
+
+
+def _status(message: ASGIMessage) -> int:
+    return cast("int", message["status"])
+
+
+def _headers(message: ASGIMessage) -> dict[bytes, bytes]:
+    return dict(cast("list[tuple[bytes, bytes]]", message["headers"]))
 
 
 @pytest.fixture()
-def limiter():
+def limiter() -> Iterator[RateLimiter]:
     rl = RateLimiter(RateLimitConfig(requests_per_minute=5))
     yield rl
     rl.stop()
@@ -86,16 +106,16 @@ class TestTokenBucket:
 class TestRateLimitMiddleware:
     async def test_requests_within_limit_pass(self, limiter: RateLimiter) -> None:
         app = RateLimitMiddleware(_simple_app, limiter)
-        sent: list[dict] = []
-        await app(_make_scope(), _receive, lambda m: _collect(sent, m))
-        assert sent[0]["status"] == 200
+        sent: list[ASGIMessage] = []
+        await app(_make_scope(), _receive, _collector(sent))
+        assert _status(sent[0]) == 200
 
     async def test_response_headers_set(self, limiter: RateLimiter) -> None:
         app = RateLimitMiddleware(_simple_app, limiter)
-        sent: list[dict] = []
-        await app(_make_scope(), _receive, lambda m: _collect(sent, m))
+        sent: list[ASGIMessage] = []
+        await app(_make_scope(), _receive, _collector(sent))
 
-        headers = dict(sent[0]["headers"])
+        headers = _headers(sent[0])
         assert b"x-ratelimit-limit" in headers
         assert b"x-ratelimit-remaining" in headers
         assert b"x-ratelimit-reset" in headers
@@ -105,62 +125,60 @@ class TestRateLimitMiddleware:
         app = RateLimitMiddleware(_simple_app, limiter)
 
         for _ in range(5):
-            sent: list[dict] = []
-            await app(_make_scope(), _receive, lambda m, s=sent: _collect(s, m))
-            assert sent[0]["status"] == 200
+            sent: list[ASGIMessage] = []
+            await app(_make_scope(), _receive, _collector(sent))
+            assert _status(sent[0]) == 200
 
         sent = []
-        await app(_make_scope(), _receive, lambda m: _collect(sent, m))
-        assert sent[0]["status"] == 429
+        await app(_make_scope(), _receive, _collector(sent))
+        assert _status(sent[0]) == 429
 
-        headers = dict(sent[0]["headers"])
+        headers = _headers(sent[0])
         assert b"retry-after" in headers
         assert int(headers[b"retry-after"]) > 0
 
-        body = json.loads(sent[1]["body"])
+        body = json.loads(cast("bytes", sent[1]["body"]))
         assert body == {"error": "rate limit exceeded"}
 
     async def test_non_http_passes_through(self, limiter: RateLimiter) -> None:
         called = False
 
-        async def ws_app(scope, receive, send):
+        async def ws_app(scope: Scope, receive: Receive, send: Send) -> None:
+            del scope, receive, send
             nonlocal called
             called = True
 
         app = RateLimitMiddleware(ws_app, limiter)
-        await app({"type": "websocket"}, _receive, lambda m: _noop())
+        await app({"type": "websocket"}, _receive, _noop_send)
         assert called
 
     async def test_custom_key_func(self) -> None:
         cfg = RateLimitConfig(
             requests_per_minute=2,
-            key_func=lambda scope: scope.get("path", "/"),
+            key_func=lambda scope: cast("str", scope.get("path", "/")),
         )
         rl = RateLimiter(cfg)
         try:
             app = RateLimitMiddleware(_simple_app, rl)
 
-            # Exhaust limit for /path-a
             for _ in range(2):
-                sent: list[dict] = []
-                await app(_make_scope(path="/path-a"), _receive, lambda m, s=sent: _collect(s, m))
-                assert sent[0]["status"] == 200
+                sent: list[ASGIMessage] = []
+                await app(_make_scope(path="/path-a"), _receive, _collector(sent))
+                assert _status(sent[0]) == 200
 
-            # /path-a now blocked
             sent = []
-            await app(_make_scope(path="/path-a"), _receive, lambda m: _collect(sent, m))
-            assert sent[0]["status"] == 429
+            await app(_make_scope(path="/path-a"), _receive, _collector(sent))
+            assert _status(sent[0]) == 429
 
-            # /path-b still allowed
             sent = []
-            await app(_make_scope(path="/path-b"), _receive, lambda m: _collect(sent, m))
-            assert sent[0]["status"] == 200
+            await app(_make_scope(path="/path-b"), _receive, _collector(sent))
+            assert _status(sent[0]) == 200
         finally:
             rl.stop()
 
     async def test_limit_func_tiered(self) -> None:
-        def tiered_limit(scope):
-            state = scope.get("state", {})
+        def tiered_limit(scope: Scope) -> tuple[str, int]:
+            state = cast("dict[str, Any]", scope.get("state", {}))
             if state.get("tier") == "premium":
                 return "premium-user", 100
             return ip_based_key(scope), 2
@@ -170,33 +188,31 @@ class TestRateLimitMiddleware:
         try:
             app = RateLimitMiddleware(_simple_app, rl)
 
-            # Regular user limited at 2 RPM
             for _ in range(2):
-                sent: list[dict] = []
+                sent: list[ASGIMessage] = []
                 await app(
                     _make_scope(client=("10.0.0.1", 8000)),
                     _receive,
-                    lambda m, s=sent: _collect(s, m),
+                    _collector(sent),
                 )
-                assert sent[0]["status"] == 200
+                assert _status(sent[0]) == 200
 
             sent = []
             await app(
                 _make_scope(client=("10.0.0.1", 8000)),
                 _receive,
-                lambda m: _collect(sent, m),
+                _collector(sent),
             )
-            assert sent[0]["status"] == 429
+            assert _status(sent[0]) == 429
 
-            # Premium user has higher limit
             for _ in range(5):
                 sent = []
                 await app(
                     _make_scope(state={"tier": "premium"}),
                     _receive,
-                    lambda m, s=sent: _collect(s, m),
+                    _collector(sent),
                 )
-                assert sent[0]["status"] == 200
+                assert _status(sent[0]) == 200
         finally:
             rl.stop()
 
@@ -228,15 +244,11 @@ class TestCleanup:
         )
         rl = RateLimiter(cfg)
         try:
-            # Access a bucket
             rl.allow("stale-key", 10)
             assert "stale-key" in rl._buckets
 
-            # Override time to make bucket stale
-            _original_now = rl._now_func
             rl._now_func = lambda: time.time() + 1.0
 
-            # Start cleanup and wait for it to run
             rl.start()
             await asyncio.sleep(0.3)
 
@@ -244,3 +256,66 @@ class TestCleanup:
         finally:
             rl._now_func = time.time
             rl.stop()
+
+    def test_cleanup_waits_for_inflight_decision(self) -> None:
+        class _Decision:
+            allowed = True
+            limit = 1
+            remaining = 0
+            retry_after = 0.0
+            reset_after = 60.0
+
+        class _BlockingLimiter:
+            def __init__(self) -> None:
+                self.started = threading.Event()
+                self.release = threading.Event()
+
+            def take(self) -> _Decision:
+                self.started.set()
+                released = self.release.wait(timeout=1.0)
+                assert released
+                return _Decision()
+
+        rl = RateLimiter(
+            RateLimitConfig(
+                requests_per_minute=1,
+                cleanup_interval=0.1,
+                bucket_ttl=1.0,
+            )
+        )
+        blocking_limiter = _BlockingLimiter()
+        cast("Any", rl)._build_limiter = lambda key, rpm: blocking_limiter
+        current_time = 0.0
+        rl._now_func = lambda: current_time
+
+        result: list[tuple[bool, int, int, float, int]] = []
+
+        def _allow() -> None:
+            result.append(rl.allow("shared-key", 1))
+
+        def _cleanup() -> None:
+            rl._evict_stale_buckets(current_time)
+
+        worker = threading.Thread(target=_allow)
+        worker.start()
+        assert blocking_limiter.started.wait(timeout=1.0)
+
+        current_time = 10.0
+        cleanup = threading.Thread(target=_cleanup)
+        cleanup.start()
+        cleanup.join(timeout=0.1)
+        assert cleanup.is_alive()
+
+        blocking_limiter.release.set()
+        worker.join(timeout=1.0)
+        cleanup.join(timeout=1.0)
+
+        assert not cleanup.is_alive()
+        assert result == [(True, 1, 0, 0.0, 70)]
+        assert "shared-key" in rl._buckets
+        assert rl._buckets["shared-key"].last_access == pytest.approx(10.0)
+
+    def test_start_requires_running_event_loop(self) -> None:
+        rl = RateLimiter(RateLimitConfig(requests_per_minute=1))
+        with pytest.raises(RuntimeError, match="running asyncio event loop"):
+            rl.start()

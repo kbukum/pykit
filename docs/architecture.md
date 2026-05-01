@@ -16,7 +16,7 @@ Layer 9 — AI / ML
   pykit-llm-providers · pykit-explain
 
 Layer 8 — Servers
-  pykit-server · pykit-grpc · pykit-server-middleware · pykit-kafka-middleware
+  pykit-server · pykit-grpc · pykit-kafka-middleware
 
 Layer 7 — Infrastructure Clients
   pykit-database · pykit-redis · pykit-storage · pykit-messaging · pykit-httpclient
@@ -51,8 +51,8 @@ Layer 1 — Foundation
 
 ## Architecture Decision Records
 
-See [`docs/adr/`](adr/) for the full list of ADRs.
-The foundational decision is [ADR 0001 — Layered package architecture](adr/0001-layered-package-architecture.md).
+See [`docs/adr/`](adr/) for the ADR index. The current layer model is captured
+in this document and summarized package-by-package in [`docs/PACKAGES.md`](PACKAGES.md).
 
 ## Further Reading
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import time
 from typing import Any
@@ -95,11 +96,13 @@ class ErrorHandlingInterceptor(aio.ServerInterceptor):  # type: ignore[misc]  # 
                         "details": exc.details if exc.details else {},
                     }
                 )
-                context.set_trailing_metadata(
+                metadata_result = context.set_trailing_metadata(
                     [
                         ("x-error-details-bin", error_details.encode("utf-8")),
                     ]
                 )
+                if inspect.iscoroutine(metadata_result):
+                    await metadata_result
                 await context.abort(exc.to_grpc_status(), exc.message)
             except Exception as exc:
                 self.logger.exception("Unhandled error in gRPC handler", error=str(exc))

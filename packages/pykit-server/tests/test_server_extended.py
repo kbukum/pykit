@@ -45,6 +45,7 @@ class TestInit:
         assert s.graceful_shutdown_timeout == 30.0
         assert s.interceptors == []
         assert s.reflection_service_names == []
+        assert s.reflection_enabled is False
         assert s._server is None
         assert s._health_servicer is None
 
@@ -57,6 +58,7 @@ class TestInit:
             graceful_shutdown_timeout=10.0,
             interceptors=[interceptor],
             reflection_service_names=["my.Service"],
+            reflection_enabled=True,
         )
         assert s.host == "127.0.0.1"
         assert s.port == 9999
@@ -64,6 +66,7 @@ class TestInit:
         assert s.graceful_shutdown_timeout == 10.0
         assert len(s.interceptors) == 1
         assert s.reflection_service_names == ["my.Service"]
+        assert s.reflection_enabled is True
 
     def test_shutdown_event_not_set(self) -> None:
         s = BaseServer()
@@ -203,7 +206,7 @@ class TestHealthCheck:
     @pytest.mark.asyncio
     async def test_reflection_enabled(self) -> None:
         """Reflection service should be enabled after start."""
-        s = BaseServer(host="127.0.0.1", port=50173)
+        s = BaseServer(host="127.0.0.1", port=50173, reflection_enabled=True)
         await s.start()
         try:
             async with grpc.aio.insecure_channel("127.0.0.1:50173") as channel:
@@ -423,6 +426,7 @@ class TestReflection:
             host="127.0.0.1",
             port=50162,
             reflection_service_names=["my.custom.Service"],
+            reflection_enabled=True,
         )
         await s.start()
         try:

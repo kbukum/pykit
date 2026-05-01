@@ -56,7 +56,6 @@ members = [
     "pykit-schema",
     "pykit-security",
     "pykit-server",
-    "pykit-server-middleware",
     "pykit-sse",
     "pykit-stateful",
     "pykit-storage",
@@ -2871,9 +2870,13 @@ dependencies = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
     { name = "grpcio-reflection" },
+    { name = "opentelemetry-api" },
+    { name = "prometheus-client" },
     { name = "pykit-component" },
     { name = "pykit-errors" },
     { name = "pykit-logging" },
+    { name = "pykit-observability" },
+    { name = "pykit-resilience" },
 ]
 
 [package.metadata]
@@ -2881,24 +2884,13 @@ requires-dist = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
     { name = "grpcio-reflection" },
+    { name = "opentelemetry-api" },
+    { name = "prometheus-client" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
     { name = "pykit-logging", editable = "packages/pykit-logging" },
-]
-
-[[package]]
-name = "pykit-server-middleware"
-version = "0.1.0"
-source = { editable = "packages/pykit-server-middleware" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
+    { name = "pykit-observability", editable = "packages/pykit-observability" },
+    { name = "pykit-resilience", editable = "packages/pykit-resilience" },
 ]
 
 [[package]]
@@ -3153,7 +3145,6 @@ dev = [
     { name = "pykit-schema" },
     { name = "pykit-security" },
     { name = "pykit-server" },
-    { name = "pykit-server-middleware" },
     { name = "pykit-sse" },
     { name = "pykit-stateful" },
     { name = "pykit-storage" },
@@ -3228,7 +3219,6 @@ dev = [
     { name = "pykit-schema", editable = "packages/pykit-schema" },
     { name = "pykit-security", editable = "packages/pykit-security" },
     { name = "pykit-server", editable = "packages/pykit-server" },
-    { name = "pykit-server-middleware", editable = "packages/pykit-server-middleware" },
     { name = "pykit-sse", editable = "packages/pykit-sse" },
     { name = "pykit-stateful", editable = "packages/pykit-stateful" },
     { name = "pykit-storage", editable = "packages/pykit-storage" },

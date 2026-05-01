@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from pykit_server_middleware.tenant import (
+from pykit_server.middleware import (
     TenantConfig,
     TenantMiddleware,
     get_tenant,
@@ -67,7 +67,7 @@ def test_set_and_get_tenant() -> None:
         assert get_tenant() == "ws-1"
     finally:
         # Reset so other tests aren't affected
-        from pykit_server_middleware.tenant import _tenant_var
+        from pykit_server.middleware import _tenant_var
 
         _tenant_var.reset(token)
 
@@ -78,7 +78,7 @@ def test_require_tenant_raises() -> None:
 
 
 def test_require_tenant_returns() -> None:
-    from pykit_server_middleware.tenant import _tenant_var
+    from pykit_server.middleware import _tenant_var
 
     token = _tenant_var.set("ws-2")
     try:

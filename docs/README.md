@@ -23,4 +23,6 @@
 | ADR | Title | Status |
 |-----|-------|--------|
 | [0000](adr/0000-template.md) | Template | — |
-| [0001](adr/0001-layered-package-architecture.md) | Layered package architecture | Accepted |
+| [0001](adr/0001-layered-package-architecture.md) | Layered Package Architecture | Accepted |
+
+The current package layering summary lives in [Architecture](architecture.md).

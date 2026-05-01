@@ -1,6 +1,6 @@
 # pykit-server
 
-gRPC server bootstrap with health checking, reflection, graceful shutdown, and request interceptors. Implements the Component protocol.
+gRPC server bootstrap with health checking, graceful shutdown, secure-by-default reflection, request interceptors, and folded HTTP/ASGI middleware.
 
 ## Installation
 
@@ -14,10 +14,7 @@ uv add pykit-server
 
 ```python
 import grpc
-from pykit_server import BaseServer
-from pykit_server.interceptors import (
-    LoggingInterceptor, ErrorHandlingInterceptor, MetricsInterceptor,
-)
+from pykit_server import BaseServer, LoggingInterceptor, MetricsInterceptor, TenantInterceptor
 
 class OrderServer(BaseServer):
     async def register_services(self, server: grpc.aio.Server) -> None:
@@ -25,40 +22,49 @@ class OrderServer(BaseServer):
 
 server = OrderServer(
     port=50051,
+    reflection_enabled=True,  # enable only in development
     interceptors=[
         LoggingInterceptor(),
-        ErrorHandlingInterceptor(),
+        TenantInterceptor(),
         MetricsInterceptor(collector=my_metrics_collector),
     ],
 )
 
-# Component protocol: name and health
-print(server.name)  # "grpc-server"
-health = await server.health()  # Health(status=UNHEALTHY, message="not running")
-
-await server.start()  # Starts gRPC server with health + reflection
-health = await server.health()  # Health(status=HEALTHY, message="serving")
-
-# Fine-grained service health
-server.set_service_status("orders.v1.OrderService", serving=True)
-
-await server.run()  # start + signal handlers + wait for shutdown
+await server.start()
+await server.run()
 ```
+
+## HTTP Middleware
+
+```python
+from pykit_server import (
+    HttpTenantConfig,
+    PrometheusMiddleware,
+    RateLimitConfig,
+    RateLimitMiddleware,
+    RateLimiter,
+    TenantMiddleware,
+    TracingMiddleware,
+)
+
+app = TracingMiddleware(app, service_name="orders")
+app = TenantMiddleware(app, HttpTenantConfig(skip_paths=frozenset({"/healthz"})))
+app = RateLimitMiddleware(app, RateLimiter(RateLimitConfig(requests_per_minute=120)))
+app = PrometheusMiddleware(app)
+```
+
+Ordering target: tracing -> logging -> auth -> validation -> handler -> metrics. When HTTP rate limiting is enabled, place it after identity extraction/validation so per-user or per-tenant keys are stable, then terminate with metrics outermost. `pykit-server` supplies tracing, tenant/auth-adjacent extraction, rate limiting through `pykit-resilience`, and metrics; compose custom logging/auth/validation middleware in the documented order.
 
 ## Key Components
 
-- **BaseServer** — Async gRPC server with health checking, reflection, and graceful shutdown. Implements Component protocol (`name` property, `health()` method)
-- **HealthServicer** — Re-exported `grpc_health.v1.health.HealthServicer` for convenience
-- **LoggingInterceptor** — Logs every gRPC request with method name, duration, and status
-- **ErrorHandlingInterceptor** — Catches `AppError` and translates to proper gRPC status codes
-- **MetricsInterceptor** — Records request metrics via a pluggable collector with `observe_request()`
+- **BaseServer** — async gRPC server with health checking, optional reflection, TLS port binding, and graceful shutdown
+- **LoggingInterceptor / ErrorHandlingInterceptor / MetricsInterceptor** — gRPC transport interceptors
+- **TenantInterceptor** — gRPC tenant extraction shared with HTTP tenant context
+- **TracingMiddleware / PrometheusMiddleware / TenantMiddleware / RateLimitMiddleware** — folded HTTP middleware for ASGI apps
+- **RateLimiter** — per-key rate limit registry backed by `pykit-resilience`
 
-## Dependencies
+## Security Notes
 
-- `pykit-component`, `pykit-errors`, `pykit-logging`
-- `grpcio`, `grpcio-health-checking`, `grpcio-reflection`
-
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- gRPC reflection is **disabled by default**; enable it explicitly for development only.
+- Use `pykit-security` TLS contexts to keep the workspace default at TLS 1.3 with a TLS 1.2 floor where the transport exposes version controls; Python gRPC secure credentials do not currently expose the full floor/cipher surface, so parity-sensitive enforcement remains bounded by the upstream runtime.
+- HTTP middleware uses bounded per-client queues/rate limiting and never forwards tenant identity via query string.

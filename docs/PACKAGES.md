@@ -40,7 +40,7 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | `pykit-pipeline` | Composable, pull-based async data pipelines |
 | `pykit-dag` | DAG execution engine with parallel task orchestration |
 | `pykit-worker` | Background worker and task processing |
-| `pykit-sse` | Server-Sent Events support |
+| `pykit-sse` | Server-Sent Events support with bounded client queues |
 | `pykit-stateful` | Stateful processing and state management |
 
 ## Infrastructure
@@ -52,15 +52,14 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | `pykit-storage` | Object/file storage abstraction — local and S3 backends |
 | `pykit-messaging` | Transport-agnostic messaging with Kafka provider |
 | `pykit-kafka-middleware` | Messaging middleware — DLQ, retry, metrics, tracing |
-| `pykit-httpclient` | Async HTTP client with httpx and resilience patterns |
+| `pykit-httpclient` | Async HTTP client with bounded redirects and resilience integration |
 
 ## Servers
 
 | Package | Description |
 |---------|-------------|
-| `pykit-server` | gRPC server bootstrap, health, and interceptors |
-| `pykit-server-middleware` | Server middleware — logging, auth, metrics |
-| `pykit-grpc` | gRPC client utilities and helpers |
+| `pykit-server` | gRPC server bootstrap plus folded HTTP middleware and interceptor ordering |
+| `pykit-grpc` | gRPC transport utilities and helpers |
 
 ## Security
 
@@ -90,7 +89,7 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 
 | Package | Description |
 |---------|-------------|
-| `pykit-discovery` | Service discovery with Consul integration |
+| `pykit-discovery` | Service discovery with resilience-backed self-registration |
 | `pykit-metrics` | Prometheus metrics helpers |
 | `pykit-process` | Process management utilities |
 | `pykit-workload` | Workload scheduling and management |
@@ -103,4 +102,4 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | `pykit-dataset` | Dataset collection, transformation, publishing |
 | `pykit-bench` | Generic accuracy benchmarking framework |
 
-See [`docs/adr/0001-layered-package-architecture.md`](adr/0001-layered-package-architecture.md) for the layering rationale.
+See [`docs/architecture.md`](architecture.md) for the current layering rationale.

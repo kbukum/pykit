@@ -12,9 +12,9 @@ to list and call services on a running server::
     # Call an RPC
     grpcurl -plaintext -d '{"field": "value"}' localhost:50051 my.package.MyService/MyMethod
 
-Reflection is enabled by default. Disable via ``reflection_enabled=False``::
+Reflection is disabled by default. Enable it explicitly for development::
 
-    server = MyServer(reflection_enabled=False)
+    server = MyServer(reflection_enabled=True)
 """
 
 from __future__ import annotations
@@ -35,8 +35,9 @@ class BaseServer:
     """Generic gRPC server with health checking, reflection, and graceful shutdown.
 
     Subclass and override ``register_services`` to add your gRPC service
-    implementations. Reflection is enabled by default so tools like ``grpcurl``
-    can discover services without a proto file.
+    implementations. Reflection stays disabled by default; enable it explicitly
+    in development when tools like ``grpcurl`` need service discovery without a
+    proto file.
 
     Parameters
     ----------
@@ -54,7 +55,7 @@ class BaseServer:
         Fully-qualified gRPC service names to advertise via reflection.
         The health and reflection services are always included automatically.
     reflection_enabled:
-        Whether to enable gRPC server reflection (default ``True``).
+        Whether to enable gRPC server reflection (default ``False``).
     """
 
     def __init__(
@@ -66,7 +67,7 @@ class BaseServer:
         graceful_shutdown_timeout: float = 30.0,
         interceptors: list[grpc.aio.ServerInterceptor] | None = None,
         reflection_service_names: list[str] | None = None,
-        reflection_enabled: bool = True,
+        reflection_enabled: bool = False,
     ) -> None:
         self.host = host
         self.port = port
