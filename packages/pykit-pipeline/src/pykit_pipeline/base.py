@@ -682,7 +682,7 @@ class _DebounceIter[T](PipelineIterator[T]):
                 # A new message arrived (queue fired, possibly alongside the timer).
                 # Process it; if the timer also fired we simply let it restart next
                 # iteration — the new message resets the debounce window.
-                message = cast("asyncio.Task[_QueueMessage[T]]", queue_task).result()
+                message = queue_task.result()
                 if message.error is not None:
                     raise message.error
                 if message.done:
