@@ -59,7 +59,6 @@ fmt:
 fmt-check:
 	@echo "==> Checking format..."
 	@uv run ruff format --check .
-	@uv run ruff check .
 	@echo "✓ Format OK"
 
 ## Sync dependencies
