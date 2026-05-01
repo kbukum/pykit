@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from pykit_resilience import PolicyConfig
+
 
 @dataclass
 class AuthConfig:
@@ -25,6 +27,6 @@ class HttpConfig:
     timeout: float = 30.0
     headers: dict[str, str] = field(default_factory=dict)
     auth: AuthConfig | None = None
-    max_retries: int = 3
-    retry_backoff: float = 0.5
+    resilience: PolicyConfig | None = None
     follow_redirects: bool = True
+    max_redirects: int = 5

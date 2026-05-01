@@ -7,7 +7,6 @@ handles provider creation, registration, and deregistration automatically.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -15,6 +14,7 @@ from typing import TYPE_CHECKING
 from pykit_component import Health, HealthStatus
 from pykit_discovery.factory import ProviderPair, create_provider, init_builtin
 from pykit_discovery.protocols import Discovery, Registry
+from pykit_resilience import RetryConfig, RetryExhaustedError, retry
 
 if TYPE_CHECKING:
     from pykit_discovery.config import DiscoveryConfig
@@ -103,37 +103,39 @@ class DiscoveryComponent:
             self._instance_id = instance.id
 
             max_retries = max(self._config.registration.max_retries, 1)
-            interval = self._config.registration.retry_seconds()
-            last_err: Exception | None = None
+            retry_config = RetryConfig(
+                max_attempts=max_retries,
+                initial_backoff=self._config.registration.retry_seconds(),
+                backoff_factor=2.0,
+                retry_if=lambda _exc: True,
+                on_retry=lambda attempt, exc, delay: logger.warning(
+                    "failed to register service (attempt %d/%d): %s; retrying in %.2fs",
+                    attempt,
+                    max_retries,
+                    exc,
+                    delay,
+                ),
+            )
 
-            for attempt in range(1, max_retries + 1):
-                try:
-                    await self._pair.registry.register(instance)
-                    logger.info(
-                        "registered service %s (%s)",
-                        instance.name,
-                        self._instance_id,
-                    )
-                    last_err = None
-                    break
-                except Exception as exc:
-                    last_err = exc
-                    logger.warning(
-                        "failed to register service (attempt %d/%d): %s",
-                        attempt,
-                        max_retries,
-                        exc,
-                    )
-                    if attempt < max_retries:
-                        await asyncio.sleep(interval)
-                        interval *= 2  # exponential backoff
+            pair = self._pair
+            if pair is None:
+                raise RuntimeError("Discovery provider not available")
 
-            if last_err is not None:
+            try:
+                await retry(lambda: pair.registry.register(instance), retry_config)
+                logger.info(
+                    "registered service %s (%s)",
+                    instance.name,
+                    self._instance_id,
+                )
+            except RetryExhaustedError as exc:
                 if self._config.registration.required:
                     raise RuntimeError(
-                        f"discovery: register self after {max_retries} retries: {last_err}"
-                    ) from last_err
-                logger.warning("failed to register with discovery — continuing in degraded mode")
+                        f"discovery: register self after {max_retries} retries: {exc.last_error}"
+                    ) from exc.last_error
+                logger.warning(
+                    "failed to register with discovery — continuing in degraded mode: %s", exc.last_error
+                )
 
         self._started = True
 

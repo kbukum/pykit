@@ -400,6 +400,11 @@ class TestRetryEdgeCases:
         # so it won't be caught by the generic except Exception handler.
         assert calls == 1
 
+    def test_rate_limiter_rejects_non_positive_rate(self) -> None:
+        """RateLimiter should reject invalid non-positive rates."""
+        with pytest.raises(ValueError, match="greater than zero"):
+            RateLimiter(RateLimiterConfig(rate=0.0))
+
     async def test_max_backoff_capping(self) -> None:
         """Backoff should never exceed max_backoff."""
         delays: list[float] = []
@@ -629,6 +634,13 @@ class TestBulkheadEdgeCases:
 
 
 class TestRateLimiterEdgeCases:
+    def test_take_rejects_invalid_token_counts(self) -> None:
+        rl = RateLimiter(RateLimiterConfig(name="invalid-tokens", rate=10.0, burst=5))
+
+        for invalid_tokens in (0.0, -1.0, float("nan"), float("inf"), 6.0):
+            with pytest.raises(ValueError, match="finite positive number"):
+                rl.take(tokens=invalid_tokens)
+
     async def test_burst_exhaustion_then_refill(self) -> None:
         """After burst is exhausted, wait() should block until tokens refill."""
         rl = RateLimiter(RateLimiterConfig(name="refill", rate=100.0, burst=3))

@@ -1,6 +1,6 @@
 [project]
 name = "pykit-server"
-description = "gRPC server bootstrap, health, and interceptors"
+description = "gRPC server bootstrap and folded transport middleware"
 version = "0.1.0"
 readme = "README.md"
 license = { text = "MIT" }
@@ -10,9 +10,13 @@ dependencies = [
     "pykit-component",
     "pykit-errors",
     "pykit-logging",
+    "pykit-observability",
+    "pykit-resilience",
     "grpcio",
     "grpcio-health-checking",
     "grpcio-reflection",
+    "opentelemetry-api",
+    "prometheus-client",
 ]
 
 [build-system]

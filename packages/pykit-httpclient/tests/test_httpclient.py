@@ -42,9 +42,9 @@ class TestConfig:
         assert cfg.timeout == 30.0
         assert cfg.headers == {}
         assert cfg.auth is None
-        assert cfg.max_retries == 3
-        assert cfg.retry_backoff == 0.5
+        assert cfg.resilience is None
         assert cfg.follow_redirects is True
+        assert cfg.max_redirects == 5
 
     def test_auth_config_defaults(self):
         auth = AuthConfig()
@@ -62,14 +62,13 @@ class TestConfig:
             timeout=10.0,
             headers={"x-custom": "val"},
             auth=auth,
-            max_retries=5,
         )
         assert cfg.name == "my-api"
         assert cfg.base_url == "https://api.example.com"
         assert cfg.timeout == 10.0
         assert cfg.auth is not None
         assert cfg.auth.type == "basic"
-        assert cfg.max_retries == 5
+        assert cfg.max_redirects == 5
 
 
 # ---------------------------------------------------------------------------

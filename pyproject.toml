@@ -52,7 +52,6 @@ dev = [
     "pykit-security",
     "pykit-workload",
     "pykit-kafka-middleware",
-    "pykit-server-middleware",
     "pykit-auth-oidc",
     "pykit-embedding",
     "pykit-vector-store",
@@ -143,7 +142,6 @@ pykit-resilience     = { workspace = true }
 pykit-schema         = { workspace = true }
 pykit-security       = { workspace = true }
 pykit-server         = { workspace = true }
-pykit-server-middleware = { workspace = true }
 pykit-sse            = { workspace = true }
 pykit-stateful       = { workspace = true }
 pykit-storage        = { workspace = true }
@@ -211,7 +209,6 @@ source_pkgs = [
     "pykit_security",
     "pykit_workload",
     "pykit_kafka_middleware",
-    "pykit_server_middleware",
     "pykit_auth_oidc",
     "pykit_embedding",
     "pykit_vector_store",
@@ -388,7 +385,6 @@ packages = [
     "pykit_security",
     "pykit_workload",
     "pykit_kafka_middleware",
-    "pykit_server_middleware",
     "pykit_auth_oidc",
     "pykit_embedding",
     "pykit_vector_store",
@@ -438,7 +434,7 @@ root_packages = [
     "pykit_pipeline", "pykit_dag", "pykit_worker", "pykit_sse", "pykit_stateful",
     "pykit_auth", "pykit_authz", "pykit_auth_oidc", "pykit_auth_apikey",
     "pykit_database", "pykit_redis", "pykit_storage", "pykit_messaging", "pykit_httpclient",
-    "pykit_server", "pykit_grpc", "pykit_server_middleware", "pykit_kafka_middleware",
+    "pykit_server", "pykit_grpc", "pykit_kafka_middleware",
     "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
     "pykit_embedding", "pykit_vector_store", "pykit_llm_providers", "pykit_explain",
     "pykit_transcription",
@@ -452,7 +448,7 @@ type = "layers"
 layers = [
     "pykit_agent | pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics | pykit_integration",
     "pykit_llm | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription | pykit_embedding | pykit_vector_store | pykit_llm_providers | pykit_explain",
-    "pykit_server | pykit_grpc | pykit_server_middleware | pykit_kafka_middleware",
+    "pykit_server | pykit_grpc | pykit_kafka_middleware",
     "pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
     "pykit_auth | pykit_authz | pykit_security | pykit_auth_oidc | pykit_auth_apikey",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
