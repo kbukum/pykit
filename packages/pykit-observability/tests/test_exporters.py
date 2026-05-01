@@ -66,9 +66,10 @@ def patch_otlp_exporters() -> Iterator[None]:
     from unittest.mock import MagicMock, patch
 
     from opentelemetry.sdk.metrics.export import MetricExportResult
+    from opentelemetry.sdk.trace.export import SpanExportResult
 
     mock_span_exporter = MagicMock()
-    mock_span_exporter.export.return_value = None
+    mock_span_exporter.export.return_value = SpanExportResult.SUCCESS
     mock_span_exporter.shutdown.return_value = None
 
     mock_metric_exporter = MagicMock()

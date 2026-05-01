@@ -239,20 +239,25 @@ class WorkerPool:
         semaphore = self._slot_semaphores[entry.slot_index]
         acquired = False
         try:
-            await semaphore.acquire()
-            acquired = True
-            async with self._capacity_condition:
-                entry.queue_state = _QueueState.ACQUIRING
-                self._discard_pending_locked(entry.task.id)
-                self._capacity_condition.notify_all()
+            try:
+                await semaphore.acquire()
+                acquired = True
+                async with self._capacity_condition:
+                    entry.queue_state = _QueueState.ACQUIRING
+                    self._discard_pending_locked(entry.task.id)
+                    self._capacity_condition.notify_all()
 
-            if entry.task.status == TaskStatus.CANCELLED:
-                return
+                if entry.task.status == TaskStatus.CANCELLED:
+                    return
 
-            entry.start_time = time.monotonic()
-            async with self._capacity_condition:
-                entry.queue_state = _QueueState.RUNNING
-                entry.task.status = TaskStatus.RUNNING
+                entry.start_time = time.monotonic()
+                async with self._capacity_condition:
+                    entry.queue_state = _QueueState.RUNNING
+                    entry.task.status = TaskStatus.RUNNING
+            except asyncio.CancelledError:
+                if entry.task.status == TaskStatus.PENDING:
+                    entry.task.status = TaskStatus.CANCELLED
+                raise
             try:
                 result = await self._execute_handler(entry)
             except asyncio.CancelledError:
@@ -265,6 +270,12 @@ class WorkerPool:
                 entry.task.status = TaskStatus.COMPLETED
                 entry.events.append(complete_event(entry.task.id, data=result))
         finally:
+            if (
+                entry.future is not None
+                and entry.future.cancelled()
+                and entry.task.status == TaskStatus.PENDING
+            ):
+                entry.task.status = TaskStatus.CANCELLED
             if acquired:
                 semaphore.release()
             async with self._capacity_condition:

@@ -200,3 +200,24 @@ async def test_wait_cancellation_propagates_to_caller() -> None:
     result = await pool.wait(task.id)
     assert result.status == TaskStatus.COMPLETED
     await pool.shutdown()
+
+
+@pytest.mark.asyncio
+async def test_graceful_shutdown_marks_pending_task_cancelled() -> None:
+    gate = asyncio.Event()
+    pool = WorkerPool(PoolConfig(max_workers=1, max_pending_tasks=1, graceful_timeout=0.01))
+
+    async def block() -> None:
+        await gate.wait()
+
+    first = await pool.submit("first", block)
+    await asyncio.sleep(0.01)
+    second = await pool.submit("second", block)
+
+    await pool.shutdown(graceful=True)
+
+    first_result = await pool.wait(first.id)
+    second_result = await pool.wait(second.id)
+    assert first_result.status == TaskStatus.CANCELLED
+    assert second_result.status == TaskStatus.CANCELLED
+    gate.set()
