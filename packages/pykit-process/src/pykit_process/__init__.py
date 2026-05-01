@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pykit_process.runner import run_command, run_shell
+from pykit_process.runner import run_command
 from pykit_process.types import Command, ProcessConfig, ProcessResult
 
-__all__ = ["Command", "ProcessConfig", "ProcessResult", "run_command", "run_shell"]
+__all__ = ["Command", "ProcessConfig", "ProcessResult", "run_command"]

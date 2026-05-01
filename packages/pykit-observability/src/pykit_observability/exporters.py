@@ -132,12 +132,17 @@ def setup_otlp_tracing(
     Creates a TracerProvider with a BatchSpanProcessor that exports spans
     to an OTLP HTTP endpoint. Sets this as the global tracer provider.
 
+    The returned provider owns a background ``BatchSpanProcessor`` thread.
+    Callers MUST call ``provider.shutdown()`` during application teardown
+    (or use it inside a context manager) to stop the exporter thread; otherwise
+    the process may hang waiting on retry/flush attempts.
+
     Args:
         service_name: Service name for resource attribution.
         config: OtlpExporterConfig. If None, uses defaults.
 
     Returns:
-        Configured TracerProvider (also set as global).
+        Configured TracerProvider (also set as global). Caller owns shutdown.
 
     Raises:
         ImportError: If opentelemetry-exporter-otlp-proto-http is not installed.
@@ -167,12 +172,17 @@ def setup_otlp_metrics(
     Creates a MeterProvider with a PeriodicExportingMetricReader that exports
     metrics to an OTLP HTTP endpoint. Sets this as the global meter provider.
 
+    The returned provider owns a background ``PeriodicExportingMetricReader``
+    thread. Callers MUST call ``provider.shutdown()`` during application
+    teardown to stop the exporter thread; otherwise the process may hang
+    waiting on retry/flush attempts after the test or app exits.
+
     Args:
         service_name: Service name for resource attribution.
         config: OtlpExporterConfig. If None, uses defaults.
 
     Returns:
-        Configured MeterProvider (also set as global).
+        Configured MeterProvider (also set as global). Caller owns shutdown.
 
     Raises:
         ImportError: If opentelemetry-exporter-otlp-proto-http is not installed.

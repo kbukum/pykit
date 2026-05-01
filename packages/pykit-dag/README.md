@@ -54,6 +54,24 @@ print(result.success, result.duration)
 - **NodeState** — Tracks `status`, `result`, `error`, and `duration` per node
 - **CycleError / MissingNodeError** — Validation errors extending `AppError`
 
+## Execution semantics
+
+### Failure policies
+
+`EngineConfig.failure_policy` controls behavior after a node fails:
+
+- `FAIL_FAST` stops scheduling subsequent levels after the first failed level and marks remaining level nodes as skipped.
+- `CONTINUE` keeps running independent nodes; dependents are not automatically skipped unless their own execution fails.
+- `SKIP_DEPENDENTS` skips nodes whose declared dependencies failed or were skipped while allowing unrelated branches to continue.
+
+### Cycle detection guarantee
+
+`Graph.validate()` and `Graph.topological_sort()` reject cycles before execution. Explicit `add_edge()` edges and node-declared dependencies are both included in topological ordering; if all nodes cannot be processed, `CycleError` is raised and no execution starts.
+
+### Parallelism
+
+Nodes are grouped by topological level. Nodes in the same level have no dependencies on each other and may run concurrently, bounded by `EngineConfig.max_concurrency` via an `asyncio.Semaphore`. Levels execute deterministically in sorted node-name order for scheduling, but sibling completion order depends on async runtime timing.
+
 ## Dependencies
 
 - `pykit-errors` — Error handling (`AppError` subclasses for cycle and missing node errors)
