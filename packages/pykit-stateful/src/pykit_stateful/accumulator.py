@@ -103,8 +103,10 @@ class Accumulator[V]:
         self._closed = True
         if self._ttl_task is not None:
             self._ttl_task.cancel()
+            # Await the cancelled task so it finishes before we return.
+            # suppress() absorbs the CancelledError raised by the completed task.
             with contextlib.suppress(asyncio.CancelledError):
-                await self._ttl_task
+                await self._ttl_task  # intentional: drain the task
             self._ttl_task = None
 
     async def close(self) -> None:

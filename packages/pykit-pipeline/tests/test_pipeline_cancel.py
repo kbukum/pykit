@@ -44,7 +44,7 @@ async def _assert_close_does_not_surface_cancelled_error(pipeline: Pipeline[int]
     "build",
     [
         lambda source: source.parallel(2, lambda value: value),
-        lambda source: source.merge(Pipeline.from_fn(lambda: SlowIterator())),
+        lambda source: source.merge(Pipeline.from_fn(SlowIterator)),
         lambda source: source.debounce(0.001),
         lambda source: source.buffer(1),
     ],
@@ -52,5 +52,5 @@ async def _assert_close_does_not_surface_cancelled_error(pipeline: Pipeline[int]
 async def test_background_operator_close_preserves_cancelled_error_semantics(
     build: Callable[[Pipeline[int]], Pipeline[int]],
 ) -> None:
-    source = Pipeline.from_fn(lambda: SlowIterator())
+    source = Pipeline.from_fn(SlowIterator)
     await _assert_close_does_not_surface_cancelled_error(build(source))

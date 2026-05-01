@@ -128,6 +128,8 @@ async def test_blocked_submit_unblocks_on_shutdown() -> None:
 
     await pool.shutdown(graceful=False)
 
+    # Awaiting submit_task surfaces the RuntimeError it raised while blocked in
+    # _ensure_capacity_locked() after shutdown was signalled.
     with pytest.raises(RuntimeError, match="pool is shut down"):
         await submit_task
     gate.set()
@@ -166,3 +168,34 @@ async def test_drop_oldest_skips_running_and_acquiring_entries() -> None:
 def test_pool_config_rejects_zero_workers() -> None:
     with pytest.raises(ValueError, match="max_workers"):
         PoolConfig(max_workers=0)
+
+
+@pytest.mark.asyncio
+async def test_wait_cancellation_propagates_to_caller() -> None:
+    """Cancelling a wait() call propagates CancelledError to the caller.
+
+    The underlying worker task must keep running (asyncio.shield protects it).
+    """
+    gate = asyncio.Event()
+    pool = WorkerPool(PoolConfig(max_workers=1))
+
+    async def block() -> None:
+        await gate.wait()
+
+    task = await pool.submit("task", block)
+
+    wait_coro = asyncio.create_task(pool.wait(task.id))
+    await asyncio.sleep(0.01)
+
+    wait_coro.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await wait_coro
+
+    # Worker task is still running — gate hasn't been set yet.
+    entry = pool._tasks.get(task.id)
+    assert entry is not None and not entry.future.done()
+
+    gate.set()
+    result = await pool.wait(task.id)
+    assert result.status == TaskStatus.COMPLETED
+    await pool.shutdown()

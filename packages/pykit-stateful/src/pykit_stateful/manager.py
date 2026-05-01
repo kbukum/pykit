@@ -104,8 +104,10 @@ class Manager[K, V]:
         self._closed = True
         if self._cleanup_task is not None:
             self._cleanup_task.cancel()
+            # Await the cancelled task so it finishes before we proceed.
+            # suppress() absorbs the CancelledError raised by the completed task.
             with contextlib.suppress(asyncio.CancelledError):
-                await self._cleanup_task
+                await self._cleanup_task  # intentional: drain the task
             self._cleanup_task = None
         async with self._lock:
             accumulators = list(self._accumulators.values())

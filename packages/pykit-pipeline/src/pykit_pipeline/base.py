@@ -668,11 +668,21 @@ class _DebounceIter[T](PipelineIterator[T]):
                     with contextlib.suppress(asyncio.CancelledError):
                         await task
 
-                completed = done.pop()
-                if has_value and timer_task is not None and completed == timer_task:
+                # asyncio.wait can complete multiple tasks in the same event-loop
+                # tick (e.g., timer and queue both become ready simultaneously).
+                # Check membership explicitly instead of done.pop() so we never
+                # discard a queue message that was already dequeued.
+                queue_fired = queue_task in done
+                timer_fired = timer_task is not None and timer_task in done
+
+                if timer_fired and not queue_fired:
+                    # Debounce interval elapsed with no new message → emit.
                     return latest
 
-                message = cast("asyncio.Task[_QueueMessage[T]]", completed).result()
+                # A new message arrived (queue fired, possibly alongside the timer).
+                # Process it; if the timer also fired we simply let it restart next
+                # iteration — the new message resets the debounce window.
+                message = cast("asyncio.Task[_QueueMessage[T]]", queue_task).result()
                 if message.error is not None:
                     raise message.error
                 if message.done:

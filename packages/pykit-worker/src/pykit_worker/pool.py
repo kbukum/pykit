@@ -131,9 +131,13 @@ class WorkerPool:
             entry.task.status = TaskStatus.FAILED
             entry.events.append(error_event(task_id, message="task timed out"))
         except asyncio.CancelledError:
-            # Swallow cancellation of the waiter: return latest known task state
-            # rather than propagating. The worker future remains tracked by pool lifecycle.
-            pass
+            if not entry.future.cancelled():
+                # The CALLER cancelled their wait() — propagate so they know it ended.
+                # asyncio.shield() above ensures entry.future keeps running.
+                raise
+            # The underlying worker task was cancelled by the pool itself (e.g.,
+            # DROP_OLDEST eviction or graceful shutdown). Return the task result
+            # (CANCELLED status) rather than propagating an unrelated cancellation.
 
         return self._build_result(entry)
 
