@@ -34,9 +34,7 @@ total = await collect(reduce(Pipeline.from_list([1, 2, 3]), 0, lambda acc, x: ac
 # total: [6]
 ```
 
-## Operator parity
-
-The Group 03 operator catalog is intentionally aligned with gokit and rskit. Rows stay in the same cross-kit order.
+## Operator reference
 
 | Operator | pykit API | Notes |
 |---|---|---|
