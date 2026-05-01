@@ -5,25 +5,53 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  merge_group:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.repository }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python-code: ${{ steps.filter.outputs.python-code }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        with:
+          fetch-depth: 2
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36  # v3.0.2
+        id: filter
+        with:
+          filters: |
+            python-code:
+              - '**/*.py'
+              - '**/pyproject.toml'
+              - 'uv.lock'
+              - 'Makefile'
+              - '.github/workflows/ci.yml'
+
   # ---------------------------------------------------------------------------
   # Format check (fast gate)
   # ---------------------------------------------------------------------------
   format:
     name: Format
+    needs: [changes]
+    if: needs.changes.outputs.python-code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
       - run: uv run ruff format --check packages/
 
@@ -32,11 +60,16 @@ jobs:
   # ---------------------------------------------------------------------------
   lint:
     name: Lint
+    needs: [changes]
+    if: needs.changes.outputs.python-code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
       - run: uv run ruff check packages/
 
@@ -45,11 +78,16 @@ jobs:
   # ---------------------------------------------------------------------------
   typecheck:
     name: Type Check
+    needs: [changes]
+    if: needs.changes.outputs.python-code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
       - run: uv run mypy
 
@@ -58,6 +96,8 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     name: Test (Python ${{ matrix.python-version }})
+    needs: [changes]
+    if: needs.changes.outputs.python-code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -69,6 +109,8 @@ jobs:
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
       - name: Verify lockfile is up-to-date
         run: uv lock --check
@@ -88,11 +130,16 @@ jobs:
   # ---------------------------------------------------------------------------
   architecture:
     name: Architecture
+    needs: [changes]
+    if: needs.changes.outputs.python-code == 'true' && (github.event_name == 'merge_group' || github.event_name == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
       - run: uv run import-linter
 
@@ -102,12 +149,13 @@ jobs:
   ci-status:
     name: CI Status
     if: always()
-    needs: [format, lint, typecheck, test, architecture]
+    needs: [changes, format, lint, typecheck, test, architecture]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate results
         run: |
           results=(
+            "${{ needs.changes.result }}"
             "${{ needs.format.result }}"
             "${{ needs.lint.result }}"
             "${{ needs.typecheck.result }}"

@@ -1,4 +1,4 @@
-.PHONY: all build test test-coverage lint typecheck fmt fmt-check sync update check clean help \
+.PHONY: all build test test-coverage test-affected test-unit lint typecheck fmt fmt-check sync update check check-fast clean help \
        ci ci-test ci-lint ensure-act
 
 # Package flag: pass package name when P is set
@@ -59,7 +59,6 @@ fmt:
 fmt-check:
 	@echo "==> Checking format..."
 	@uv run ruff format --check .
-	@uv run ruff check .
 	@echo "✓ Format OK"
 
 ## Sync dependencies
@@ -76,6 +75,35 @@ update:
 
 ## Run all checks (fmt-check + lint + typecheck + test)
 check: fmt-check lint typecheck test
+
+## Fast check: format + lint + typecheck only (no tests) — for rapid iteration
+check-fast: fmt-check lint typecheck
+
+## Run tests for affected packages only (vs main branch)
+test-affected:
+	@echo "==> Detecting affected packages..."
+	@CHANGED=$$(git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~1); \
+	if [ -z "$$CHANGED" ]; then \
+		echo "No changes detected, running all tests"; \
+		uv run pytest; \
+	elif echo "$$CHANGED" | grep -qvE '^packages/'; then \
+		echo "Root/config files changed, running all tests"; \
+		uv run pytest; \
+	else \
+		PKGS=$$(echo "$$CHANGED" | grep -E '^packages/' | cut -d/ -f2 | sort -u); \
+		if [ -z "$$PKGS" ]; then \
+			echo "No package changes detected, running all tests"; \
+			uv run pytest; \
+		else \
+			echo "Affected packages: $$PKGS"; \
+			PATHS=$$(echo "$$PKGS" | sed 's|^|packages/|' | tr '\n' ' '); \
+			uv run pytest $$PATHS; \
+		fi; \
+	fi
+
+## Run fast tests (excludes integration/e2e/benchmark)
+test-unit:
+	@uv run pytest -m "not integration and not e2e and not benchmark" -n auto --dist worksteal
 
 ## Clean build artifacts and caches
 clean:
@@ -114,15 +142,19 @@ help:
 	@echo "Usage: make <target> [P=<package>] [T=<test>]"
 	@echo ""
 	@echo "Development:"
+	@echo "  make help                           Show this help"
 	@echo "  make build              [P=]       Build packages"
 	@echo "  make test               [P=] [T=]  Run tests"
 	@echo "  make test-coverage      [P=] [T=]  Run tests with coverage"
+	@echo "  make test-affected                  Run tests for changed packages"
+	@echo "  make test-unit                      Run fast tests (excludes integration/e2e/benchmark)"
 	@echo "  make lint               [P=]       Run ruff check"
 	@echo "  make typecheck          [P=]       Run mypy"
 	@echo "  make fmt                            Format code"
 	@echo "  make fmt-check                      Check formatting"
 	@echo "  make sync                           Sync dependencies"
 	@echo "  make update                         Update lockfile"
+	@echo "  make check-fast                     fmt-check + lint + typecheck"
 	@echo "  make check              [P=]       fmt-check + lint + typecheck + test"
 	@echo "  make clean                          Remove build artifacts"
 	@echo ""
