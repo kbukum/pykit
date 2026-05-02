@@ -175,7 +175,8 @@ class TestFakeAsyncKeyValue:
         await backend.set("key", "value")
         assert await backend.get("key") == "value"
         assert await backend.exists("key", "missing") == 1
-        assert await backend.delete("key") == 1
+        deleted = await backend.delete("key")
+        assert deleted == 1
         assert await backend.get("key") is None
 
     @pytest.mark.asyncio

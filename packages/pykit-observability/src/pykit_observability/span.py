@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from enum import Enum
 
@@ -56,7 +56,7 @@ def start_span(
     *,
     context: otel_context.Context | None = None,
     kind: SpanKind = SpanKind.INTERNAL,
-    attributes: dict[str, str | int | float | bool] | None = None,
+    attributes: Mapping[str, str | int | float | bool] | None = None,
 ) -> Iterator[Span]:
     """Start a span from a named tracer."""
     tracer = trace.get_tracer(tracer_name)
@@ -64,6 +64,6 @@ def start_span(
         span_name,
         context=context,
         kind=_SPAN_KIND_MAP[kind],
-        attributes=attributes,
+        attributes=dict(attributes) if attributes is not None else None,
     ) as span:
         yield Span(span)

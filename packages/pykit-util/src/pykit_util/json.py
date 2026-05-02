@@ -17,11 +17,11 @@ class Codec(Protocol[T]):
 
     def encode(self, value: T) -> bytes:
         """Encode a value to bytes."""
-        ...
+        raise NotImplementedError
 
     def decode(self, raw: bytes | str) -> T:
         """Decode bytes or text into a value."""
-        ...
+        raise NotImplementedError
 
 
 class JsonCodec(Codec[T]):

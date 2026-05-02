@@ -16,7 +16,7 @@ Layer 9 — AI / ML
   pykit-llm-providers · pykit-explain
 
 Layer 8 — Servers
-  pykit-server · pykit-grpc · pykit-messaging
+  pykit-server · pykit-grpc
 
 Layer 7 — Infrastructure Clients
   pykit-database · pykit-cache · pykit-storage · pykit-messaging · pykit-httpclient

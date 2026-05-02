@@ -65,7 +65,7 @@ uv run pytest packages/
 | Database access | `pykit-database` + `pykit-resilience` |
 | Auth + authz | `pykit-auth` + `pykit-authz` |
 | AI agent | `pykit-llm` + `pykit-tool` + `pykit-agent` |
-| Observable service | `pykit-observability` + `pykit-observability` |
+| Observable service | `pykit-logging` + `pykit-observability` |
 
 ## Next Steps
 
