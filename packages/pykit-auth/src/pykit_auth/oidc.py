@@ -254,17 +254,28 @@ def validate_callback(
 class JWKSCache:
     """Asynchronous JWKS cache with bounded refresh on key rotation."""
 
-    def __init__(self, jwks_uri: str, *, ttl_seconds: int = 3600, http_timeout: float = 10.0) -> None:
+    def __init__(
+        self,
+        jwks_uri: str,
+        *,
+        ttl_seconds: int = 3600,
+        http_timeout: float = 10.0,
+        min_refresh_interval_seconds: int = 30,
+    ) -> None:
         _validate_https_url(jwks_uri, field_name="jwks_uri")
         if ttl_seconds <= 0:
             raise ValueError("ttl_seconds must be positive")
         if http_timeout <= 0:
             raise ValueError("http_timeout must be positive")
+        if min_refresh_interval_seconds <= 0:
+            raise ValueError("min_refresh_interval_seconds must be positive")
         self._jwks_uri = jwks_uri
         self._ttl_seconds = ttl_seconds
         self._http_timeout = http_timeout
+        self._min_refresh_interval_seconds = min_refresh_interval_seconds
         self._keys: dict[str, dict[str, object]] = {}
         self._fetched_at = 0.0
+        self._last_forced_refresh_at = 0.0
         self._lock = asyncio.Lock()
 
     async def get_key(self, kid: str) -> VerificationKey:
@@ -273,7 +284,7 @@ class JWKSCache:
         keys = await self.get_keys()
         if kid in keys:
             return cast("VerificationKey", jwt.PyJWK.from_dict(keys[kid]).key)
-        await self.invalidate()
+        await self._refresh(force=True)
         keys = await self.get_keys()
         if kid not in keys:
             raise OIDCError("unknown signing key")
@@ -292,10 +303,15 @@ class JWKSCache:
         async with self._lock:
             self._fetched_at = 0.0
 
-    async def _refresh(self) -> None:
+    async def _refresh(self, *, force: bool = False) -> None:
         async with self._lock:
-            if monotonic() - self._fetched_at <= self._ttl_seconds:
+            now = monotonic()
+            if not force and now - self._fetched_at <= self._ttl_seconds:
                 return
+            if force and now - self._last_forced_refresh_at < self._min_refresh_interval_seconds:
+                return
+            if force:
+                self._last_forced_refresh_at = now
 
             async with httpx.AsyncClient(timeout=self._http_timeout) as client:
                 response = await client.get(self._jwks_uri)

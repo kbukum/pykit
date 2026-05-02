@@ -58,6 +58,7 @@ def _jwk(public_key: object, kid: str) -> dict[str, object]:
 class FakeAsyncClient:
     def __init__(self, response: httpx.Response) -> None:
         self._response = response
+        self.get_calls = 0
 
     async def __aenter__(self) -> FakeAsyncClient:
         return self
@@ -66,6 +67,7 @@ class FakeAsyncClient:
         return None
 
     async def get(self, url: str) -> httpx.Response:
+        self.get_calls += 1
         return self._response
 
     async def post(self, url: str, data: dict[str, str], headers: dict[str, str]) -> httpx.Response:
@@ -348,3 +350,32 @@ async def test_jwks_cache_rejects_unknown_keys_and_invalid_payload(monkeypatch: 
 
     with pytest.raises(ValueError, match="positive"):
         JWKSCache("https://issuer.example.com/jwks", http_timeout=0)
+
+    with pytest.raises(ValueError, match="positive"):
+        JWKSCache("https://issuer.example.com/jwks", min_refresh_interval_seconds=0)
+
+
+@pytest.mark.asyncio
+async def test_jwks_cache_throttles_forced_refresh_on_repeated_kid_miss(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    response = httpx.Response(
+        200,
+        json={"keys": []},
+        request=httpx.Request("GET", "https://issuer.example.com/jwks"),
+    )
+    client = FakeAsyncClient(response)
+    monkeypatch.setattr("pykit_auth.oidc.httpx.AsyncClient", lambda timeout: client)
+
+    cache = JWKSCache(
+        "https://issuer.example.com/jwks",
+        ttl_seconds=60,
+        min_refresh_interval_seconds=30,
+    )
+    with pytest.raises(OIDCError, match="unknown signing key"):
+        await cache.get_key("missing")
+    assert client.get_calls == 2
+
+    with pytest.raises(OIDCError, match="unknown signing key"):
+        await cache.get_key("missing")
+    assert client.get_calls == 2
