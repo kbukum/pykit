@@ -19,14 +19,16 @@ from pykit_authz import (
     match_pattern,
 )
 
+type _Attrs = dict[str, str | int | float | bool]
+
 
 def _request(
     *,
     roles: tuple[str, ...] = (),
     action: str = "read",
     resource_type: str = "article",
-    subject_attrs: dict[str, str | bool] | None = None,
-    resource_attrs: dict[str, str | bool] | None = None,
+    subject_attrs: _Attrs | None = None,
+    resource_attrs: _Attrs | None = None,
 ) -> AuthorizationRequest:
     return AuthorizationRequest(
         subject=Subject("user-1", roles=roles, attributes=subject_attrs or {}),
