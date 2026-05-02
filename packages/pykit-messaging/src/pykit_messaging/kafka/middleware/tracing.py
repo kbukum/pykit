@@ -4,38 +4,20 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from opentelemetry import context as otel_context
-from opentelemetry import trace
-from opentelemetry.propagate import extract, inject
-from opentelemetry.trace import StatusCode
-
 from pykit_messaging.types import Message, MessageHandler
-
-
-class _HeaderCarrier:
-    """Adapts a ``dict[str, str]`` to the OpenTelemetry TextMap interface."""
-
-    def __init__(self, headers: dict[str, str]) -> None:
-        self._headers = headers
-
-    def get(self, key: str, default: str | None = None) -> str | None:
-        return self._headers.get(key, default)
-
-    def set(self, key: str, value: str) -> None:
-        self._headers[key] = value
-
-    def keys(self) -> list[str]:
-        return list(self._headers)
+from pykit_observability import MappingCarrier, SpanKind, TraceContext, start_span
+from pykit_observability import extract_trace_context as extract_observability_context
+from pykit_observability import inject_trace_context as inject_observability_context
 
 
 def inject_trace_context(headers: dict[str, str]) -> None:
     """Inject the current span's trace context into message headers."""
-    inject(carrier=_HeaderCarrier(headers))
+    inject_observability_context(MappingCarrier(headers))
 
 
-def extract_trace_context(headers: dict[str, str]) -> otel_context.Context:
+def extract_trace_context(headers: dict[str, str]) -> TraceContext:
     """Extract trace context from message headers."""
-    return extract(carrier=_HeaderCarrier(headers))
+    return extract_observability_context(MappingCarrier(headers))
 
 
 def TracingHandler(
@@ -68,7 +50,6 @@ def TracingHandler(
     name_func = span_name_func or _default_span_name
 
     async def wrapper(msg: Message) -> None:
-        tracer = trace.get_tracer(tracer_name)
         ctx = extract_trace_context(msg.headers)
         span_name = name_func(msg)
 
@@ -80,17 +61,18 @@ def TracingHandler(
             attrs["messaging.kafka.partition"] = msg.partition
             attrs["messaging.kafka.message.key"] = msg.key or ""
 
-        with tracer.start_as_current_span(
+        with start_span(
+            tracer_name,
             span_name,
             context=ctx,
-            kind=trace.SpanKind.CONSUMER,
+            kind=SpanKind.CONSUMER,
             attributes=attrs,
         ) as span:
             try:
                 await handler(msg)
             except Exception as exc:
                 span.record_exception(exc)
-                span.set_status(StatusCode.ERROR, str(exc))
+                span.set_error(str(exc))
                 raise
 
     return wrapper

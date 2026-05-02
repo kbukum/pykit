@@ -15,8 +15,6 @@ dependencies = [
     "grpcio",
     "grpcio-health-checking",
     "grpcio-reflection",
-    "opentelemetry-api",
-    "prometheus-client",
 ]
 
 [build-system]

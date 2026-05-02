@@ -4,26 +4,11 @@ from __future__ import annotations
 
 import time
 
-from prometheus_client import Counter, Histogram
-
 from pykit_messaging.types import Message, MessageHandler
+from pykit_observability import MessageMetrics
 
 # Module-level metrics — created once, shared across all InstrumentHandler calls.
-_messages_total = Counter(
-    "kafka_consumer_messages_total",
-    "Total number of consumed messages",
-    ["topic", "group"],
-)
-_errors_total = Counter(
-    "kafka_consumer_errors_total",
-    "Total number of consumer errors",
-    ["topic", "group"],
-)
-_processing_duration = Histogram(
-    "kafka_consumer_processing_duration_seconds",
-    "Duration of message processing in seconds",
-    ["topic", "group"],
-)
+_default_metrics = MessageMetrics()
 
 
 def InstrumentHandler(
@@ -49,37 +34,18 @@ def InstrumentHandler(
     - ``kafka_consumer_processing_duration_seconds`` — processing latency histogram
     """
 
-    if metric_prefix == "kafka_consumer":
-        msgs = _messages_total
-        errs = _errors_total
-        dur = _processing_duration
-    else:
-        msgs = Counter(
-            f"{metric_prefix}_messages_total",
-            "Total number of consumed messages",
-            ["topic", "group"],
-        )
-        errs = Counter(
-            f"{metric_prefix}_errors_total",
-            "Total number of consumer errors",
-            ["topic", "group"],
-        )
-        dur = Histogram(
-            f"{metric_prefix}_processing_duration_seconds",
-            "Duration of message processing in seconds",
-            ["topic", "group"],
-        )
+    metrics = _default_metrics if metric_prefix == "kafka_consumer" else MessageMetrics(metric_prefix)
 
     async def wrapper(msg: Message) -> None:
         start = time.monotonic()
+        errored = False
         try:
             await handler(msg)
         except Exception:
-            errs.labels(topic=topic, group=group).inc()
+            errored = True
             raise
         finally:
             duration = time.monotonic() - start
-            msgs.labels(topic=topic, group=group).inc()
-            dur.labels(topic=topic, group=group).observe(duration)
+            metrics.record(topic, group, duration, error=errored)
 
     return wrapper

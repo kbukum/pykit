@@ -9,14 +9,19 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from pykit_observability import (
+    MappingCarrier,
     MeterConfig,
     OperationContext,
     OperationMetrics,
+    SpanKind,
     TracerConfig,
+    extract_trace_context,
     get_meter,
     get_tracer,
+    inject_trace_context,
     setup_metrics,
     setup_tracing,
+    start_span,
     trace_operation,
 )
 
@@ -86,6 +91,49 @@ class TestTraceOperation:
         assert spans[0].name == "test.op"
         assert spans[0].attributes is not None
         assert spans[0].attributes.get("key") == "val"
+
+
+class TestPropagationHelpers:
+    def test_mapping_carrier_roundtrip(self) -> None:
+        headers: dict[str, str] = {}
+        carrier = MappingCarrier(headers)
+        carrier.set("traceparent", "value")
+
+        assert carrier.get("traceparent") == "value"
+        assert carrier.keys() == ["traceparent"]
+
+    def test_inject_extract_context(self) -> None:
+        headers: dict[str, str] = {}
+        inject_trace_context(MappingCarrier(headers))
+        ctx = extract_trace_context(MappingCarrier(headers))
+
+        assert ctx is not None
+
+
+class TestSpanHelpers:
+    @pytest.fixture(autouse=True)
+    def _setup_provider(self) -> None:
+        self.exporter = InMemorySpanExporter()
+        provider = TracerProvider()
+        provider.add_span_processor(SimpleSpanProcessor(self.exporter))
+        trace.set_tracer_provider(provider)
+
+    def test_start_span_wrapper(self) -> None:
+        with start_span(
+            "test-tracer",
+            "message consume",
+            kind=SpanKind.CONSUMER,
+            attributes={"messaging.system": "kafka"},
+        ) as span:
+            span.set_attribute("messaging.destination", "events")
+            span.record_exception(RuntimeError("boom"))
+            span.set_error("boom")
+
+        spans = self.exporter.get_finished_spans()
+        assert len(spans) == 1
+        assert spans[0].name == "message consume"
+        assert spans[0].kind == trace.SpanKind.CONSUMER
+        assert spans[0].status.status_code == trace.StatusCode.ERROR
 
 
 # -- Metrics -------------------------------------------------------------------

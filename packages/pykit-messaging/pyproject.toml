@@ -10,8 +10,7 @@ dependencies = [
     "pykit-errors",
     "pykit-component",
     "pykit-util",
-    "opentelemetry-api",
-    "prometheus-client",
+    "pykit-observability",
 ]
 
 [project.optional-dependencies]

@@ -2699,10 +2699,9 @@ name = "pykit-messaging"
 version = "0.1.0"
 source = { editable = "packages/pykit-messaging" }
 dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
     { name = "pykit-component" },
     { name = "pykit-errors" },
+    { name = "pykit-observability" },
     { name = "pykit-util" },
 ]
 
@@ -2722,11 +2721,10 @@ kafka = [
 requires-dist = [
     { name = "aiokafka", marker = "extra == 'kafka'" },
     { name = "cramjam", marker = "extra == 'kafka'" },
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-dag", marker = "extra == 'bridges'", editable = "packages/pykit-dag" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
+    { name = "pykit-observability", editable = "packages/pykit-observability" },
     { name = "pykit-pipeline", marker = "extra == 'bridges'", editable = "packages/pykit-pipeline" },
     { name = "pykit-provider", marker = "extra == 'bridges'", editable = "packages/pykit-provider" },
     { name = "pykit-util", editable = "packages/pykit-util" },
@@ -2829,8 +2827,6 @@ dependencies = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
     { name = "grpcio-reflection" },
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
     { name = "pykit-component" },
     { name = "pykit-errors" },
     { name = "pykit-logging" },
@@ -2843,8 +2839,6 @@ requires-dist = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
     { name = "grpcio-reflection" },
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
     { name = "pykit-logging", editable = "packages/pykit-logging" },
