@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from pykit_component import HealthStatus
 from pykit_cache import CacheClient, CacheComponent, CacheConfig, TypedStore
+from pykit_component import HealthStatus
 from pykit_testutil import FakeAsyncKeyValue
 
 # ---------------------------------------------------------------------------

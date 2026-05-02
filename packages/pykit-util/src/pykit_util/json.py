@@ -6,7 +6,7 @@ import json
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, Protocol, TypeVar, cast, runtime_checkable
+from typing import Protocol, TypeVar, cast, runtime_checkable
 
 T = TypeVar("T")
 

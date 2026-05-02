@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-
-from pykit_util import JsonCodec
 from pykit_cache.client import CacheClient
+from pykit_util import JsonCodec
 
 
 class TypedStore[T]:

@@ -7,9 +7,8 @@ import threading
 from collections import defaultdict
 from datetime import UTC, datetime
 
-from pykit_util import JsonCodec
-
 from pykit_messaging.types import Event, Message, MessageHandler
+from pykit_util import JsonCodec
 
 
 class InMemoryBroker:

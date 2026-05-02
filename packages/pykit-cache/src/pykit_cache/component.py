@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pykit_component import Health, HealthStatus
 from pykit_cache.client import CacheClient
 from pykit_cache.config import CacheConfig
+from pykit_component import Health, HealthStatus
 
 
 class CacheComponent:

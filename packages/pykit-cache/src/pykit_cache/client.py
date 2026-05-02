@@ -6,9 +6,8 @@ from typing import Any, TypeVar, cast
 
 import redis.asyncio as aioredis
 
-from pykit_util import JsonCodec
-
 from pykit_cache.config import CacheConfig
+from pykit_util import JsonCodec
 
 T = TypeVar("T")
 

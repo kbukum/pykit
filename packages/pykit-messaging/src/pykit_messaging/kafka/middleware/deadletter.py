@@ -5,10 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from pykit_util import JsonCodec
-
 from pykit_messaging.protocols import MessageProducer
 from pykit_messaging.types import Message
+from pykit_util import JsonCodec
 
 
 @dataclass

@@ -8,10 +8,10 @@ import logging
 from typing import Any
 
 from aiokafka import AIOKafkaProducer  # type: ignore[import-untyped]
-from pykit_util import JsonCodec
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, Message
+from pykit_util import JsonCodec
 
 logger = logging.getLogger(__name__)
 
