@@ -72,6 +72,7 @@ uv run ruff check && uv run ruff format --check  # lint + format
 | Topic | Link |
 |---|---|
 | All packages | [`docs/PACKAGES.md`](docs/PACKAGES.md) |
+| Security model | [`docs/security-model.md`](docs/security-model.md) |
 | Usage examples | [`docs/EXAMPLES.md`](docs/EXAMPLES.md) |
 | Architecture decisions | [`docs/adr/`](docs/adr/) |
 | Versioning & releases | [`docs/VERSIONING.md`](docs/VERSIONING.md) · [`docs/RELEASING.md`](docs/RELEASING.md) |

@@ -8,7 +8,6 @@ dependencies = []
 dev = [
     "pykit",
     "pykit-auth",
-    "pykit-auth-apikey",
     "pykit-chain",
     "pykit-errors",
     "pykit-config",
@@ -52,7 +51,6 @@ dev = [
     "pykit-security",
     "pykit-workload",
     "pykit-kafka-middleware",
-    "pykit-auth-oidc",
     "pykit-embedding",
     "pykit-vector-store",
     "pykit-llm-providers",
@@ -105,8 +103,6 @@ pykit                = { workspace = true }
 pykit-agent          = { workspace = true }
 pykit-llm-providers = { workspace = true }
 pykit-auth           = { workspace = true }
-pykit-auth-apikey    = { workspace = true }
-pykit-auth-oidc      = { workspace = true }
 pykit-chain          = { workspace = true }
 pykit-authz          = { workspace = true }
 pykit-integration    = { workspace = true }
@@ -209,7 +205,6 @@ source_pkgs = [
     "pykit_security",
     "pykit_workload",
     "pykit_kafka_middleware",
-    "pykit_auth_oidc",
     "pykit_embedding",
     "pykit_vector_store",
     "pykit_llm_providers",
@@ -385,7 +380,6 @@ packages = [
     "pykit_security",
     "pykit_workload",
     "pykit_kafka_middleware",
-    "pykit_auth_oidc",
     "pykit_embedding",
     "pykit_vector_store",
     "pykit_llm_providers",
@@ -396,7 +390,6 @@ packages = [
     "pykit_mcp",
     "pykit_chain",
     "pykit_schema",
-    "pykit_auth_apikey",
     "pykit_integration",
     "pykit_tool",
 ]
@@ -432,7 +425,7 @@ root_packages = [
     "pykit_di", "pykit_bootstrap", "pykit_observability", "pykit_security",
     "pykit_hook", "pykit_mcp", "pykit_chain",
     "pykit_pipeline", "pykit_dag", "pykit_worker", "pykit_sse", "pykit_stateful",
-    "pykit_auth", "pykit_authz", "pykit_auth_oidc", "pykit_auth_apikey",
+    "pykit_auth", "pykit_authz",
     "pykit_database", "pykit_redis", "pykit_storage", "pykit_messaging", "pykit_httpclient",
     "pykit_server", "pykit_grpc", "pykit_kafka_middleware",
     "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
@@ -446,14 +439,16 @@ root_packages = [
 name = "Layer architecture"
 type = "layers"
 layers = [
-    "pykit_agent | pykit_discovery | pykit_workload | pykit_process | pykit_testutil | pykit_metrics | pykit_integration",
-    "pykit_llm | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription | pykit_embedding | pykit_vector_store | pykit_llm_providers | pykit_explain",
+    "pykit_agent | pykit_workload | pykit_process | pykit_testutil | pykit_metrics | pykit_integration",
+    "pykit_explain | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription",
+    "pykit_llm_providers",
+    "pykit_llm | pykit_embedding | pykit_vector_store",
     "pykit_server | pykit_grpc | pykit_kafka_middleware",
-    "pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
-    "pykit_auth | pykit_authz | pykit_security | pykit_auth_oidc | pykit_auth_apikey",
+    "pykit_discovery | pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
+    "pykit_auth | pykit_authz | pykit_security",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
-    "pykit_di | pykit_bootstrap | pykit_observability | pykit_hook | pykit_mcp | pykit_chain",
-    "pykit_provider | pykit_component | pykit_resilience | pykit_schema",
+    "pykit_di | pykit_bootstrap | pykit_observability | pykit_mcp | pykit_chain",
+    "pykit_hook | pykit_provider | pykit_component | pykit_resilience | pykit_schema",
     "pykit_validation | pykit_encryption | pykit_util | pykit_version | pykit_media",
     "pykit_errors | pykit_config | pykit_logging",
 ]

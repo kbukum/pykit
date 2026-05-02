@@ -22,7 +22,7 @@ Layer 7 — Infrastructure Clients
   pykit-database · pykit-redis · pykit-storage · pykit-messaging · pykit-httpclient
 
 Layer 6 — Security
-  pykit-auth · pykit-authz · pykit-security · pykit-auth-oidc · pykit-auth-apikey
+  pykit-auth · pykit-authz · pykit-security
 
 Layer 5 — Data & Flow
   pykit-pipeline · pykit-dag · pykit-worker · pykit-sse · pykit-stateful

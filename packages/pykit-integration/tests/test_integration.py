@@ -9,9 +9,11 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
-from pykit_auth import JWTConfig, JWTService
-from pykit_authz import MapChecker
+from pykit_auth import JWTAlgorithm, JWTConfig, JWTService
+from pykit_authz import AuthorizationEngine, AuthorizationRequest, Resource, RoleBinding, Subject
 from pykit_bootstrap import App, DefaultAppConfig, Environment, LoggingConfig, ServiceConfig
 from pykit_component import Health, HealthStatus, Registry
 from pykit_di import Container, RegistrationMode
@@ -371,47 +373,95 @@ class TestAuthAuthz:
     """JWT claims feed authorization checker."""
 
     def test_jwt_claims_feed_authz(self) -> None:
-        jwt_svc = JWTService(JWTConfig(secret="integration-test-secret-key-long-enough-for-hs256"))
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        ).decode("utf-8")
+        public_pem = (
+            private_key.public_key()
+            .public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            .decode("utf-8")
+        )
+        jwt_svc = JWTService(
+            JWTConfig(
+                issuer="integration-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.RS256,
+                private_key=private_pem,
+                public_key=public_pem,
+            )
+        )
 
         token = jwt_svc.generate({"sub": "user-1", "role": "admin"})
         claims = jwt_svc.validate(token)
 
-        checker = MapChecker(
-            {
-                "admin": ["*"],
-                "editor": ["article:read", "article:write"],
-                "viewer": ["article:read"],
-            }
+        checker = AuthorizationEngine(
+            [
+                RoleBinding("admin", ("*",)),
+                RoleBinding("editor", ("article:read", "article:write")),
+                RoleBinding("viewer", ("article:read",)),
+            ]
         )
 
-        role = claims["role"]
-        assert checker.check(role, "article:delete")  # admin has wildcard
-        assert checker.check(role, "user:manage")
+        request = AuthorizationRequest(
+            Subject("user-1", roles=(str(claims["role"]),)), "delete", Resource("article")
+        )
+        assert checker.check(request)
+        assert checker.check(
+            AuthorizationRequest(Subject("user-1", roles=(str(claims["role"]),)), "manage", Resource("user"))
+        )
 
     def test_jwt_claims_feed_authz_restricted_role(self) -> None:
-        jwt_svc = JWTService(JWTConfig(secret="test-secret-key-12345-long-enough-for-hs256"))
+        jwt_svc = JWTService(
+            JWTConfig(
+                issuer="integration-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.HS256,
+                shared_secret="x" * 32,
+                allow_internal_hs256=True,
+            )
+        )
 
         token = jwt_svc.generate({"sub": "user-2", "role": "viewer"})
         claims = jwt_svc.validate(token)
 
-        checker = MapChecker(
-            {
-                "admin": ["*"],
-                "viewer": ["article:read"],
-            }
+        checker = AuthorizationEngine(
+            [RoleBinding("admin", ("*",)), RoleBinding("viewer", ("article:read",))]
         )
 
-        role = claims["role"]
-        assert checker.check(role, "article:read")
-        assert not checker.check(role, "article:write")
-        assert not checker.check(role, "user:manage")
+        role = str(claims["role"])
+        assert checker.check(
+            AuthorizationRequest(Subject("user-2", roles=(role,)), "read", Resource("article"))
+        )
+        assert not checker.check(
+            AuthorizationRequest(Subject("user-2", roles=(role,)), "write", Resource("article"))
+        )
+        assert not checker.check(
+            AuthorizationRequest(Subject("user-2", roles=(role,)), "manage", Resource("user"))
+        )
 
     def test_jwt_roundtrip_preserves_claims(self) -> None:
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         jwt_svc = JWTService(
             JWTConfig(
-                secret="roundtrip-secret-key-long-enough-for-hs256",
                 issuer="test-issuer",
                 audience="test-audience",
+                private_key=private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                ).decode("utf-8"),
+                public_key=private_key.public_key()
+                .public_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo,
+                )
+                .decode("utf-8"),
             )
         )
 
@@ -424,8 +474,16 @@ class TestAuthAuthz:
         assert decoded["org"] == "acme"
 
     def test_expired_token_rejected(self) -> None:
-        jwt_svc = JWTService(JWTConfig(secret="expired-secret-key-long-enough-for-hs256-algo"))
-        token = jwt_svc.generate({"sub": "user-1"}, expires_in=-1)
+        jwt_svc = JWTService(
+            JWTConfig(
+                issuer="integration-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.HS256,
+                shared_secret="x" * 32,
+                allow_internal_hs256=True,
+            )
+        )
+        token = jwt_svc.generate({"sub": "user-1"}, expires_in=-60)
 
         with pytest.raises(InvalidInputError):
             jwt_svc.validate(token)

@@ -18,8 +18,6 @@ members = [
     "pykit",
     "pykit-agent",
     "pykit-auth",
-    "pykit-auth-apikey",
-    "pykit-auth-oidc",
     "pykit-authz",
     "pykit-bench",
     "pykit-bootstrap",
@@ -2219,46 +2217,30 @@ name = "pykit-auth"
 version = "0.1.0"
 source = { editable = "packages/pykit-auth" }
 dependencies = [
+    { name = "argon2-cffi" },
     { name = "bcrypt" },
+    { name = "cryptography" },
+    { name = "httpx" },
     { name = "pyjwt" },
     { name = "pykit-errors" },
 ]
 
 [package.optional-dependencies]
-argon2 = [
-    { name = "argon2-cffi" },
-]
 dev = [
-    { name = "argon2-cffi" },
     { name = "hypothesis" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "argon2-cffi", marker = "extra == 'argon2'", specifier = ">=23.1" },
-    { name = "argon2-cffi", marker = "extra == 'dev'", specifier = ">=23.1" },
+    { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "bcrypt" },
+    { name = "cryptography", specifier = ">=44.0" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "hypothesis", marker = "extra == 'dev'", specifier = ">=6" },
     { name = "pyjwt" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
 ]
-provides-extras = ["argon2", "dev"]
-
-[[package]]
-name = "pykit-auth-apikey"
-version = "0.1.0"
-source = { editable = "packages/pykit-auth-apikey" }
-
-[[package]]
-name = "pykit-auth-oidc"
-version = "0.1.0"
-source = { editable = "packages/pykit-auth-oidc" }
-dependencies = [
-    { name = "httpx" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "httpx" }]
+provides-extras = ["dev"]
 
 [[package]]
 name = "pykit-authz"
@@ -3107,8 +3089,6 @@ dev = [
     { name = "pykit" },
     { name = "pykit-agent" },
     { name = "pykit-auth" },
-    { name = "pykit-auth-apikey" },
-    { name = "pykit-auth-oidc" },
     { name = "pykit-authz" },
     { name = "pykit-bench" },
     { name = "pykit-bootstrap" },
@@ -3181,8 +3161,6 @@ dev = [
     { name = "pykit", editable = "packages/pykit" },
     { name = "pykit-agent", editable = "packages/pykit-agent" },
     { name = "pykit-auth", editable = "packages/pykit-auth" },
-    { name = "pykit-auth-apikey", editable = "packages/pykit-auth-apikey" },
-    { name = "pykit-auth-oidc", editable = "packages/pykit-auth-oidc" },
     { name = "pykit-authz", editable = "packages/pykit-authz" },
     { name = "pykit-bench", editable = "packages/pykit-bench" },
     { name = "pykit-bootstrap", editable = "packages/pykit-bootstrap" },

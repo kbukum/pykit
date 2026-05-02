@@ -65,9 +65,9 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 
 | Package | Description |
 |---------|-------------|
-| `pykit-auth` | JWT authentication and password hashing |
-| `pykit-auth-oidc` | OpenID Connect authentication provider |
-| `pykit-authz` | Authorization policies and RBAC |
+| `pykit-auth` | JWT, API key, OIDC, and password authentication primitives |
+| `pykit-authz` | Default-deny RBAC + ABAC authorization engine |
+| `pykit-security` | TLS, secure headers, CORS, and token extraction policies |
 
 ## AI / ML
 

@@ -1,14 +1,17 @@
 [project]
 name = "pykit-auth"
-description = "JWT authentication and password hashing"
+description = "Authentication primitives for JWT, API keys, OIDC, and passwords"
 version = "0.1.0"
 readme = "README.md"
 license = { text = "MIT" }
-keywords = ["auth", "jwt", "authentication", "password", "security"]
+keywords = ["auth", "jwt", "apikey", "oidc", "password", "security"]
 requires-python = ">=3.13"
 dependencies = [
-    "pyjwt",
+    "argon2-cffi>=25.1.0",
     "bcrypt",
+    "cryptography>=44.0",
+    "httpx>=0.28",
+    "pyjwt",
     "pykit-errors",
 ]
 
@@ -20,5 +23,4 @@ build-backend = "hatchling.build"
 packages = ["src/pykit_auth"]
 
 [project.optional-dependencies]
-argon2 = ["argon2-cffi>=23.1"]
-dev = ["hypothesis>=6", "argon2-cffi>=23.1"]
+dev = ["hypothesis>=6"]

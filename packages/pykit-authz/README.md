@@ -1,6 +1,6 @@
 # pykit-authz
 
-RBAC permission checking with wildcard pattern matching and gRPC status integration.
+Default-deny RBAC + ABAC authorization with wildcard matching and gRPC status integration.
 
 ## Installation
 
@@ -13,30 +13,29 @@ uv add pykit-authz
 ## Quick Start
 
 ```python
-from pykit_authz import MapChecker, match_pattern, PermissionDeniedError
+from pykit_authz import AuthorizationEngine, AuthorizationRequest, Resource, RoleBinding, Subject
 
-# Define roles with wildcard permission patterns
-checker = MapChecker({
-    "admin":  ["*"],                           # full access
-    "editor": ["article:read", "article:write"],
-    "viewer": ["*:read"],                      # read anything
-})
+engine = AuthorizationEngine(
+    roles=[
+        RoleBinding("viewer", ("article:read",)),
+        RoleBinding("editor", ("article:write",), inherits=("viewer",)),
+        RoleBinding("admin", ("*",)),
+    ]
+)
 
-checker.check("admin", "article:delete")   # True
-checker.check("editor", "article:write")   # True
-checker.check("viewer", "user:read")       # True
-checker.check("viewer", "user:delete")     # False
-
-# Pattern matching: resource:action with wildcards
-match_pattern("article:*", "article:read")  # True
-match_pattern("*:read", "user:read")        # True
+request = AuthorizationRequest(
+    subject=Subject("user-1", roles=("editor",)),
+    action="write",
+    resource=Resource("article", "article-1"),
+)
+assert engine.check(request)
 ```
 
 ## Key Components
 
-- **Checker** — Runtime-checkable protocol defining `check(subject, permission, resource) -> bool`
-- **MapChecker** — In-memory role→permissions checker with wildcard matching; supports `add_role()` and `remove_role()`
-- **CheckerFunc** — Adapter wrapping any `Callable[[str, str, str], bool]` as a `Checker`
+- **AuthorizationEngine** — Canonical RBAC + ABAC engine with default-deny semantics
+- **RoleBinding / ABACRule** — RBAC hierarchy and ABAC rule primitives
+- **CheckerFunc** — Adapter wrapping any `Callable[[AuthorizationRequest], AuthorizationDecision | bool]` as a `Checker`
 - **match_pattern()** — Match a permission against a wildcard pattern (`*`, `article:*`, `*:read`)
 - **match_any()** — Returns `True` if any pattern in a list matches the required permission
 - **PermissionDeniedError** — Extends `AppError` with `ErrorCode.FORBIDDEN` and maps to `grpc.StatusCode.PERMISSION_DENIED`

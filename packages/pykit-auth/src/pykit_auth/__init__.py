@@ -1,17 +1,78 @@
-"""pykit_auth — JWT authentication and password hashing."""
+"""pykit_auth — JWT, API key, OIDC, and password authentication."""
 
 from __future__ import annotations
 
-from pykit_auth.jwt_service import JWTConfig, JWTService
-from pykit_auth.password import HashAlgorithm, PasswordHasher
+from pykit_auth.apikey import (
+    APIKeyHasher,
+    APIKeyHashingConfig,
+    APIKeyManager,
+    APIKeyMiddleware,
+    APIKeyRecord,
+    APIKeyRotationConfig,
+    APIKeyRotationResult,
+    APIKeyStore,
+    APIKeyValidationError,
+    APIKeyValidator,
+    IssuedAPIKey,
+    split_api_key,
+)
+from pykit_auth.jwt import Claims, JWTAlgorithm, JWTConfig, JWTService
+from pykit_auth.oidc import (
+    AuthorizationRequest,
+    JWKSCache,
+    OIDCClientConfig,
+    OIDCClientType,
+    OIDCDiscoveryDocument,
+    OIDCError,
+    OIDCIDTokenValidator,
+    RefreshConfig,
+    TokenResult,
+    build_authorization_request,
+    build_code_challenge,
+    generate_code_verifier,
+    parse_discovery_document,
+    refresh_token,
+    validate_callback,
+)
+from pykit_auth.password import HashAlgorithm, PasswordHasher, PasswordHashPolicy
 from pykit_auth.protocols import AuthMode, TokenGenerator, TokenValidator
 
 __all__ = [
+    "APIKeyHashingConfig",
+    "APIKeyHasher",
+    "APIKeyManager",
+    "APIKeyMiddleware",
+    "APIKeyRecord",
+    "APIKeyRotationConfig",
+    "APIKeyRotationResult",
+    "APIKeyStore",
+    "APIKeyValidationError",
+    "APIKeyValidator",
     "AuthMode",
+    "AuthorizationRequest",
+    "Claims",
     "HashAlgorithm",
+    "IssuedAPIKey",
+    "JWTAlgorithm",
     "JWTConfig",
     "JWTService",
+    "JWKSCache",
+    "OIDCClientConfig",
+    "OIDCClientType",
+    "OIDCDiscoveryDocument",
+    "OIDCIDTokenValidator",
+    "OIDCError",
+    "PasswordHashPolicy",
     "PasswordHasher",
+    "RefreshConfig",
+    "TokenResult",
     "TokenGenerator",
     "TokenValidator",
+    "build_authorization_request",
+    "build_code_challenge",
+    "generate_code_verifier",
+    "parse_discovery_document",
+    "refresh_token",
+    "split_api_key",
+    "validate_callback",
 ]

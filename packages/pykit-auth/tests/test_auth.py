@@ -1,140 +1,367 @@
-"""Tests for pykit_auth — JWT service and password hashing."""
+"""Tests for JWT and password primitives."""
 
 from __future__ import annotations
 
-import pytest
+import base64
+import hashlib
+import hmac
+import json
+import time
 
-from pykit_auth import HashAlgorithm, JWTConfig, JWTService, PasswordHasher
+import jwt
+import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
+
+from pykit_auth import (
+    HashAlgorithm,
+    JWTAlgorithm,
+    JWTConfig,
+    JWTService,
+    PasswordHasher,
+    PasswordHashPolicy,
+)
 from pykit_errors import InvalidInputError
 
-# ---------------------------------------------------------------------------
-# JWT Service
-# ---------------------------------------------------------------------------
 
-
-class TestJWTServiceRoundtrip:
-    def test_generate_and_validate(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
-        token = svc.generate({"sub": "user-1"})
-        claims = svc.validate(token)
-        assert claims["sub"] == "user-1"
-        assert "exp" in claims
-        assert "iat" in claims
-
-    def test_custom_claims_preserved(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
-        token = svc.generate({"sub": "u", "role": "admin", "tenant": "acme"})
-        claims = svc.validate(token)
-        assert claims["role"] == "admin"
-        assert claims["tenant"] == "acme"
-
-    def test_custom_ttl(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
-        token = svc.generate({"sub": "u"}, expires_in=60)
-        claims = svc.validate(token)
-        assert claims["exp"] - claims["iat"] == 60
-
-
-class TestJWTServiceIssuerAudience:
-    def test_issuer_audience_encoded(self) -> None:
-        svc = JWTService(
-            JWTConfig(secret="test-secret-key-at-least-32-bytes!!", issuer="myapp", audience="web")
+def _rsa_keypair() -> tuple[str, str]:
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8")
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
-        token = svc.generate({"sub": "u"})
-        claims = svc.validate(token)
-        assert claims["iss"] == "myapp"
-        assert claims["aud"] == "web"
+        .decode("utf-8")
+    )
+    return private_pem, public_pem
 
-    def test_wrong_issuer_rejected(self) -> None:
-        svc_gen = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", issuer="app-a"))
-        svc_val = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", issuer="app-b"))
-        token = svc_gen.generate({"sub": "u"})
+
+def _eddsa_keypair() -> tuple[str, str]:
+    private_key = ed25519.Ed25519PrivateKey.generate()
+    private_pem = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8")
+    public_pem = (
+        private_key.public_key()
+        .public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+        .decode("utf-8")
+    )
+    return private_pem, public_pem
+
+
+def _hs256_service(secret: str = "x" * 32) -> JWTService:
+    return JWTService(
+        JWTConfig(
+            issuer="pykit-tests",
+            audience="pykit-clients",
+            algorithm=JWTAlgorithm.HS256,
+            shared_secret=secret,
+            allow_internal_hs256=True,
+        )
+    )
+
+
+def _b64url(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+class TestJWTService:
+    def test_rs256_roundtrip_is_default(self) -> None:
+        private_key, public_key = _rsa_keypair()
+        service = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                public_key=public_key,
+            )
+        )
+
+        token = service.generate({"sub": "user-1", "role": "admin"})
+        claims = service.validate(token)
+
+        assert service.config.algorithm is JWTAlgorithm.RS256
+        assert claims["sub"] == "user-1"
+        assert claims["iss"] == "pykit-tests"
+        assert claims["aud"] == "pykit-clients"
+        assert "nbf" in claims
+
+    def test_eddsa_roundtrip(self) -> None:
+        private_key, public_key = _eddsa_keypair()
+        service = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.EDDSA,
+                private_key=private_key,
+                public_key=public_key,
+            )
+        )
+
+        token = service.generate({"sub": "user-2"})
+        assert service.validate(token)["sub"] == "user-2"
+
+    def test_hs256_requires_explicit_opt_in(self) -> None:
+        with pytest.raises(ValueError, match="internal-only"):
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.HS256,
+                shared_secret="x" * 32,
+            )
+
+    def test_hs256_roundtrip_when_explicit(self) -> None:
+        service = _hs256_service()
+        token = service.generate({"sub": "user-1"})
+        assert service.validate(token)["sub"] == "user-1"
+
+    def test_algorithm_confusion_is_rejected(self) -> None:
+        private_key, public_key = _rsa_keypair()
+        service = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                public_key=public_key,
+            )
+        )
+        header = _b64url(json.dumps({"alg": "HS256", "typ": "JWT"}).encode("utf-8"))
+        payload = _b64url(
+            json.dumps(
+                {
+                    "sub": "admin",
+                    "iss": "pykit-tests",
+                    "aud": "pykit-clients",
+                    "iat": int(time.time()),
+                    "nbf": int(time.time()),
+                    "exp": int(time.time()) + 3600,
+                }
+            ).encode("utf-8")
+        )
+        signature = _b64url(
+            hmac.new(public_key.encode("utf-8"), f"{header}.{payload}".encode(), hashlib.sha256).digest()
+        )
+        forged = f"{header}.{payload}.{signature}"
+
         with pytest.raises(InvalidInputError, match="invalid token"):
-            svc_val.validate(token)
+            service.validate(forged)
 
-    def test_wrong_audience_rejected(self) -> None:
-        svc_gen = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", audience="mobile"))
-        svc_val = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!", audience="web"))
-        token = svc_gen.generate({"sub": "u"})
+    def test_alg_none_is_rejected(self) -> None:
+        payload = {
+            "sub": "admin",
+            "iss": "pykit-tests",
+            "aud": "pykit-clients",
+            "iat": int(time.time()),
+            "nbf": int(time.time()),
+            "exp": int(time.time()) + 60,
+        }
+        forged = jwt.encode(payload, "", algorithm="none")
+
         with pytest.raises(InvalidInputError, match="invalid token"):
-            svc_val.validate(token)
+            _hs256_service().validate(forged)
 
+    def test_missing_required_claim_is_rejected(self) -> None:
+        private_key, public_key = _rsa_keypair()
+        service = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                public_key=public_key,
+            )
+        )
+        token = jwt.encode(
+            {"sub": "user-1", "iss": "pykit-tests", "aud": "pykit-clients", "iat": int(time.time())},
+            private_key,
+            algorithm="RS256",
+        )
 
-class TestJWTServiceErrors:
-    def test_expired_token(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
-        token = svc.generate({"sub": "u"}, expires_in=-1)
         with pytest.raises(InvalidInputError, match="invalid token"):
-            svc.validate(token)
+            service.validate(token)
 
-    def test_invalid_token_string(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
+    def test_decode_unverified_is_diagnostic_only(self) -> None:
+        service = _hs256_service()
+        token = service.generate({"sub": "user-1", "role": "viewer"})
+        claims = service.decode_unverified(token)
+        assert claims["role"] == "viewer"
+
+    def test_wrong_audience_is_rejected(self) -> None:
+        service = _hs256_service()
+        token = service.generate({"sub": "user-1"})
+        validator = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="other-clients",
+                algorithm=JWTAlgorithm.HS256,
+                shared_secret="x" * 32,
+                allow_internal_hs256=True,
+            )
+        )
+
         with pytest.raises(InvalidInputError, match="invalid token"):
-            svc.validate("not-a-jwt")
+            validator.validate(token)
 
-    def test_wrong_secret(self) -> None:
-        svc_a = JWTService(JWTConfig(secret="test-secret-a-key-minimum-32-bytes!"))
-        svc_b = JWTService(JWTConfig(secret="test-secret-b-key-minimum-32-bytes!"))
-        token = svc_a.generate({"sub": "u"})
+    def test_jwt_config_validation(self) -> None:
+        private_key, public_key = _rsa_keypair()
+
+        with pytest.raises(ValueError, match="issuer is required"):
+            JWTConfig(issuer="", audience="pykit-clients", private_key=private_key, public_key=public_key)
+
+        with pytest.raises(ValueError, match="audience is required"):
+            JWTConfig(issuer="pykit-tests", audience="", private_key=private_key, public_key=public_key)
+
+        with pytest.raises(ValueError, match="32 bytes"):
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.HS256,
+                shared_secret="short",
+                allow_internal_hs256=True,
+            )
+
+        with pytest.raises(ValueError, match="shared_secret"):
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                shared_secret="x" * 32,
+            )
+
+        with pytest.raises(ValueError, match="default_ttl"):
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                public_key=public_key,
+                default_ttl=0,
+            )
+
+        with pytest.raises(ValueError, match="between 0 and 60"):
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                public_key=public_key,
+                leeway_seconds=61,
+            )
+
+        with pytest.raises(ValueError, match="cannot be combined"):
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                algorithm=JWTAlgorithm.HS256,
+                shared_secret="x" * 32,
+                private_key=private_key,
+                allow_internal_hs256=True,
+            )
+
+        with pytest.raises(ValueError, match="requires a private_key or public_key"):
+            JWTConfig(issuer="pykit-tests", audience="pykit-clients")
+
+    def test_generate_rejects_claim_override_conflicts(self) -> None:
+        service = _hs256_service()
+        with pytest.raises(InvalidInputError, match="issuer must match"):
+            service.generate({"iss": "other"})
+
+        with pytest.raises(InvalidInputError, match="audience must match"):
+            service.generate({"aud": "other"})
+
+    def test_decode_unverified_rejects_malformed_shape(self) -> None:
         with pytest.raises(InvalidInputError, match="invalid token"):
-            svc_b.validate(token)
+            _hs256_service().validate("missing-separators")
+
+        with pytest.raises(InvalidInputError, match="cannot decode token"):
+            _hs256_service().decode_unverified("a.b.c")
+
+    def test_public_key_only_config_cannot_sign(self) -> None:
+        _, public_key = _rsa_keypair()
+        service = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                public_key=public_key,
+            )
+        )
+
+        with pytest.raises(InvalidInputError, match="signing key"):
+            service.generate({"sub": "user-1"})
+
+    def test_private_key_only_config_can_verify_and_key_id_mismatch_rejects(self) -> None:
+        private_key, _public_key = _rsa_keypair()
+        service = JWTService(
+            JWTConfig(
+                issuer="pykit-tests",
+                audience="pykit-clients",
+                private_key=private_key,
+                key_id="kid-1",
+            )
+        )
+        token = service.generate({"sub": "user-1"})
+        assert service.validate(token)["sub"] == "user-1"
+
+        tampered = jwt.encode(
+            {
+                "sub": "user-1",
+                "iss": "pykit-tests",
+                "aud": "pykit-clients",
+                "iat": int(time.time()),
+                "nbf": int(time.time()),
+                "exp": int(time.time()) + 3600,
+            },
+            private_key,
+            algorithm="RS256",
+            headers={"kid": "other"},
+        )
+        with pytest.raises(InvalidInputError, match="invalid token"):
+            service.validate(tampered)
 
 
-class TestJWTServiceDecodeUnverified:
-    def test_decode_without_verification(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
-        token = svc.generate({"sub": "u", "debug": True})
-        claims = svc.decode_unverified(token)
-        assert claims["sub"] == "u"
-        assert claims["debug"] is True
-
-    def test_decode_unverified_bad_token(self) -> None:
-        svc = JWTService(JWTConfig(secret="test-secret-key-at-least-32-bytes!!"))
-        with pytest.raises(InvalidInputError, match="cannot decode"):
-            svc.decode_unverified("garbage")
-
-
-# ---------------------------------------------------------------------------
-# Password Hasher
-# ---------------------------------------------------------------------------
-
-
-class TestPasswordHasherBcrypt:
-    def test_hash_and_verify(self) -> None:
+class TestPasswordHasher:
+    def test_argon2id_is_default(self) -> None:
         hasher = PasswordHasher()
-        hashed = hasher.hash("correct-horse-battery")
-        assert hasher.verify("correct-horse-battery", hashed) is True
+        hashed = hasher.hash("correct horse battery staple")
+        assert hashed.startswith("$argon2id$")
+        assert hasher.verify("correct horse battery staple", hashed)
+        assert hasher.policy.default_algorithm is HashAlgorithm.ARGON2ID
 
-    def test_wrong_password_fails(self) -> None:
-        hasher = PasswordHasher()
-        hashed = hasher.hash("right")
-        assert hasher.verify("wrong", hashed) is False
+    def test_bcrypt_fallback_verifies_and_needs_rehash(self) -> None:
+        bcrypt_hasher = PasswordHasher(PasswordHashPolicy(default_algorithm=HashAlgorithm.BCRYPT))
+        argon_hasher = PasswordHasher()
 
-    def test_different_hashes_for_same_password(self) -> None:
-        hasher = PasswordHasher()
-        h1 = hasher.hash("same-password")
-        h2 = hasher.hash("same-password")
-        assert h1 != h2
+        hashed = bcrypt_hasher.hash("migrate-me")
 
-    def test_bcrypt_prefix(self) -> None:
-        hasher = PasswordHasher(algorithm=HashAlgorithm.BCRYPT)
-        hashed = hasher.hash("test1234")
+        assert argon_hasher.verify("migrate-me", hashed)
+        assert argon_hasher.needs_rehash(hashed) is True
+
+    def test_invalid_hash_is_rejected(self) -> None:
+        assert PasswordHasher().verify("password", "not-a-password-hash") is False
+
+    def test_policy_enforces_group05_minimums(self) -> None:
+        with pytest.raises(ValueError, match="65536"):
+            PasswordHashPolicy(memory_cost_kib=1024)
+
+        with pytest.raises(ValueError, match="at least 12"):
+            PasswordHashPolicy(default_algorithm=HashAlgorithm.BCRYPT, bcrypt_rounds=10)
+
+    def test_bcrypt_policy_can_issue_hashes(self) -> None:
+        hasher = PasswordHasher(PasswordHashPolicy(default_algorithm=HashAlgorithm.BCRYPT))
+        hashed = hasher.hash("legacy-password")
         assert hashed.startswith("$2")
+        assert hasher.needs_rehash(hashed) is False
 
+    def test_needs_rehash_for_invalid_hash(self) -> None:
+        assert PasswordHasher().needs_rehash("invalid") is True
 
-class TestPasswordHasherArgon2:
-    def test_hash_and_verify(self) -> None:
-        hasher = PasswordHasher(algorithm=HashAlgorithm.ARGON2, rounds=1)
-        hashed = hasher.hash("my-password")
-        assert hasher.verify("my-password", hashed) is True
-
-    def test_wrong_password_fails(self) -> None:
-        hasher = PasswordHasher(algorithm=HashAlgorithm.ARGON2, rounds=1)
-        hashed = hasher.hash("right")
-        assert hasher.verify("wrong", hashed) is False
-
-    def test_different_hashes_for_same_password(self) -> None:
-        hasher = PasswordHasher(algorithm=HashAlgorithm.ARGON2, rounds=1)
-        h1 = hasher.hash("same")
-        h2 = hasher.hash("same")
-        assert h1 != h2
+    def test_needs_rehash_for_invalid_argon_prefix(self) -> None:
+        assert PasswordHasher().needs_rehash("$argon2id$invalid") is True
