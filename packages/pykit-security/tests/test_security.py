@@ -7,10 +7,14 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID
+
+try:
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+except ImportError:  # pragma: no cover - optional test dependency
+    pytest.skip("cryptography is required for TLS certificate tests", allow_module_level=True)
 
 from pykit_errors import InvalidInputError
 from pykit_security import CORSConfig, SecurityHeadersPolicy, TLSConfig, extract_bearer_token
@@ -110,6 +114,9 @@ class TestHeadersAndTokens:
         with pytest.raises(InvalidInputError):
             config.build_preflight_headers("https://evil.example.com")
 
+        with pytest.raises(InvalidInputError):
+            CORSConfig().build_preflight_headers("https://app.example.com")
+
     def test_extract_bearer_token_rejects_query_tokens(self) -> None:
         token = extract_bearer_token({"Authorization": "Bearer token-1"})
         assert token == "token-1"
@@ -119,3 +126,12 @@ class TestHeadersAndTokens:
                 {"Authorization": "Bearer token-1"},
                 query_params={"access_token": "forbidden"},
             )
+
+        with pytest.raises(InvalidInputError):
+            extract_bearer_token(
+                {"Authorization": "Bearer token-1"},
+                query_params={"Access_Token": "forbidden"},
+            )
+
+        with pytest.raises(InvalidInputError):
+            extract_bearer_token({"Authorization": "Bearer  token-1 extra"})

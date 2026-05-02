@@ -6,7 +6,7 @@ import hashlib
 import hmac
 import json
 import secrets
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, MutableMapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Protocol, cast, runtime_checkable
@@ -307,7 +307,7 @@ class APIKeyMiddleware:
             return
 
         state = scope.setdefault("state", {})
-        if not isinstance(state, dict):
+        if not isinstance(state, MutableMapping):
             raise APIKeyValidationError("ASGI state must be a mutable mapping")
         state["auth.apikey"] = record
         state["auth.subject"] = record.owner_id

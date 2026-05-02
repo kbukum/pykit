@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import UserDict
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
@@ -184,3 +185,36 @@ async def test_apikey_middleware_passes_through_non_http_and_missing_keys() -> N
 
     assert calls[0]["status"] == 204
     assert calls[2]["status"] == 204
+
+
+@pytest.mark.asyncio
+async def test_apikey_middleware_accepts_mutable_mapping_state() -> None:
+    record = APIKeyRecord(
+        id="key-1",
+        owner_id="user-1",
+        name="primary",
+        key_prefix="pk",
+        key_digest="digest",
+    )
+
+    async def app(scope, receive, send):  # type: ignore[no-untyped-def]
+        await send({"type": "http.response.start", "status": 204, "headers": []})
+        await send({"type": "http.response.body", "body": b""})
+
+    class AcceptingValidator:
+        async def validate_key(self, plain_key: str, required_scopes=()):  # type: ignore[no-untyped-def]
+            return record
+
+    calls: list[dict[str, object]] = []
+
+    async def send(message: dict[str, object]) -> None:
+        calls.append(message)
+
+    state = UserDict()
+    middleware = APIKeyMiddleware(app, AcceptingValidator())
+    scope = {"type": "http", "headers": [(b"x-api-key", b"pk.valid")], "state": state}
+    await middleware(scope, lambda: None, send)  # type: ignore[arg-type]
+
+    assert state["auth.apikey"] == record
+    assert state["auth.subject"] == "user-1"
+    assert calls[0]["status"] == 204

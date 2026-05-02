@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from time import monotonic
 from typing import cast
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse
 
 import httpx
 import jwt
@@ -67,8 +67,8 @@ class OIDCDiscoveryDocument:
             raise ValueError("response_types_supported must include 'code'")
         if "S256" not in self.code_challenge_methods_supported:
             raise ValueError("code_challenge_methods_supported must include 'S256'")
-        if not set(self.id_token_signing_alg_values_supported).issubset(_OIDC_SIGNING_ALGORITHMS):
-            raise ValueError("OIDC signing algorithms must be a subset of RS256, ES256, EdDSA")
+        if not set(self.id_token_signing_alg_values_supported).intersection(_OIDC_SIGNING_ALGORITHMS):
+            raise ValueError("OIDC signing algorithms must include at least one of RS256, ES256, EdDSA")
 
 
 @dataclass(frozen=True, slots=True)
@@ -300,7 +300,12 @@ class JWKSCache:
             async with httpx.AsyncClient(timeout=self._http_timeout) as client:
                 response = await client.get(self._jwks_uri)
                 response.raise_for_status()
-                payload = response.json()
+                try:
+                    payload = response.json()
+                except (json.JSONDecodeError, TypeError, ValueError) as exc:
+                    raise OIDCError("invalid JWKS payload") from exc
+            if not isinstance(payload, dict):
+                raise OIDCError("invalid JWKS payload")
             keys = payload.get("keys")
             if not isinstance(keys, list):
                 raise OIDCError("invalid JWKS payload")
@@ -420,13 +425,13 @@ def _parse_token_response(body: bytes) -> TokenResult:
         return _build_token_result(parsed)
 
     decoded = body.decode("utf-8", errors="ignore")
-    segments = [segment for segment in decoded.split("&") if "=" in segment]
-    if not segments:
+    try:
+        parsed_pairs = parse_qsl(decoded, keep_blank_values=True, strict_parsing=True)
+    except ValueError as exc:
+        raise OIDCError("invalid token response") from exc
+    if not parsed_pairs:
         raise OIDCError("invalid token response")
-    payload: TokenResponseData = {}
-    for segment in segments:
-        key, value = segment.split("=", maxsplit=1)
-        payload[key] = value.replace("+", " ")
+    payload: TokenResponseData = dict(parsed_pairs)
     return _build_token_result(payload)
 
 

@@ -104,6 +104,13 @@ def test_discovery_and_client_validation_errors() -> None:
     with pytest.raises(OIDCError, match="invalid OIDC discovery document"):
         parse_discovery_document(invalid_alg_discovery)
 
+    mixed_alg_discovery = dict(_discovery())
+    mixed_alg_discovery["id_token_signing_alg_values_supported"] = ["PS256", "RS256"]
+    assert parse_discovery_document(mixed_alg_discovery).id_token_signing_alg_values_supported == (
+        "PS256",
+        "RS256",
+    )
+
     with pytest.raises(ValueError, match="client_secret"):
         OIDCClientConfig(
             issuer="https://issuer.example.com",
@@ -223,7 +230,7 @@ async def test_refresh_error_and_form_response_paths(monkeypatch: pytest.MonkeyP
 
     form_response = httpx.Response(
         200,
-        content=b"access_token=form-access&refresh_token=form-refresh&expires_in=3600&scope=openid+email",
+        content=b"access_token=form%2Baccess&refresh_token=form-refresh&expires_in=3600&scope=openid+email",
         request=httpx.Request("POST", "https://issuer.example.com/token"),
     )
     monkeypatch.setattr("pykit_auth.oidc.httpx.AsyncClient", lambda timeout: FakeAsyncClient(form_response))
@@ -234,7 +241,7 @@ async def test_refresh_error_and_form_response_paths(monkeypatch: pytest.MonkeyP
             refresh_token="old-refresh",
         )
     )
-    assert result.access_token == "form-access"
+    assert result.access_token == "form+access"
     assert result.scopes == ("openid", "email")
 
     invalid_response = httpx.Response(
@@ -254,6 +261,18 @@ async def test_refresh_error_and_form_response_paths(monkeypatch: pytest.MonkeyP
                 require_refresh_rotation=False,
             )
         )
+
+    malformed_jwks_response = httpx.Response(
+        200,
+        content=b"{not-json",
+        request=httpx.Request("GET", "https://issuer.example.com/jwks"),
+    )
+    monkeypatch.setattr(
+        "pykit_auth.oidc.httpx.AsyncClient", lambda timeout: FakeAsyncClient(malformed_jwks_response)
+    )
+    cache = JWKSCache("https://issuer.example.com/jwks", ttl_seconds=60)
+    with pytest.raises(OIDCError, match="invalid JWKS payload"):
+        await cache.get_keys()
 
 
 @pytest.mark.asyncio

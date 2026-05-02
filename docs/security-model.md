@@ -54,8 +54,8 @@ This document defines the pykit security baseline for `pykit-auth`, `pykit-authz
 - ABAC supports explicit **allow** and **deny** rules.
 - Evaluation order:
   1. explicit ABAC deny
-  2. ABAC allow
-  3. RBAC allow
+  2. RBAC allow
+  3. ABAC allow
   4. default deny
 - Missing roles, unknown resources, or unmatched rules must all resolve to **deny**.
 

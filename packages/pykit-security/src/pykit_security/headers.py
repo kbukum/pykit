@@ -55,7 +55,9 @@ class CORSConfig:
     def build_preflight_headers(self, origin: str, request_headers: Sequence[str] = ()) -> dict[str, str]:
         """Build CORS headers for *origin*."""
 
-        if self.allowed_origins and origin not in self.allowed_origins:
+        if not self.allowed_origins:
+            raise InvalidInputError("origin not allowed")
+        if origin not in self.allowed_origins:
             raise InvalidInputError("origin not allowed")
         allowed_headers = tuple(dict.fromkeys([*self.allow_headers, *request_headers]))
         headers = {
@@ -79,12 +81,14 @@ def extract_bearer_token(
 ) -> str:
     """Extract a bearer token from headers and reject query-string tokens."""
 
-    if query_params and any(key in query_params for key in ("access_token", "token", "id_token")):
-        raise InvalidInputError("tokens in query parameters are forbidden")
+    if query_params:
+        lowered_query_params = {key.lower(): value for key, value in query_params.items()}
+        if any(key in lowered_query_params for key in ("access_token", "token", "id_token")):
+            raise InvalidInputError("tokens in query parameters are forbidden")
 
     candidates = {key.lower(): value for key, value in headers.items()}
     authorization = candidates.get(header_name.lower(), "")
-    scheme, separator, token = authorization.partition(" ")
-    if separator != " " or scheme.lower() != "bearer" or not token:
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer" or not parts[1]:
         raise InvalidInputError("missing bearer token")
-    return token
+    return parts[1]
