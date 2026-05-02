@@ -19,7 +19,7 @@ class TranscriptionBackend(Protocol):
     Example implementations:
         - Local Whisper model (whisper, faster-whisper)
         - Remote API (OpenAI Whisper API, Google Speech-to-Text)
-        - Triton Inference Server (via pykit-triton)
+        - Triton Inference Server (via pykit-inference)
     """
 
     async def transcribe_chunk(

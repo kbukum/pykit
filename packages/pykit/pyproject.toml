@@ -28,7 +28,7 @@ dependencies = [
     "pykit-security",
     # Layer 4 — infrastructure
     "pykit-database",
-    "pykit-redis",
+    "pykit-cache",
     "pykit-storage",
     "pykit-messaging",
     "pykit-httpclient",
@@ -48,10 +48,9 @@ dependencies = [
     "pykit-workload",
     # Layer 8 — AI/ML
     "pykit-llm",
-    "pykit-triton",
+    "pykit-inference",
     "pykit-dataset",
     # Layer 9 — tools
-    "pykit-metrics",
     "pykit-bench",
     "pykit-testutil",
     "pykit-discovery",

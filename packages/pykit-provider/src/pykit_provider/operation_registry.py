@@ -1,4 +1,4 @@
-"""Operation registry — resolve providers by operation ID and tier."""
+"""Provider registry — resolve providers by operation ID and tier."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ T = TypeVar("T")
 
 
 @dataclass
-class OperationBinding[T]:
+class Binding[T]:
     """Binds an operation ID to a provider with priority and tier access.
 
     Attributes:
@@ -27,7 +27,7 @@ class OperationBinding[T]:
     priority: int = 0
 
 
-class OperationRegistry[T]:
+class Registry[T]:
     """Resolves providers for operations based on tier and priority.
 
     Resolution order:
@@ -40,9 +40,9 @@ class OperationRegistry[T]:
     """
 
     def __init__(self) -> None:
-        self._bindings: dict[str, list[OperationBinding[T]]] = {}
+        self._bindings: dict[str, list[Binding[T]]] = {}
 
-    def bind(self, binding: OperationBinding[T]) -> None:
+    def bind(self, binding: Binding[T]) -> None:
         """Register a provider binding for an operation.
 
         Args:
@@ -70,7 +70,7 @@ class OperationRegistry[T]:
         matched.sort(key=lambda b: b.priority)
         return matched[0].provider
 
-    def list_bindings(self, operation_id: str) -> list[OperationBinding[T]]:
+    def list_bindings(self, operation_id: str) -> list[Binding[T]]:
         """List all bindings registered for an operation.
 
         Args:

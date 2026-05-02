@@ -14,15 +14,17 @@ uv add pykit-di
 
 ```python
 from pykit_di import Container, RegistrationMode
+from pykit_cache import CacheClient, CacheConfig
 
 container = Container()
 
 # Eager: factory runs immediately at registration
 container.register("config", lambda: load_config(), RegistrationMode.EAGER)
+container.register_instance("cache_config", CacheConfig(url="redis://localhost:6379/0"))
 
 # Lazy/Singleton: factory deferred until first resolve, then cached
 container.register_lazy("db", lambda: Database(container.resolve("config")))
-container.register_singleton("cache", lambda: RedisCache("localhost:6379"))
+container.register_singleton("cache", lambda: CacheClient(container.resolve("cache_config")))
 
 # Register a pre-built instance directly
 container.register_instance("logger", my_logger)

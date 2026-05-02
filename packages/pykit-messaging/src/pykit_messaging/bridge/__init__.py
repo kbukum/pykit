@@ -1,6 +1,6 @@
 """Provider adapters connecting pykit-messaging to the pykit provider pattern.
 
-Once messaging components are expressed as providers (Sink, StreamProvider),
+Once messaging components are expressed as providers (Sink, Stream),
 they compose naturally with all other kit patterns that accept providers:
 DAG, Worker, Pipeline, etc.
 

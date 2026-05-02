@@ -30,7 +30,7 @@ The root `pykit` package is a lazy-loading facade that re-exports all sub-packag
 | Core | validation, encryption, util, version, media |
 | Component | component, provider, resilience |
 | Infrastructure | di, bootstrap, pipeline, dag, observability |
-| Adapters | database, redis, storage, kafka, httpclient |
+| Adapters | database, cache, storage, kafka, httpclient |
 | Server | server, grpc, sse |
 | Security | auth, authz, security |
 | Specialist | llm, stateful, worker, process, workload |

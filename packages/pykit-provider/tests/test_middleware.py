@@ -12,7 +12,7 @@ from pykit_provider import (
     DuplexStream,
     RequestResponse,
     Sink,
-    StreamProvider,
+    Stream,
     chain,
     chain_duplex,
     chain_sink,
@@ -140,7 +140,7 @@ def wrap_sink(label: str, order: list[str]):
 
 
 def wrap_stream(label: str, order: list[str]):
-    def middleware(inner: StreamProvider[str, str]) -> StreamProvider[str, str]:
+    def middleware(inner: Stream[str, str]) -> Stream[str, str]:
         class Wrapped:
             @property
             def name(self) -> str:

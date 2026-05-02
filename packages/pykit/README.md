@@ -34,7 +34,7 @@ err = pykit_errors.AppError.not_found("User", "abc")
 
 - **Lazy `__getattr__`** — Sub-packages are only imported on first access, keeping `import pykit` fast even with heavy transitive dependencies (OpenTelemetry, httpx, SQLAlchemy, etc.)
 - **`_SUBPACKAGES` mapping** — Maps short names (e.g., `errors`) to actual package names (e.g., `pykit_errors`); `pykit.kafka` maps to `pykit_messaging`
-- **Layered architecture** — 34 sub-packages organized in 10 layers from foundational (errors, config, logging) through infrastructure (database, redis) to AI/ML (llm, triton, dataset)
+- **Layered architecture** — 34 sub-packages organized in 10 layers from foundational (errors, config, logging) through infrastructure (database, cache) to AI/ML (llm, inference, dataset)
 
 ## Dependencies
 
@@ -46,12 +46,12 @@ Installs all 34 pykit sub-packages:
 | 1 — Foundational | pykit-validation, pykit-encryption, pykit-util, pykit-version, pykit-media |
 | 2 — Patterns | pykit-provider, pykit-component, pykit-resilience |
 | 3 — Frameworks | pykit-di, pykit-bootstrap, pykit-observability, pykit-security |
-| 4 — Infrastructure | pykit-database, pykit-redis, pykit-storage, pykit-messaging, pykit-httpclient |
+| 4 — Infrastructure | pykit-database, pykit-cache, pykit-storage, pykit-messaging, pykit-httpclient |
 | 5 — Protocols | pykit-server, pykit-grpc |
 | 6 — Security | pykit-auth, pykit-authz |
 | 7 — Advanced | pykit-pipeline, pykit-dag, pykit-worker, pykit-sse, pykit-stateful, pykit-process, pykit-workload |
-| 8 — AI/ML | pykit-llm, pykit-triton, pykit-dataset |
-| 9 — Tools | pykit-metrics, pykit-bench, pykit-testutil, pykit-discovery |
+| 8 — AI/ML | pykit-llm, pykit-inference, pykit-dataset |
+| 9 — Tools | pykit-bench, pykit-testutil, pykit-discovery |
 
 ## See Also
 

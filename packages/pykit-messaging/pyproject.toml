@@ -9,6 +9,8 @@ requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",
     "pykit-component",
+    "pykit-util",
+    "pykit-observability",
 ]
 
 [project.optional-dependencies]

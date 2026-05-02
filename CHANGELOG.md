@@ -67,7 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pykit-messaging**: `BatchProducer` — buffered producer with size, time (periodic flush), and byte flush triggers
 - **pykit-messaging**: Provider bridge:
   - `ProducerSink` — wraps `MessageProducer` as `Sink[Message]`
-  - `ConsumerStream` — wraps `MessageConsumer` as `StreamProvider[None, Message]`
+  - `ConsumerStream` — wraps `MessageConsumer` as `Stream[None, Message]`
 - **pykit-messaging**: Middleware:
   - `DedupMiddleware` — deduplication with sliding window (size + TTL) using OrderedDict
   - `CircuitBreakerMiddleware` — fail-fast with CLOSED/OPEN/HALF_OPEN states

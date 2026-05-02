@@ -65,7 +65,7 @@ class RequestResponse(Provider, Protocol[In, Out]):
 
 
 @runtime_checkable
-class StreamProvider(Provider, Protocol[In, Out]):
+class Stream(Provider, Protocol[In, Out]):
     """A provider that takes one input and returns multiple outputs.
 
     Covers: gRPC server-stream, subprocess stdout pipe, SSE, chunked HTTP.

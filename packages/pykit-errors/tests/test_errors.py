@@ -484,9 +484,9 @@ class TestAppErrorConstructorsDetailed:
         assert err.details["service"] == "payment-api"
 
     def test_service_unavailable(self) -> None:
-        err = AppError.service_unavailable("redis")
+        err = AppError.service_unavailable("cache")
         assert err.code == ErrorCode.SERVICE_UNAVAILABLE
-        assert err.details["service"] == "redis"
+        assert err.details["service"] == "cache"
         assert err.http_status == 503
         assert err.is_retryable is True
 
@@ -862,26 +862,26 @@ class TestDeprecatedInvalidInputError:
 
 class TestDeprecatedServiceUnavailableError:
     def test_maps_to_service_unavailable_code(self) -> None:
-        err = ServiceUnavailableError("redis")
+        err = ServiceUnavailableError("cache")
         assert err.code == ErrorCode.SERVICE_UNAVAILABLE
 
     def test_http_status(self) -> None:
-        assert ServiceUnavailableError("redis").http_status == 503
+        assert ServiceUnavailableError("cache").http_status == 503
 
     def test_grpc_status(self) -> None:
-        assert ServiceUnavailableError("redis").to_grpc_status() == grpc.StatusCode.UNAVAILABLE
+        assert ServiceUnavailableError("cache").to_grpc_status() == grpc.StatusCode.UNAVAILABLE
 
     def test_is_retryable(self) -> None:
-        assert ServiceUnavailableError("redis").is_retryable is True
+        assert ServiceUnavailableError("cache").is_retryable is True
 
     def test_with_reason(self) -> None:
-        err = ServiceUnavailableError("redis", "connection pool exhausted")
+        err = ServiceUnavailableError("cache", "connection pool exhausted")
         assert "connection pool exhausted" in err.message
 
     def test_without_reason(self) -> None:
-        err = ServiceUnavailableError("redis")
-        assert "redis" in err.message
-        assert err.message == "Service 'redis' is unavailable"
+        err = ServiceUnavailableError("cache")
+        assert "cache" in err.message
+        assert err.message == "Service 'cache' is unavailable"
 
     def test_is_subclass_of_app_error(self) -> None:
         assert isinstance(ServiceUnavailableError("x"), AppError)

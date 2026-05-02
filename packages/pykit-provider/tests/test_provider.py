@@ -14,7 +14,7 @@ from pykit_provider import (
     RequestResponse,
     RequestResponseFunc,
     Sink,
-    StreamProvider,
+    Stream,
 )
 
 # ---------------------------------------------------------------------------
@@ -84,8 +84,8 @@ class EchoRequestResponse:
         return input.upper()
 
 
-class WordStreamProvider:
-    """StreamProvider that splits input into a stream of words."""
+class WordStream:
+    """Stream that splits input into a stream of words."""
 
     @property
     def name(self) -> str:
@@ -260,21 +260,21 @@ class TestRequestResponse:
 
 
 # ---------------------------------------------------------------------------
-# 4. StreamProvider protocol
+# 4. Stream protocol
 # ---------------------------------------------------------------------------
 
 
-class TestStreamProvider:
+class TestStream:
     async def test_isinstance_check(self) -> None:
-        assert isinstance(WordStreamProvider(), StreamProvider)
+        assert isinstance(WordStream(), Stream)
 
     async def test_execute_returns_box_iterator(self) -> None:
-        sp = WordStreamProvider()
+        sp = WordStream()
         it = await sp.execute("one two three")
         assert isinstance(it, BoxIterator)
 
     async def test_stream_items(self) -> None:
-        sp = WordStreamProvider()
+        sp = WordStream()
         it = await sp.execute("one two three")
         collected: list[str] = []
         async for word in it:
@@ -282,7 +282,7 @@ class TestStreamProvider:
         assert collected == ["one", "two", "three"]
 
     async def test_empty_stream(self) -> None:
-        sp = WordStreamProvider()
+        sp = WordStream()
         it = await sp.execute("")
         # "".split() returns [] so the iterator is immediately exhausted
         collected: list[str] = []
@@ -291,7 +291,7 @@ class TestStreamProvider:
         assert collected == []
 
     async def test_also_satisfies_provider(self) -> None:
-        assert isinstance(WordStreamProvider(), Provider)
+        assert isinstance(WordStream(), Provider)
 
 
 # ---------------------------------------------------------------------------

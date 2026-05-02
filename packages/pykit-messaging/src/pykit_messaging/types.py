@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
+
+from pykit_util import JsonCodec
 
 
 @dataclass
@@ -38,7 +39,7 @@ class Event:
 
     def to_json(self) -> bytes:
         """Serialize event to JSON bytes."""
-        payload = {
+        payload: dict[str, Any] = {
             "id": self.id,
             "type": self.type,
             "source": self.source,
@@ -48,12 +49,12 @@ class Event:
             "timestamp": self.timestamp.isoformat(),
             "data": self.data,
         }
-        return json.dumps(payload).encode()
+        return JsonCodec[dict[str, Any]](stringify_unknown=False).encode(payload)
 
     @classmethod
     def from_json(cls, raw: bytes) -> Event:
         """Deserialize event from JSON bytes."""
-        d = json.loads(raw)
+        d = JsonCodec[dict[str, Any]]().decode(raw)
         return cls(
             id=d["id"],
             type=d["type"],

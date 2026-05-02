@@ -93,9 +93,9 @@ class _ConsumerBoxIterator(BoxIterator[Message]):
 
 
 class ConsumerStream:
-    """Wraps a MessageConsumer as a ``StreamProvider[None, Message]``.
+    """Wraps a MessageConsumer as a ``Stream[None, Message]``.
 
-    Adapts the messaging consumer to satisfy the pykit-provider StreamProvider
+    Adapts the messaging consumer to satisfy the pykit-provider Stream
     protocol, allowing message consumers to be used in provider-based
     architectures.
 

@@ -80,7 +80,7 @@ import asyncio
 from pykit_messaging import EventPublisher, MessageHandlerProtocol
 from pykit_messaging.middleware import StackBuilder, RetryConfig, DedupConfig, CircuitBreakerConfig
 from pykit_messaging.kafka import KafkaConsumer
-from pykit_metrics import MetricsCollector
+from pykit_observability import MetricsCollector
 from pykit_logging import Logger
 
 class OrderHandler(MessageHandlerProtocol):
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 **Modules involved**:
 - `pykit-messaging` — `StackBuilder`, `MessageHandlerProtocol`, middleware config classes
 - `pykit-messaging.kafka` — `KafkaConsumer`
-- `pykit-metrics` — `MetricsCollector`
+- `pykit-observability` — `MetricsCollector`
 - `pykit-logging` — `Logger`
 
 ---

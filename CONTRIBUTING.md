@@ -130,7 +130,7 @@ Coverage expectations:
   `resilience`, `pipeline`).
 - Time-dependent tests should use `asyncio` time mocking — never
   `time.sleep()` in tests.
-- Tests requiring live services (databases, Redis, Kafka) should be marked
+- Tests requiring live services (databases, cache, Kafka) should be marked
   with `@pytest.mark.integration` and documented.
 
 ---
@@ -176,10 +176,10 @@ Layer 2 (Patterns):    provider, component, resilience
 Layer 3 (Frameworks):  di, bootstrap, observability
 Layer 4 (Data/Flow):   pipeline, dag, worker, sse, stateful
 Layer 5 (Security):    auth, authz, security
-Layer 6 (Infra):       database, redis, storage, messaging, httpclient
+Layer 6 (Infra):       database, cache, storage, messaging, httpclient
 Layer 7 (Servers):     server, grpc
-Layer 8 (AI/ML):       llm, triton, bench, dataset
-Layer 9 (Platform):    discovery, workload, process, testutil, metrics
+Layer 8 (AI/ML):       llm, inference, bench, dataset
+Layer 9 (Platform):    discovery, workload, process, testutil
 ```
 
 To verify layering:

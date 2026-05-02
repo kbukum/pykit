@@ -15,7 +15,7 @@ async def resolve_addr(disc: Discovery, service_name: str) -> tuple[str, int]:
     """Resolve a service name to a ``(host, port)`` pair via service discovery.
 
     Returns the first healthy instance's host and port. Use at bootstrap time
-    to resolve infrastructure addresses (database, redis, kafka, etc.) before
+    to resolve infrastructure addresses (database, cache, kafka, etc.) before
     connection pools are created.
 
     Args:

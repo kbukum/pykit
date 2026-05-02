@@ -12,12 +12,14 @@ from collections.abc import Awaitable, Callable, MutableMapping
 from dataclasses import dataclass, field
 from typing import Any, cast
 
-from opentelemetry import trace
-from opentelemetry.propagate import extract, inject
-from opentelemetry.trace import StatusCode
-from prometheus_client import Counter, Histogram, generate_latest
-
-from pykit_observability import get_tracer
+from pykit_observability import (
+    HttpMetrics,
+    SpanKind,
+    extract_trace_context,
+    inject_trace_context,
+    render_metrics,
+    start_span,
+)
 from pykit_resilience import RateLimiter as ResilienceRateLimiter
 from pykit_resilience import RateLimiterConfig as ResilienceRateLimiterConfig
 from pykit_server.tenant import _tenant_context, get_tenant, require_tenant, set_tenant
@@ -163,13 +165,13 @@ class TracingMiddleware:
         path = cast("str", scope.get("path", "/"))
         scheme = cast("str", scope.get("scheme", "http"))
 
-        ctx = extract(carrier=_ASGIHeaderCarrier(scope))
-        tracer = get_tracer(self._service_name)
+        ctx = extract_trace_context(_ASGIHeaderCarrier(scope))
 
-        with tracer.start_as_current_span(
+        with start_span(
+            self._service_name,
             f"{method} {path}",
             context=ctx,
-            kind=trace.SpanKind.SERVER,
+            kind=SpanKind.SERVER,
             attributes={
                 "http.method": method,
                 "http.target": path,
@@ -177,7 +179,7 @@ class TracingMiddleware:
             },
         ) as span:
             response_carrier = _ResponseHeaderCarrier()
-            inject(carrier=response_carrier)
+            inject_trace_context(response_carrier)
             status_code = 200
 
             async def send_wrapper(message: MutableMapping[str, Any]) -> None:
@@ -193,34 +195,15 @@ class TracingMiddleware:
                 await self._app(scope, receive, send_wrapper)
             except Exception as exc:
                 span.record_exception(exc)
-                span.set_status(StatusCode.ERROR, str(exc))
+                span.set_error(str(exc))
                 raise
             finally:
                 span.set_attribute("http.status_code", status_code)
                 if status_code >= 500:
-                    span.set_status(StatusCode.ERROR, f"HTTP {status_code}")
+                    span.set_error(f"HTTP {status_code}")
 
 
-_requests_total = Counter(
-    "http_requests_total",
-    "Total number of HTTP requests",
-    ["method", "path", "status_code"],
-)
-_request_duration = Histogram(
-    "http_request_duration_seconds",
-    "Duration of HTTP requests in seconds",
-    ["method", "path", "status_code"],
-)
-_request_size = Histogram(
-    "http_request_size_bytes",
-    "Size of HTTP request bodies in bytes",
-    ["method", "path"],
-)
-_response_size = Histogram(
-    "http_response_size_bytes",
-    "Size of HTTP response bodies in bytes",
-    ["method", "path"],
-)
+_http_metrics = HttpMetrics()
 
 
 class PrometheusMiddleware:
@@ -252,7 +235,7 @@ class PrometheusMiddleware:
                     request_size = int(value)
                 break
         if request_size > 0:
-            _request_size.labels(method=method, path=path).observe(request_size)
+            _http_metrics.record_request_size(method, path, request_size)
 
         status_code = 200
         response_bytes = 0
@@ -269,13 +252,10 @@ class PrometheusMiddleware:
             await self._app(scope, receive, send_wrapper)
         finally:
             duration = time.monotonic() - start
-            labels = {"method": method, "path": path, "status_code": str(status_code)}
-            _requests_total.labels(**labels).inc()
-            _request_duration.labels(**labels).observe(duration)
-            _response_size.labels(method=method, path=path).observe(response_bytes)
+            _http_metrics.record_response(method, path, status_code, duration, response_bytes)
 
     async def _serve_metrics(self, send: Send) -> None:
-        body = generate_latest()
+        body = render_metrics()
         await send(
             {
                 "type": "http.response.start",

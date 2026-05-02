@@ -31,13 +31,13 @@ on nothing higher):
 5. **Data & Flow** — `pykit-pipeline`, `pykit-dag`, `pykit-worker`,
    `pykit-sse`, `pykit-stateful`
 6. **Security** — `pykit-auth`, `pykit-authz`, `pykit-security`
-7. **Infrastructure** — `pykit-database`, `pykit-redis`, `pykit-storage`,
+7. **Infrastructure** — `pykit-database`, `pykit-cache`, `pykit-storage`,
    `pykit-messaging`, `pykit-httpclient`
 8. **Servers** — `pykit-server`, `pykit-grpc`
 9. **AI/ML** — `pykit-llm`, `pykit-llm-providers`, `pykit-bench`,
    `pykit-dataset`
 10. **Platform** — `pykit-discovery`, `pykit-workload`, `pykit-process`,
-    `pykit-testutil`, `pykit-metrics`
+    `pykit-testutil`
 
 When a foundation package needs a service that lives in a higher layer
 (e.g. an HTTP transport for an SSE broadcaster), the foundation declares

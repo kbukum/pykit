@@ -14,7 +14,7 @@ uv add pykit-provider
 
 ```python
 from pykit_provider import (
-    RequestResponse, StreamProvider, Sink, Duplex,
+    RequestResponse, Stream, Sink, Duplex,
     BoxIterator, DuplexStream, RequestResponseFunc,
 )
 
@@ -27,7 +27,7 @@ print(provider.name)                        # "sentiment"
 print(await provider.is_available())        # True
 result = await provider.execute("good day") # "positive"
 
-# Implement StreamProvider for server-stream pattern
+# Implement Stream for server-stream pattern
 class EventStream:
     name = "events"
     async def is_available(self) -> bool: return True
@@ -39,7 +39,7 @@ class EventStream:
 
 - **Provider** — Base protocol with `name` property and `is_available()` method
 - **RequestResponse[In, Out]** — Unary request → single response (`execute(input) → output`)
-- **StreamProvider[In, Out]** — Single request → multiple responses (`execute(input) → BoxIterator[Out]`)
+- **Stream[In, Out]** — Single request → multiple responses (`execute(input) → BoxIterator[Out]`)
 - **Sink[In]** — Fire-and-forget input with no response (`send(input) → None`)
 - **Duplex[In, Out]** — Bidirectional communication (`open() → DuplexStream[In, Out]`)
 - **BoxIterator[T]** — Async iterator for pull-based sequential access with `next()` and `close()`

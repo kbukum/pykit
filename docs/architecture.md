@@ -8,18 +8,18 @@ Lower layers never import higher ones — enforced via [`import-linter`](https:/
 ```
 Layer 10 — Platform / Specialist
   pykit-agent · pykit-discovery · pykit-workload · pykit-process
-  pykit-testutil · pykit-metrics · pykit-integration
+  pykit-testutil · pykit-integration
 
 Layer 9 — AI / ML
-  pykit-llm · pykit-triton · pykit-bench · pykit-dataset
-  pykit-transcription · pykit-embedding · pykit-vector-store
+  pykit-llm · pykit-inference · pykit-bench · pykit-dataset
+  pykit-transcription · pykit-embedding · pykit-vectorstore
   pykit-llm-providers · pykit-explain
 
 Layer 8 — Servers
-  pykit-server · pykit-grpc · pykit-kafka-middleware
+  pykit-server · pykit-grpc
 
 Layer 7 — Infrastructure Clients
-  pykit-database · pykit-redis · pykit-storage · pykit-messaging · pykit-httpclient
+  pykit-database · pykit-cache · pykit-storage · pykit-messaging · pykit-httpclient
 
 Layer 6 — Security
   pykit-auth · pykit-authz · pykit-security
