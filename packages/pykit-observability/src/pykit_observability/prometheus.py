@@ -7,6 +7,7 @@ from threading import Thread
 
 from prometheus_client import (
     Counter,
+    Gauge,
     Histogram,
     generate_latest,
     start_http_server,
@@ -30,7 +31,7 @@ class MetricsCollector:
             ["method"],
             buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
         )
-        self.active_requests = Counter(
+        self.active_requests = Gauge(
             f"{service_name}_grpc_active_requests",
             "Currently active gRPC requests",
             ["method"],

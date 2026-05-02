@@ -49,7 +49,7 @@ class Event:
             "timestamp": self.timestamp.isoformat(),
             "data": self.data,
         }
-        return JsonCodec[dict[str, Any]]().encode(payload)
+        return JsonCodec[dict[str, Any]](stringify_unknown=False).encode(payload)
 
     @classmethod
     def from_json(cls, raw: bytes) -> Event:

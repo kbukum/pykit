@@ -42,10 +42,11 @@ class TestMetricsCollectorConstruction:
         assert hasattr(mc.request_duration, "labels")
         assert hasattr(mc.request_duration, "observe")
 
-    def test_active_requests_is_counter(self) -> None:
+    def test_active_requests_is_gauge(self) -> None:
         mc = MetricsCollector("active_test_svc")
         assert hasattr(mc.active_requests, "labels")
         assert hasattr(mc.active_requests, "inc")
+        assert hasattr(mc.active_requests, "dec")
 
     def test_metric_names_include_service(self) -> None:
         mc = MetricsCollector("naming_svc")
@@ -165,20 +166,21 @@ class TestHistogramBuckets:
 
 
 # ---------------------------------------------------------------------------
-# active_requests counter
+# active_requests gauge
 # ---------------------------------------------------------------------------
 
 
 class TestActiveRequests:
-    def test_active_requests_can_be_incremented(self) -> None:
+    def test_active_requests_can_track_current_value(self) -> None:
         mc = MetricsCollector("active_svc")
         mc.active_requests.labels(method="/Stream").inc()
+        mc.active_requests.labels(method="/Stream").dec()
 
         val = _get_sample_value(
-            "active_svc_grpc_active_requests_total",
+            "active_svc_grpc_active_requests",
             {"method": "/Stream"},
         )
-        assert val is not None and val >= 1.0
+        assert val == 0.0
 
     def test_active_requests_independent_per_method(self) -> None:
         mc = MetricsCollector("active_ind_svc")
@@ -186,8 +188,8 @@ class TestActiveRequests:
         mc.active_requests.labels(method="/A").inc()
         mc.active_requests.labels(method="/B").inc()
 
-        val_a = _get_sample_value("active_ind_svc_grpc_active_requests_total", {"method": "/A"})
-        val_b = _get_sample_value("active_ind_svc_grpc_active_requests_total", {"method": "/B"})
+        val_a = _get_sample_value("active_ind_svc_grpc_active_requests", {"method": "/A"})
+        val_b = _get_sample_value("active_ind_svc_grpc_active_requests", {"method": "/B"})
         assert val_a is not None and val_a >= 2.0
         assert val_b is not None and val_b >= 1.0
 

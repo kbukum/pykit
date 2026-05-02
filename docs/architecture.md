@@ -8,7 +8,7 @@ Lower layers never import higher ones — enforced via [`import-linter`](https:/
 ```
 Layer 10 — Platform / Specialist
   pykit-agent · pykit-discovery · pykit-workload · pykit-process
-  pykit-testutil · pykit-observability · pykit-integration
+  pykit-testutil · pykit-integration
 
 Layer 9 — AI / ML
   pykit-llm · pykit-inference · pykit-bench · pykit-dataset

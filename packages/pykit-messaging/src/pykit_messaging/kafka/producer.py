@@ -104,7 +104,7 @@ class KafkaProducer:
 
     async def send_json(self, topic: str, data: Any, key: str | None = None) -> None:
         """Serialize *data* as JSON and send it."""
-        value = JsonCodec[Any]().encode(data)
+        value = JsonCodec[Any](stringify_unknown=False).encode(data)
         await self.send(topic, value=value, key=key)
 
     async def send_batch(self, messages: list[Message]) -> None:
