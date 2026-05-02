@@ -1,18 +1,44 @@
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Packaging
 *.egg-info/
 dist/
 build/
 .eggs/
 *.egg
+
+# Virtual environments
 .venv/
+venv/
+.python-version
+
+# Environment / secrets
 .env
+.env.local
+.secrets
+
+# Type checking
 .mypy_cache/
+.pyright/
+
+# Testing
 .pytest_cache/
-.ruff_cache/
 .coverage
-htmlcov/
-.DS_Store
-.cache/
 .coverage.*
+htmlcov/
+coverage.xml
+junit*.xml
+
+# Linting
+.ruff_cache/
+
+# uv / pip
+.cache/
+pip-wheel-metadata/
+
+# OS
+.DS_Store
+Thumbs.db
