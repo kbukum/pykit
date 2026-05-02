@@ -37,7 +37,7 @@ on nothing higher):
 9. **AI/ML** — `pykit-llm`, `pykit-llm-providers`, `pykit-bench`,
    `pykit-dataset`
 10. **Platform** — `pykit-discovery`, `pykit-workload`, `pykit-process`,
-    `pykit-testutil`, `pykit-observability`
+    `pykit-testutil`
 
 When a foundation package needs a service that lives in a higher layer
 (e.g. an HTTP transport for an SSE broadcaster), the foundation declares

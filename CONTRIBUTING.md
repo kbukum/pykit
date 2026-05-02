@@ -178,8 +178,8 @@ Layer 4 (Data/Flow):   pipeline, dag, worker, sse, stateful
 Layer 5 (Security):    auth, authz, security
 Layer 6 (Infra):       database, cache, storage, messaging, httpclient
 Layer 7 (Servers):     server, grpc
-Layer 8 (AI/ML):       llm, triton, bench, dataset
-Layer 9 (Platform):    discovery, workload, process, testutil, metrics
+Layer 8 (AI/ML):       llm, inference, bench, dataset
+Layer 9 (Platform):    discovery, workload, process, testutil
 ```
 
 To verify layering:

@@ -89,7 +89,6 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | Package | Description |
 |---------|-------------|
 | `pykit-discovery` | Service discovery with resilience-backed self-registration |
-| `pykit-observability` | Prometheus metrics helpers |
 | `pykit-process` | Process management utilities |
 | `pykit-workload` | Workload scheduling and management |
 

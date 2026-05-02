@@ -50,7 +50,7 @@ await component.stop()
 ## Dependencies
 
 - `pykit-errors`, `pykit-component`
-- `cache` (cache-py async client)
+- `redis` (redis-py async client)
 - Optional: `pykit-testutil` (for testing)
 
 ## See Also
