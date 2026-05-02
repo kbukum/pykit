@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
+from pykit_storage.s3 import _validate_key
 
 # ---------------------------------------------------------------------------
 # Path traversal security
@@ -20,37 +21,49 @@ class TestPathTraversalSecurity:
     def store(self, tmp_path: Path) -> LocalStorage:
         return LocalStorage(base_path=str(tmp_path))
 
-    async def test_upload_traversal_escapes_base(self, store: LocalStorage, tmp_path: Path) -> None:
-        """Upload with ../../ should write inside base, not escape it."""
-        await store.upload("../../etc/passwd", b"hacked")
-        # The file must NOT exist at the system level
-        assert not Path("/etc/passwd_hacked").exists()
-        # It should resolve inside the base path (os.path.join behavior)
-        # With current implementation, os.path.join(base, "../../etc/passwd")
-        # will go UP from base — verify the file landed somewhere under tmp_path
-        # or above. The key insight: LocalStorage._resolve just joins paths,
-        # so ../../ DOES escape. We test that at minimum the file was created.
-        # This documents the current behavior.
+    async def test_upload_traversal_rejected(self, store: LocalStorage, tmp_path: Path) -> None:
+        """Upload with ../../ must not escape the storage base."""
+        from pykit_errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError):
+            await store.upload("../../etc/passwd", b"hacked")
+        assert not (tmp_path.parent / "etc" / "passwd").exists()
 
     async def test_download_traversal_returns_error_or_not_found(
         self, store: LocalStorage, tmp_path: Path
     ) -> None:
         """Downloading a traversal path should fail cleanly."""
-        from pykit_errors import NotFoundError
+        from pykit_errors import InvalidInputError, NotFoundError
 
-        with pytest.raises((NotFoundError, FileNotFoundError, OSError)):
+        with pytest.raises((InvalidInputError, NotFoundError, FileNotFoundError, OSError)):
             await store.download("../../../etc/shadow")
 
     async def test_exists_traversal_path(self, store: LocalStorage) -> None:
         """Exists with traversal path should not crash."""
-        result = await store.exists("../../etc/passwd")
-        # Should be False (file doesn't exist at that resolved path)
-        assert isinstance(result, bool)
+        from pykit_errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError):
+            await store.exists("../../etc/passwd")
 
     async def test_delete_traversal_nonexistent_is_noop(self, store: LocalStorage) -> None:
         """Delete with traversal on nonexistent path should not crash."""
-        # Should not raise — the file doesn't exist
-        await store.delete("../../nonexistent_file.txt")
+        from pykit_errors import InvalidInputError
+
+        with pytest.raises(InvalidInputError):
+            await store.delete("../../nonexistent_file.txt")
+
+
+class TestS3ConfigValidation:
+    def test_s3_key_rejects_path_traversal(self) -> None:
+        with pytest.raises(Exception, match="normalized relative"):
+            _validate_key("../secret")
+
+    def test_s3_key_rejects_absolute_paths(self) -> None:
+        with pytest.raises(Exception, match="normalized relative"):
+            _validate_key("/bucket/key")
+
+    def test_s3_key_accepts_normalized_relative_key(self) -> None:
+        assert _validate_key("tenant/a.txt") == "tenant/a.txt"
 
 
 # ---------------------------------------------------------------------------
@@ -129,9 +142,9 @@ class TestErrorScenarios:
 
     async def test_download_empty_path(self, store: LocalStorage) -> None:
         """Empty path download should fail cleanly."""
-        from pykit_errors import NotFoundError
+        from pykit_errors import InvalidInputError, NotFoundError
 
-        with pytest.raises((NotFoundError, IsADirectoryError, OSError)):
+        with pytest.raises((InvalidInputError, NotFoundError, IsADirectoryError, OSError)):
             await store.download("")
 
     async def test_list_nonexistent_prefix_returns_empty(self, store: LocalStorage) -> None:

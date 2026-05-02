@@ -1,19 +1,19 @@
 [project]
 name = "pykit-cache"
-description = "cache client and caching utilities with component lifecycle"
+description = "cache abstraction with in-memory default and optional adapters"
 version = "0.1.0"
 readme = "README.md"
 license = { text = "MIT" }
-keywords = ["cache", "redis", "client", "async"]
+keywords = ["cache", "client", "async"]
 requires-python = ">=3.13"
 dependencies = [
-    "redis",
     "pykit-errors",
     "pykit-component",
     "pykit-util",
 ]
 
 [project.optional-dependencies]
+redis = ["redis"]
 test = ["pykit-testutil"]
 
 [build-system]

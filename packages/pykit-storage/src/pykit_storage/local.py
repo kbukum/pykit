@@ -5,11 +5,13 @@ from __future__ import annotations
 import asyncio
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import BinaryIO, cast
 
 import aiofiles
 import aiofiles.os
 
+from pykit_errors import InvalidInputError
 from pykit_storage.base import FileInfo
 
 
@@ -17,11 +19,23 @@ class LocalStorage:
     """Storage implementation backed by the local filesystem."""
 
     def __init__(self, base_path: str, public_url: str = "") -> None:
-        self._base_path = base_path
+        self._base_path = str(Path(base_path).resolve())
         self._public_url = public_url.rstrip("/")
 
-    def _resolve(self, path: str) -> str:
-        return os.path.join(self._base_path, path)
+    def _resolve(self, path: str, *, allow_empty: bool = False) -> str:
+        if allow_empty and path == "":
+            return self._base_path
+        if path == "" or "\x00" in path:
+            raise InvalidInputError(
+                "storage path must be non-empty and must not contain NUL bytes", field="path"
+            )
+        if Path(path).is_absolute():
+            raise InvalidInputError("storage path must be relative", field="path")
+        resolved = (Path(self._base_path) / path).resolve()
+        base = Path(self._base_path)
+        if resolved != base and base not in resolved.parents:
+            raise InvalidInputError("storage path escapes base path", field="path")
+        return str(resolved)
 
     async def upload(self, path: str, data: bytes | BinaryIO) -> None:
         full = self._resolve(path)
@@ -48,7 +62,7 @@ class LocalStorage:
         return bool(await aiofiles.os.path.exists(self._resolve(path)))
 
     async def list(self, prefix: str = "") -> list[FileInfo]:
-        root = self._resolve(prefix)
+        root = self._resolve(prefix, allow_empty=True)
         if not await aiofiles.os.path.isdir(root):
             return []
 

@@ -1,57 +1,66 @@
 # pykit-database
 
-Async SQLAlchemy database toolkit with repository pattern, error translation, and component lifecycle.
+Async database abstraction with SQLAlchemy backend selection, explicit driver extras, repository
+helpers, transaction rollback/cancellation behavior, tenant scoping, and component lifecycle.
 
 ## Installation
 
 ```bash
 pip install pykit-database
-# or
+pip install 'pykit-database[sqlite]'    # aiosqlite driver
+pip install 'pykit-database[postgres]'  # asyncpg driver
+
 uv add pykit-database
+uv add 'pykit-database[sqlite]'    # aiosqlite driver
+uv add 'pykit-database[postgres]'  # asyncpg driver
 ```
 
 ## Quick Start
 
 ```python
-from pykit_database import Database, DatabaseConfig, DatabaseComponent, Repository
+from pykit_database import Database, DatabaseConfig, Repository
 
-# Direct usage
-config = DatabaseConfig(dsn="sqlite+aiosqlite:///app.db", pool_size=5)
-db = Database(config)
+db = Database(DatabaseConfig(dsn="sqlite+aiosqlite:///app.db"))
 
 async with db.session() as session:
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one()
 
-# Repository pattern with full CRUD
 repo = Repository(db.session, User)
-user = await repo.create(User(name="Alice", email="alice@example.com"))
-users = await repo.list(offset=0, limit=10, filters={"name": "Alice"})
-await repo.delete(user.id)
-
-# Component lifecycle integration
-component = DatabaseComponent(config)
-await component.start()     # connects and pings
-health = await component.health()  # HEALTHY or UNHEALTHY
-await component.stop()
+created = await repo.create(User(name="Alice", email="alice@example.com"))
 ```
+
+`Database.session()` commits on success and rolls back on exceptions and cancellation.
+
+## Registry and component selection
+
+```python
+from pykit_database import (
+    DatabaseComponent,
+    DatabaseConfig,
+    DatabaseRegistry,
+    register_sqlalchemy,
+)
+
+registry = DatabaseRegistry()
+register_sqlalchemy(registry)
+
+component = DatabaseComponent(
+    DatabaseConfig(backend="sqlalchemy", dsn="postgresql+asyncpg://..."),
+    registry=registry,
+)
+await component.start()
+```
+
+## Tenant isolation
+
+Use `scope_to_tenant()` to apply row-level tenant predicates and `set_session_variable()` for
+PostgreSQL RLS session variables. Tenant IDs must be applied at repository/query boundaries.
 
 ## Key Components
 
-- **DatabaseConfig** — Configuration dataclass with `dsn`, `echo`, `pool_size`, `max_overflow`, `pool_timeout`, `pool_recycle`, and `auto_migrate`
-- **Database** — Async SQLAlchemy wrapper with `session()` context manager (auto-commit/rollback), `execute()`, `ping()`, `close()`, and `run_migrations(metadata)`
-- **Repository[T]** — Generic CRUD repository with `create()`, `get_by_id()`, `list()`, `count()`, `exists()`, `update()`, `delete()`, and `save()` (upsert)
-- **ReadRepository[T]** — Read-only repository with `get_by_id()`, `list()`, `count()`, and `exists()`
-- **DatabaseComponent** — Component protocol implementation with `start()`, `stop()`, and `health()` for managed lifecycle
-- **Error translation** — `translate_error()` maps SQLAlchemy exceptions to pykit `AppError` subtypes (NotFoundError, ServiceUnavailableError, ALREADY_EXISTS, DATABASE_ERROR)
-
-## Dependencies
-
-- `sqlalchemy[asyncio]` — Async SQLAlchemy ORM and core
-- `pykit-errors` — Error types and translation
-- `pykit-component` — Component lifecycle protocol
-
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- **DatabaseConfig** — backend, DSN, echo, and bounded pool settings.
+- **DatabaseRegistry** — injected backend registry; empty registries have no backends.
+- **Database** — SQLAlchemy async wrapper with sessions, execute, ping, close, migrations.
+- **Repository[T]** / **ReadRepository[T]** — generic CRUD/read helpers.
+- **tenant helpers** — row-scoped query filtering and PostgreSQL RLS variables.

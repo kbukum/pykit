@@ -7,7 +7,16 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from pykit_cache import CacheClient, CacheComponent, CacheConfig, TypedStore
+from pykit_cache import (
+    CacheClient,
+    CacheComponent,
+    CacheConfig,
+    CacheRegistry,
+    InMemoryCache,
+    TypedStore,
+    default_cache_registry,
+    register_memory,
+)
 from pykit_component import HealthStatus
 from pykit_testutil import FakeAsyncKeyValue
 
@@ -39,6 +48,7 @@ class TestCacheConfig:
     def test_defaults(self) -> None:
         cfg = CacheConfig()
         assert cfg.name == "cache"
+        assert cfg.backend == "memory"
         assert cfg.url == "redis://localhost:6379/0"
         assert cfg.db == 0
         assert cfg.max_connections == 10
@@ -47,6 +57,19 @@ class TestCacheConfig:
         assert cfg.retry_on_timeout is True
         assert cfg.decode_responses is True
         assert cfg.enabled is True
+
+    def test_empty_registry_has_no_side_effect_backends(self) -> None:
+        registry = CacheRegistry()
+        assert registry.names() == ()
+
+    def test_explicit_memory_registration(self) -> None:
+        registry = CacheRegistry()
+        register_memory(registry)
+        assert registry.names() == ("memory",)
+        assert isinstance(registry.create(CacheConfig()), InMemoryCache)
+
+    def test_default_registry_only_contains_memory(self) -> None:
+        assert default_cache_registry().names() == ("memory",)
 
     def test_custom_values(self) -> None:
         cfg = CacheConfig(name="cache", url="redis://remote:6380/2", db=2, max_connections=50)
@@ -76,6 +99,15 @@ class TestCacheClient:
     async def test_set_with_expiry(self, client: CacheClient) -> None:
         await client.set("k1", "v1", ex=60)
         assert await client.get("k1") == "v1"
+
+    async def test_ttl_boundary_expires(self) -> None:
+        client = CacheClient(CacheConfig())
+        await client.set("short", "v", ex=1)
+        assert await client.get("short") == "v"
+        import asyncio
+
+        await asyncio.sleep(1.01)
+        assert await client.get("short") is None
 
     async def test_delete(self, client: CacheClient) -> None:
         await client.set("k1", "v1")

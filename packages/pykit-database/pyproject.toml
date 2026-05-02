@@ -1,6 +1,6 @@
 [project]
 name = "pykit-database"
-description = "Async database access with SQLAlchemy and asyncpg"
+description = "Async database abstraction with SQLAlchemy backend and explicit driver extras"
 version = "0.1.0"
 readme = "README.md"
 license = { text = "MIT" }
@@ -13,6 +13,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+postgres = ["asyncpg"]
+sqlite = ["aiosqlite"]
 test = ["aiosqlite"]
 
 [build-system]

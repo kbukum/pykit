@@ -46,7 +46,7 @@ class Database:
             try:
                 yield sess
                 await sess.commit()
-            except Exception:
+            except BaseException:
                 await sess.rollback()
                 raise
 

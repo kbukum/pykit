@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
@@ -19,6 +20,7 @@ from pykit_database.errors import (
     is_not_found_error,
     translate_error,
 )
+from pykit_database.registry import DatabaseRegistry, default_database_registry, register_sqlalchemy
 from pykit_database.repository import ReadRepository, Repository
 from pykit_errors import AppError, NotFoundError, ServiceUnavailableError
 
@@ -77,6 +79,7 @@ class TestDatabaseConfig:
     def test_defaults(self):
         cfg = DatabaseConfig()
         assert cfg.name == "database"
+        assert cfg.backend == "sqlalchemy"
         assert cfg.dsn == "sqlite+aiosqlite:///db.sqlite3"
         assert cfg.echo is False
         assert cfg.pool_size == 5
@@ -84,6 +87,18 @@ class TestDatabaseConfig:
         assert cfg.pool_timeout == 30.0
         assert cfg.pool_recycle == 3600
         assert cfg.auto_migrate is False
+
+    def test_empty_registry_has_no_side_effect_backends(self):
+        registry = DatabaseRegistry()
+        assert registry.names() == ()
+
+    def test_explicit_sqlalchemy_registration(self):
+        registry = DatabaseRegistry()
+        register_sqlalchemy(registry)
+        assert registry.names() == ("sqlalchemy",)
+
+    def test_default_registry_contains_sqlalchemy(self):
+        assert default_database_registry().names() == ("sqlalchemy",)
 
     def test_custom_values(self):
         cfg = DatabaseConfig(name="mydb", dsn="postgresql+asyncpg://localhost/test", echo=True)
@@ -139,6 +154,24 @@ class TestDatabase:
 
         async with database.session() as sess:
             result = await sess.execute(select(User).where(User.email == "ghost@x.com"))
+            assert result.scalars().first() is None
+        await database.close()
+
+    async def test_session_rollback_on_cancellation(self):
+        config = DatabaseConfig(dsn=IN_MEMORY_DSN)
+        database = Database(config)
+        await database.run_migrations(Base.metadata)
+
+        with pytest.raises(asyncio.CancelledError):
+            async with database.session() as sess:
+                sess.add(User(name="Cancelled", email="cancelled@x.com"))
+                await sess.flush()
+                raise asyncio.CancelledError
+
+        from sqlalchemy import select
+
+        async with database.session() as sess:
+            result = await sess.execute(select(User).where(User.email == "cancelled@x.com"))
             assert result.scalars().first() is None
         await database.close()
 

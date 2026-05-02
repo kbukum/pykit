@@ -2,21 +2,31 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Literal, Protocol, runtime_checkable
+
+from pykit_errors import AppError
+from pykit_errors.codes import ErrorCode
+
+VectorMetric = Literal["cosine", "dot", "l2"]
+FilterValue = str | int | float | bool | None
 
 
-class VectorStoreError(Exception):
+class VectorStoreError(AppError):
     """Raised when a vector store operation fails."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(ErrorCode.INVALID_INPUT, message)
 
 
 @dataclass
 class PointPayload:
     """Payload stored alongside each vector point."""
 
-    fields: dict[str, Any] = field(default_factory=dict)
+    fields: dict[str, FilterValue] = field(default_factory=dict)
 
-    def with_field(self, key: str, value: Any) -> PointPayload:
+    def with_field(self, key: str, value: FilterValue) -> PointPayload:
         """Add a field and return self for chaining."""
         self.fields[key] = value
         return self
@@ -35,19 +45,44 @@ class SearchResult:
 class SearchFilter:
     """Optional filters for search queries."""
 
-    must: list[tuple[str, Any]] = field(default_factory=list)
+    must: list[tuple[str, FilterValue]] = field(default_factory=list)
+    tenant_id: str | None = None
 
-    def must_match(self, field_name: str, value: Any) -> SearchFilter:
+    def must_match(self, field_name: str, value: FilterValue) -> SearchFilter:
         """Add a must-match condition and return self for chaining."""
         self.must.append((field_name, value))
         return self
+
+    def for_tenant(self, tenant_id: str) -> SearchFilter:
+        """Restrict search to a tenant."""
+        self.tenant_id = tenant_id
+        return self
+
+    def conditions(self) -> tuple[tuple[str, FilterValue], ...]:
+        """Return normalized filter conditions including tenant isolation."""
+        conditions = list(self.must)
+        if self.tenant_id is not None:
+            conditions.append(("tenant_id", self.tenant_id))
+        return tuple(conditions)
+
+
+@dataclass(frozen=True)
+class VectorStoreConfig:
+    """Config-driven vectorstore backend selection."""
+
+    backend: str = "memory"
+    metric: VectorMetric = "cosine"
+    qdrant_url: str = "http://localhost:6333"
+    qdrant_api_key: str | None = None
 
 
 @runtime_checkable
 class VectorStore(Protocol):
     """Protocol for vector similarity search stores."""
 
-    async def ensure_collection(self, collection: str, dimensions: int) -> None:
+    async def ensure_collection(
+        self, collection: str, dimensions: int, metric: VectorMetric = "cosine"
+    ) -> None:
         """Ensure a collection exists, creating it if necessary."""
         ...
 
@@ -74,3 +109,6 @@ class VectorStore(Protocol):
     async def delete(self, collection: str, id: str) -> None:
         """Delete a point by ID."""
         ...
+
+
+VectorStoreFactory = Callable[[VectorStoreConfig], VectorStore]

@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pykit_vectorstore.store import (
     PointPayload,
     SearchFilter,
     SearchResult,
+    VectorMetric,
+    VectorStoreConfig,
     VectorStoreError,
 )
+
+if TYPE_CHECKING:
+    from pykit_vectorstore.registry import VectorStoreRegistry
 
 try:
     from qdrant_client import QdrantClient
@@ -34,6 +39,7 @@ class QdrantConfig:
 
     url: str = "http://localhost:6333"
     api_key: str | None = None
+    metric: VectorMetric = "cosine"
 
 
 class QdrantVectorStore:
@@ -50,18 +56,21 @@ class QdrantVectorStore:
                 "Install with: pip install pykit-vectorstore[qdrant]"
             )
         cfg = config or QdrantConfig()
+        self._metric = cfg.metric
         kwargs: dict[str, Any] = {"url": cfg.url}
         if cfg.api_key:
             kwargs["api_key"] = cfg.api_key
         self._client = QdrantClient(**kwargs)
 
-    async def ensure_collection(self, collection: str, dimensions: int) -> None:
+    async def ensure_collection(
+        self, collection: str, dimensions: int, metric: VectorMetric = "cosine"
+    ) -> None:
         """Ensure a Qdrant collection exists."""
         try:
             if not self._client.collection_exists(collection):
                 self._client.create_collection(
                     collection_name=collection,
-                    vectors_config=VectorParams(size=dimensions, distance=Distance.COSINE),
+                    vectors_config=VectorParams(size=dimensions, distance=_to_qdrant_distance(metric)),
                 )
         except Exception as exc:
             raise VectorStoreError(f"failed to ensure Qdrant collection: {exc}") from exc
@@ -98,9 +107,10 @@ class QdrantVectorStore:
     ) -> list[SearchResult]:
         """Search for similar vectors in Qdrant."""
         query_filter = None
-        if filter is not None and filter.must:
+        if filter is not None and filter.conditions():
             conditions = [
-                FieldCondition(key=field, match=MatchValue(value=value)) for field, value in filter.must
+                FieldCondition(key=field, match=MatchValue(value=value))
+                for field, value in filter.conditions()
             ]
             query_filter = Filter(must=conditions)
 
@@ -134,3 +144,24 @@ class QdrantVectorStore:
             )
         except Exception as exc:
             raise VectorStoreError(f"failed to delete from Qdrant: {exc}") from exc
+
+
+def _to_qdrant_distance(metric: VectorMetric) -> Distance:
+    if metric == "cosine":
+        return Distance.COSINE
+    if metric == "dot":
+        return Distance.DOT
+    if metric == "l2":
+        return Distance.EUCLID
+    raise VectorStoreError(f"unsupported Qdrant metric: {metric}")
+
+
+def _from_config(config: VectorStoreConfig) -> QdrantVectorStore:
+    return QdrantVectorStore(
+        QdrantConfig(url=config.qdrant_url, api_key=config.qdrant_api_key, metric=config.metric)
+    )
+
+
+def register(registry: VectorStoreRegistry) -> None:
+    """Register the Qdrant backend in an injected registry."""
+    registry.register("qdrant", _from_config)

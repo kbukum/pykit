@@ -16,3 +16,9 @@ class StorageConfig:
     max_file_size: int = 104_857_600  # 100 MB
     public_url: str = ""
     allowed_types: list[str] = field(default_factory=list)
+    bucket: str = ""
+    region: str | None = None
+    endpoint_url: str | None = None
+    access_key_id: str | None = None
+    secret_access_key: str | None = None
+    signed_url_max_seconds: int = 3600

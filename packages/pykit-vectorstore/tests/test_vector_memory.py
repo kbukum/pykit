@@ -52,6 +52,37 @@ class TestInMemoryVectorStore:
         assert len(results) == 1
         assert results[0].id == "1"
 
+    async def test_search_with_tenant_filter(self) -> None:
+        store = InMemoryVectorStore()
+        await store.ensure_collection("test", 2)
+
+        await store.upsert("test", "1", [1.0, 0.0], PointPayload(fields={"tenant_id": "a"}))
+        await store.upsert("test", "2", [1.0, 0.0], PointPayload(fields={"tenant_id": "b"}))
+
+        results = await store.search("test", [1.0, 0.0], 10, filter=SearchFilter().for_tenant("a"))
+
+        assert [result.id for result in results] == ["1"]
+
+    async def test_dot_metric_recall(self) -> None:
+        store = InMemoryVectorStore()
+        await store.ensure_collection("test", 2, metric="dot")
+        await store.upsert("test", "small", [1.0, 0.0], PointPayload())
+        await store.upsert("test", "large", [2.0, 0.0], PointPayload())
+
+        results = await store.search("test", [1.0, 0.0], 2)
+
+        assert [result.id for result in results] == ["large", "small"]
+
+    async def test_l2_metric_recall(self) -> None:
+        store = InMemoryVectorStore()
+        await store.ensure_collection("test", 2, metric="l2")
+        await store.upsert("test", "near", [1.0, 0.0], PointPayload())
+        await store.upsert("test", "far", [9.0, 0.0], PointPayload())
+
+        results = await store.search("test", [0.0, 0.0], 2)
+
+        assert [result.id for result in results] == ["near", "far"]
+
     async def test_delete(self) -> None:
         store = InMemoryVectorStore()
         await store.ensure_collection("test", 2)

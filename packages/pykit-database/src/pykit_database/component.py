@@ -5,13 +5,15 @@ from __future__ import annotations
 from pykit_component import Component, Health, HealthStatus
 from pykit_database.config import DatabaseConfig
 from pykit_database.database import Database
+from pykit_database.registry import DatabaseRegistry, default_database_registry
 
 
 class DatabaseComponent:
     """Wraps :class:`Database` with :class:`Component` lifecycle semantics."""
 
-    def __init__(self, config: DatabaseConfig) -> None:
+    def __init__(self, config: DatabaseConfig, *, registry: DatabaseRegistry | None = None) -> None:
         self._config = config
+        self._registry = registry or default_database_registry()
         self._database: Database | None = None
 
     # -- Component protocol --------------------------------------------------
@@ -21,7 +23,7 @@ class DatabaseComponent:
         return self._config.name
 
     async def start(self) -> None:
-        self._database = Database(self._config)
+        self._database = self._registry.create(self._config)
         if not await self._database.ping():
             raise RuntimeError(f"database '{self._config.name}' is not reachable")
 
