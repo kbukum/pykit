@@ -48,10 +48,10 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | Package | Description |
 |---------|-------------|
 | `pykit-database` | Async database access with SQLAlchemy and asyncpg |
-| `pykit-redis` | Redis client and caching utilities |
+| `pykit-cache` | cache client and caching utilities |
 | `pykit-storage` | Object/file storage abstraction — local and S3 backends |
 | `pykit-messaging` | Transport-agnostic messaging with Kafka provider |
-| `pykit-kafka-middleware` | Messaging middleware — DLQ, retry, metrics, tracing |
+| `pykit-messaging` | Messaging middleware — DLQ, retry, metrics, tracing |
 | `pykit-httpclient` | Async HTTP client with bounded redirects and resilience integration |
 
 ## Servers
@@ -75,9 +75,9 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 |---------|-------------|
 | `pykit-llm` | LLM client abstraction and prompt management |
 | `pykit-llm-providers` | LLM provider implementations — OpenAI, Anthropic, Gemini |
-| `pykit-triton` | Triton Inference Server client |
+| `pykit-inference` | Triton Inference Server client |
 | `pykit-embedding` | Text and vector embedding utilities |
-| `pykit-vector-store` | Vector store abstraction for similarity search |
+| `pykit-vectorstore` | Vector store abstraction for similarity search |
 | `pykit-agent` | Agentic loop — LLM orchestration, tool execution |
 | `pykit-tool` | Tool definitions, auto-wiring, registry, middleware |
 | `pykit-hook` | Generic event hook system |
@@ -90,7 +90,7 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | Package | Description |
 |---------|-------------|
 | `pykit-discovery` | Service discovery with resilience-backed self-registration |
-| `pykit-metrics` | Prometheus metrics helpers |
+| `pykit-observability` | Prometheus metrics helpers |
 | `pykit-process` | Process management utilities |
 | `pykit-workload` | Workload scheduling and management |
 

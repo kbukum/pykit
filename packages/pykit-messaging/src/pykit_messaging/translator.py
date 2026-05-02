@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any, Protocol, TypeVar, runtime_checkable
+
+from pykit_util import JsonCodec
 
 T = TypeVar("T")
 D = TypeVar("D")
@@ -47,6 +48,9 @@ class JsonTranslator:
     Serializes Python dicts to JSON bytes and deserializes JSON bytes back to dicts.
     """
 
+    def __init__(self, codec: JsonCodec[dict[str, Any]] | None = None) -> None:
+        self._codec = codec or JsonCodec()
+
     def serialize(self, domain: dict[str, Any]) -> bytes:
         """Serialize a dict to JSON bytes.
 
@@ -56,7 +60,7 @@ class JsonTranslator:
         Returns:
             UTF-8 encoded JSON bytes.
         """
-        return json.dumps(domain, default=str).encode()
+        return self._codec.encode(domain)
 
     def deserialize(self, raw: bytes) -> dict[str, Any]:
         """Deserialize JSON bytes to a dict.
@@ -67,5 +71,4 @@ class JsonTranslator:
         Returns:
             The deserialized dictionary.
         """
-        result: dict[str, Any] = json.loads(raw)
-        return result
+        return self._codec.decode(raw)

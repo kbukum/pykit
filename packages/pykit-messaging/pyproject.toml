@@ -9,6 +9,9 @@ requires-python = ">=3.13"
 dependencies = [
     "pykit-errors",
     "pykit-component",
+    "pykit-util",
+    "opentelemetry-api",
+    "prometheus-client",
 ]
 
 [project.optional-dependencies]

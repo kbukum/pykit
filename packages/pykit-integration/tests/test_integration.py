@@ -227,7 +227,7 @@ class TestDIComponentBootstrap:
     def test_di_registers_and_resolves_components(self) -> None:
         container = Container()
         db = TrackingComponent("postgres")
-        cache = TrackingComponent("redis")
+        cache = TrackingComponent("cache")
 
         container.register_instance("db", db)
         container.register_instance("cache", cache)
@@ -236,7 +236,7 @@ class TestDIComponentBootstrap:
         assert resolved_db.name == "postgres"
 
         resolved_cache = container.resolve("cache")
-        assert resolved_cache.name == "redis"
+        assert resolved_cache.name == "cache"
 
     def test_di_registration_modes(self) -> None:
         container = Container()

@@ -16,10 +16,9 @@ dev = [
     "pykit-provider",
     "pykit-pipeline",
     "pykit-server",
-    "pykit-metrics",
     "pykit-testutil",
     "pykit-tool",
-    "pykit-triton",
+    "pykit-inference",
     "pykit-dataset",
     "pykit-bench",
     "pykit-validation",
@@ -35,7 +34,7 @@ dev = [
     "pykit-httpclient",
     "pykit-llm",
     "pykit-storage",
-    "pykit-redis",
+    "pykit-cache",
     "pykit-database",
     "pykit-dag",
     "pykit-authz",
@@ -50,9 +49,8 @@ dev = [
     "pykit-media",
     "pykit-security",
     "pykit-workload",
-    "pykit-kafka-middleware",
     "pykit-embedding",
-    "pykit-vector-store",
+    "pykit-vectorstore",
     "pykit-llm-providers",
     "pykit-explain",
     "pykit-hook",
@@ -60,7 +58,6 @@ dev = [
     "pykit-mcp",
     "pykit-transcription",
     "aiosqlite",
-    "fakeredis",
     "pytest",
     "pytest-asyncio",
     "pytest-benchmark",
@@ -90,7 +87,7 @@ constraint-dependencies = [
     "httpx>=0.28",
     "sqlalchemy[asyncio]>=2.0",
     "asyncpg>=0.30",
-    "redis>=5.2",
+    "cache>=5.2",
     "aiokafka>=0.12",
     "opentelemetry-api>=1.30",
     "opentelemetry-sdk>=1.30",
@@ -123,17 +120,15 @@ pykit-grpc           = { workspace = true }
 pykit-hook           = { workspace = true }
 pykit-httpclient     = { workspace = true }
 pykit-messaging     = { workspace = true }
-pykit-kafka-middleware = { workspace = true }
 pykit-llm            = { workspace = true }
 pykit-logging        = { workspace = true }
 pykit-mcp            = { workspace = true }
 pykit-media          = { workspace = true }
-pykit-metrics        = { workspace = true }
 pykit-observability  = { workspace = true }
 pykit-pipeline       = { workspace = true }
 pykit-process        = { workspace = true }
 pykit-provider       = { workspace = true }
-pykit-redis          = { workspace = true }
+pykit-cache          = { workspace = true }
 pykit-resilience     = { workspace = true }
 pykit-schema         = { workspace = true }
 pykit-security       = { workspace = true }
@@ -143,10 +138,10 @@ pykit-stateful       = { workspace = true }
 pykit-storage        = { workspace = true }
 pykit-testutil       = { workspace = true }
 pykit-tool           = { workspace = true }
-pykit-triton         = { workspace = true }
+pykit-inference      = { workspace = true }
 pykit-util           = { workspace = true }
 pykit-validation     = { workspace = true }
-pykit-vector-store   = { workspace = true }
+pykit-vectorstore   = { workspace = true }
 pykit-version        = { workspace = true }
 pykit-worker         = { workspace = true }
 pykit-workload       = { workspace = true }
@@ -172,9 +167,9 @@ source_pkgs = [
     "pykit_provider",
     "pykit_pipeline",
     "pykit_server",
-    "pykit_metrics",
+    "pykit_observability",
     "pykit_testutil",
-    "pykit_triton",
+    "pykit_inference",
     "pykit_dataset",
     "pykit_bench",
     "pykit_validation",
@@ -186,14 +181,13 @@ source_pkgs = [
     "pykit_di",
     "pykit_bootstrap",
     "pykit_database",
-    "pykit_redis",
+    "pykit_cache",
     "pykit_storage",
     "pykit_messaging",
     "pykit_httpclient",
     "pykit_grpc",
     "pykit_auth",
     "pykit_authz",
-    "pykit_observability",
     "pykit_dag",
     "pykit_worker",
     "pykit_sse",
@@ -204,9 +198,8 @@ source_pkgs = [
     "pykit_media",
     "pykit_security",
     "pykit_workload",
-    "pykit_kafka_middleware",
     "pykit_embedding",
-    "pykit_vector_store",
+    "pykit_vectorstore",
     "pykit_llm_providers",
     "pykit_explain",
     "pykit_transcription",
@@ -319,12 +312,12 @@ line-ending = "lf"
 [tool.ruff.lint.isort]
 known-first-party = [
     "pykit_errors", "pykit_config", "pykit_logging", "pykit_provider",
-    "pykit_pipeline", "pykit_server", "pykit_metrics", "pykit_testutil",
-    "pykit_triton", "pykit_dataset", "pykit_bench", "pykit_validation",
+    "pykit_pipeline", "pykit_server", "pykit_observability", "pykit_testutil",
+    "pykit_inference", "pykit_dataset", "pykit_bench", "pykit_validation",
     "pykit_encryption", "pykit_util", "pykit_version", "pykit_media",
     "pykit_component", "pykit_di", "pykit_bootstrap", "pykit_resilience",
     "pykit_observability", "pykit_security", "pykit_dag", "pykit_worker",
-    "pykit_sse", "pykit_stateful", "pykit_database", "pykit_redis",
+    "pykit_sse", "pykit_stateful", "pykit_database", "pykit_cache",
     "pykit_storage", "pykit_messaging", "pykit_httpclient", "pykit_grpc",
     "pykit_auth", "pykit_authz", "pykit_llm", "pykit_discovery",
     "pykit_process", "pykit_workload",
@@ -347,9 +340,8 @@ packages = [
     "pykit_provider",
     "pykit_pipeline",
     "pykit_server",
-    "pykit_metrics",
     "pykit_testutil",
-    "pykit_triton",
+    "pykit_inference",
     "pykit_dataset",
     "pykit_bench",
     "pykit_validation",
@@ -361,7 +353,7 @@ packages = [
     "pykit_di",
     "pykit_bootstrap",
     "pykit_database",
-    "pykit_redis",
+    "pykit_cache",
     "pykit_storage",
     "pykit_messaging",
     "pykit_httpclient",
@@ -379,9 +371,8 @@ packages = [
     "pykit_media",
     "pykit_security",
     "pykit_workload",
-    "pykit_kafka_middleware",
     "pykit_embedding",
-    "pykit_vector_store",
+    "pykit_vectorstore",
     "pykit_llm_providers",
     "pykit_explain",
     "pykit_transcription",
@@ -426,25 +417,25 @@ root_packages = [
     "pykit_hook", "pykit_mcp", "pykit_chain",
     "pykit_pipeline", "pykit_dag", "pykit_worker", "pykit_sse", "pykit_stateful",
     "pykit_auth", "pykit_authz",
-    "pykit_database", "pykit_redis", "pykit_storage", "pykit_messaging", "pykit_httpclient",
-    "pykit_server", "pykit_grpc", "pykit_kafka_middleware",
-    "pykit_llm", "pykit_triton", "pykit_bench", "pykit_dataset",
-    "pykit_embedding", "pykit_vector_store", "pykit_llm_providers", "pykit_explain",
+    "pykit_database", "pykit_cache", "pykit_storage", "pykit_messaging", "pykit_httpclient",
+    "pykit_server", "pykit_grpc",
+    "pykit_llm", "pykit_inference", "pykit_bench", "pykit_dataset",
+    "pykit_embedding", "pykit_vectorstore", "pykit_llm_providers", "pykit_explain",
     "pykit_transcription",
     "pykit_agent", "pykit_discovery", "pykit_workload", "pykit_process",
-    "pykit_testutil", "pykit_metrics", "pykit_integration", "pykit_tool",
+    "pykit_testutil", "pykit_integration", "pykit_tool",
 ]
 
 [[tool.importlinter.contracts]]
 name = "Layer architecture"
 type = "layers"
 layers = [
-    "pykit_agent | pykit_workload | pykit_process | pykit_testutil | pykit_metrics | pykit_integration",
-    "pykit_explain | pykit_triton | pykit_bench | pykit_dataset | pykit_transcription",
+    "pykit_agent | pykit_workload | pykit_process | pykit_testutil | pykit_integration",
+    "pykit_explain | pykit_inference | pykit_bench | pykit_dataset | pykit_transcription",
     "pykit_llm_providers",
-    "pykit_llm | pykit_embedding | pykit_vector_store",
-    "pykit_server | pykit_grpc | pykit_kafka_middleware",
-    "pykit_discovery | pykit_database | pykit_redis | pykit_storage | pykit_messaging | pykit_httpclient",
+    "pykit_llm | pykit_embedding | pykit_vectorstore",
+    "pykit_server | pykit_grpc",
+    "pykit_discovery | pykit_database | pykit_cache | pykit_storage | pykit_messaging | pykit_httpclient",
     "pykit_auth | pykit_authz | pykit_security",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
     "pykit_di | pykit_bootstrap | pykit_observability | pykit_mcp | pykit_chain",

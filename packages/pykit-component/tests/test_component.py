@@ -518,10 +518,10 @@ class TestDescribableProtocol:
         assert comp.describe() == desc
 
     def test_describe_returns_correct_values(self) -> None:
-        desc = Description(name="Redis", type="cache", details="localhost:6379", port=6379)
-        comp = DescribableMockComponent("redis", desc)
+        desc = Description(name="cache", type="cache", details="localhost:6379", port=6379)
+        comp = DescribableMockComponent("cache", desc)
         result = comp.describe()
-        assert result.name == "Redis"
+        assert result.name == "cache"
         assert result.type == "cache"
         assert result.port == 6379
 

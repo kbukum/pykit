@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import json
 import logging
 from typing import Any
 
 from aiokafka import AIOKafkaProducer  # type: ignore[import-untyped]
+from pykit_util import JsonCodec
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, Message
@@ -104,7 +104,7 @@ class KafkaProducer:
 
     async def send_json(self, topic: str, data: Any, key: str | None = None) -> None:
         """Serialize *data* as JSON and send it."""
-        value = json.dumps(data).encode()
+        value = JsonCodec[Any]().encode(data)
         await self.send(topic, value=value, key=key)
 
     async def send_batch(self, messages: list[Message]) -> None:

@@ -21,7 +21,7 @@ particularly in the following areas:
 - **Patterns**: `pykit-provider`, `pykit-component`, `pykit-resilience`,
   `pykit-di`, `pykit-bootstrap`, `pykit-observability`
 - **Data & Flow**: `pykit-pipeline`, `pykit-dag`, `pykit-worker`
-- **Infrastructure**: `pykit-database`, `pykit-redis`, `pykit-messaging`,
+- **Infrastructure**: `pykit-database`, `pykit-cache`, `pykit-messaging`,
   `pykit-storage`, `pykit-httpclient`
 - **Servers**: `pykit-server`, `pykit-grpc`
 - **AI/ML**: `pykit-llm`, `pykit-llm-providers`, `pykit-bench`,

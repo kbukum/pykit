@@ -15,7 +15,7 @@ from pykit_provider import (
     RequestResponse,
     RequestResponseFunc,
     Sink,
-    StreamProvider,
+    Stream,
 )
 
 # ---------------------------------------------------------------------------
@@ -548,7 +548,7 @@ class TestTypeSystem:
         assert not isinstance(object(), RequestResponse)
 
     async def test_plain_object_not_stream_provider(self) -> None:
-        assert not isinstance(object(), StreamProvider)
+        assert not isinstance(object(), Stream)
 
     async def test_plain_object_not_sink(self) -> None:
         assert not isinstance(object(), Sink)
@@ -666,7 +666,7 @@ class TestComposition:
         assert val == "[42]"
 
     async def test_stream_provider_collect_all(self) -> None:
-        """Collect all results from a StreamProvider into a list."""
+        """Collect all results from a Stream into a list."""
 
         class NumberStream:
             @property
@@ -687,7 +687,7 @@ class TestComposition:
         assert results == [0, 1, 2, 3, 4]
 
     async def test_sink_collecting_from_stream_output(self) -> None:
-        """Pipe StreamProvider output into a Sink."""
+        """Pipe Stream output into a Sink."""
 
         class WordStream:
             @property

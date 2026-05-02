@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import threading
 from collections import defaultdict
 from datetime import UTC, datetime
+
+from pykit_util import JsonCodec
 
 from pykit_messaging.types import Event, Message, MessageHandler
 
@@ -120,7 +121,7 @@ class InMemoryProducer:
 
     async def send_json(self, topic: str, data: object, key: str | None = None) -> None:
         """Send a JSON-serialised payload to *topic*."""
-        value = json.dumps(data, default=str).encode()
+        value = JsonCodec[object]().encode(data)
         await self.send(topic, value, key=key)
 
     async def send_batch(self, messages: list[Message]) -> None:

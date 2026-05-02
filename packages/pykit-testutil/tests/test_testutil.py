@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from pykit_testutil import MockGrpcServer, grpc_channel_fixture, grpc_server_fixture
+from pykit_testutil import FakeAsyncKeyValue, MockGrpcServer, grpc_channel_fixture, grpc_server_fixture
 
 # ---------------------------------------------------------------------------
 # MockGrpcServer — init and properties
@@ -166,3 +166,20 @@ class TestPublicAPI:
 
     def test_grpc_channel_fixture_is_exported(self) -> None:
         assert callable(grpc_channel_fixture)
+
+
+class TestFakeAsyncKeyValue:
+    @pytest.mark.asyncio
+    async def test_basic_operations(self) -> None:
+        backend = FakeAsyncKeyValue()
+        await backend.set("key", "value")
+        assert await backend.get("key") == "value"
+        assert await backend.exists("key", "missing") == 1
+        assert await backend.delete("key") == 1
+        assert await backend.get("key") is None
+
+    @pytest.mark.asyncio
+    async def test_rejects_invalid_expiration(self) -> None:
+        backend = FakeAsyncKeyValue()
+        with pytest.raises(ValueError, match="invalid expire time"):
+            await backend.set("key", "value", ex=0)

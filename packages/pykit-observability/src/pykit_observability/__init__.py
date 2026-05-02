@@ -13,12 +13,14 @@ from pykit_observability.exporters import (
 )
 from pykit_observability.health import ComponentHealth, HealthStatus, ServiceHealth
 from pykit_observability.metrics import OperationMetrics, get_meter, reset_metrics, setup_metrics
+from pykit_observability.prometheus import MetricsCollector, start_metrics_server
 from pykit_observability.tracing import get_tracer, reset_tracing, setup_tracing, trace_operation
 
 __all__ = [
     "ComponentHealth",
     "HealthStatus",
     "MeterConfig",
+    "MetricsCollector",
     "OperationContext",
     "OperationMetrics",
     "OtlpExporterConfig",
@@ -34,5 +36,6 @@ __all__ = [
     "setup_otlp_metrics",
     "setup_otlp_tracing",
     "setup_tracing",
+    "start_metrics_server",
     "trace_operation",
 ]

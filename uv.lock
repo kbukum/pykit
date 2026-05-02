@@ -21,6 +21,7 @@ members = [
     "pykit-authz",
     "pykit-bench",
     "pykit-bootstrap",
+    "pykit-cache",
     "pykit-chain",
     "pykit-component",
     "pykit-config",
@@ -36,20 +37,18 @@ members = [
     "pykit-grpc",
     "pykit-hook",
     "pykit-httpclient",
+    "pykit-inference",
     "pykit-integration",
-    "pykit-kafka-middleware",
     "pykit-llm",
     "pykit-llm-providers",
     "pykit-logging",
     "pykit-mcp",
     "pykit-media",
     "pykit-messaging",
-    "pykit-metrics",
     "pykit-observability",
     "pykit-pipeline",
     "pykit-process",
     "pykit-provider",
-    "pykit-redis",
     "pykit-resilience",
     "pykit-schema",
     "pykit-security",
@@ -60,10 +59,9 @@ members = [
     "pykit-testutil",
     "pykit-tool",
     "pykit-transcription",
-    "pykit-triton",
     "pykit-util",
     "pykit-validation",
-    "pykit-vector-store",
+    "pykit-vectorstore",
     "pykit-version",
     "pykit-worker",
     "pykit-workload",
@@ -72,6 +70,7 @@ members = [
 constraints = [
     { name = "aiokafka", specifier = ">=0.12" },
     { name = "asyncpg", specifier = ">=0.30" },
+    { name = "cache", specifier = ">=5.2" },
     { name = "cryptography", specifier = ">=44.0" },
     { name = "grpcio", specifier = ">=1.70" },
     { name = "grpcio-health-checking", specifier = ">=1.70" },
@@ -83,7 +82,6 @@ constraints = [
     { name = "pydantic", specifier = ">=2.12.0,<3.0" },
     { name = "pydantic-settings", specifier = ">=2.7" },
     { name = "pyjwt", specifier = ">=2.10" },
-    { name = "redis", specifier = ">=5.2" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "structlog", specifier = ">=25.1.0" },
 ]
@@ -798,19 +796,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bf/89/780e11f9588d9e7128a3f87788354c7946a9cbb1401ad38a48c4db9a4f07/execnet-2.1.2.tar.gz", hash = "sha256:63d83bfdd9a23e35b9c6a3261412324f964c2ec8dcd8d3c6916ee9373e0befcd", size = 166622, upload-time = "2025-11-12T09:56:37.75Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/84/02fc1827e8cdded4aa65baef11296a9bbe595c474f0d6d758af082d849fd/execnet-2.1.2-py3-none-any.whl", hash = "sha256:67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec", size = 40708, upload-time = "2025-11-12T09:56:36.333Z" },
-]
-
-[[package]]
-name = "fakeredis"
-version = "2.35.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "redis" },
-    { name = "sortedcontainers" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/43/50/b748233c02fa77e5105238190cc9bb58b852eb1c8b1d0763230d3a5b745a/fakeredis-2.35.1.tar.gz", hash = "sha256:5bae5eba7b9d93cb968944ac40936373cf2397ff71667d4b595df65c3d2e413f", size = 189118, upload-time = "2026-04-12T17:05:58.539Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/27/b8b057a23f7777177e92d3a602fd866751b6b45014964548997e92e048fd/fakeredis-2.35.1-py3-none-any.whl", hash = "sha256:67d97e11f562b7870e11e5c30cf182270bfb2dd37f6707dba47cc6d91628d1b9", size = 129678, upload-time = "2026-04-12T17:05:56.86Z" },
 ]
 
 [[package]]
@@ -2117,6 +2102,7 @@ dependencies = [
     { name = "pykit-authz" },
     { name = "pykit-bench" },
     { name = "pykit-bootstrap" },
+    { name = "pykit-cache" },
     { name = "pykit-component" },
     { name = "pykit-config" },
     { name = "pykit-dag" },
@@ -2128,16 +2114,15 @@ dependencies = [
     { name = "pykit-errors" },
     { name = "pykit-grpc" },
     { name = "pykit-httpclient" },
+    { name = "pykit-inference" },
     { name = "pykit-llm" },
     { name = "pykit-logging" },
     { name = "pykit-media" },
     { name = "pykit-messaging" },
-    { name = "pykit-metrics" },
     { name = "pykit-observability" },
     { name = "pykit-pipeline" },
     { name = "pykit-process" },
     { name = "pykit-provider" },
-    { name = "pykit-redis" },
     { name = "pykit-resilience" },
     { name = "pykit-security" },
     { name = "pykit-server" },
@@ -2145,7 +2130,6 @@ dependencies = [
     { name = "pykit-stateful" },
     { name = "pykit-storage" },
     { name = "pykit-testutil" },
-    { name = "pykit-triton" },
     { name = "pykit-util" },
     { name = "pykit-validation" },
     { name = "pykit-version" },
@@ -2159,6 +2143,7 @@ requires-dist = [
     { name = "pykit-authz", editable = "packages/pykit-authz" },
     { name = "pykit-bench", editable = "packages/pykit-bench" },
     { name = "pykit-bootstrap", editable = "packages/pykit-bootstrap" },
+    { name = "pykit-cache", editable = "packages/pykit-cache" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-config", editable = "packages/pykit-config" },
     { name = "pykit-dag", editable = "packages/pykit-dag" },
@@ -2170,16 +2155,15 @@ requires-dist = [
     { name = "pykit-errors", editable = "packages/pykit-errors" },
     { name = "pykit-grpc", editable = "packages/pykit-grpc" },
     { name = "pykit-httpclient", editable = "packages/pykit-httpclient" },
+    { name = "pykit-inference", editable = "packages/pykit-inference" },
     { name = "pykit-llm", editable = "packages/pykit-llm" },
     { name = "pykit-logging", editable = "packages/pykit-logging" },
     { name = "pykit-media", editable = "packages/pykit-media" },
     { name = "pykit-messaging", editable = "packages/pykit-messaging" },
-    { name = "pykit-metrics", editable = "packages/pykit-metrics" },
     { name = "pykit-observability", editable = "packages/pykit-observability" },
     { name = "pykit-pipeline", editable = "packages/pykit-pipeline" },
     { name = "pykit-process", editable = "packages/pykit-process" },
     { name = "pykit-provider", editable = "packages/pykit-provider" },
-    { name = "pykit-redis", editable = "packages/pykit-redis" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },
     { name = "pykit-security", editable = "packages/pykit-security" },
     { name = "pykit-server", editable = "packages/pykit-server" },
@@ -2187,7 +2171,6 @@ requires-dist = [
     { name = "pykit-stateful", editable = "packages/pykit-stateful" },
     { name = "pykit-storage", editable = "packages/pykit-storage" },
     { name = "pykit-testutil", editable = "packages/pykit-testutil" },
-    { name = "pykit-triton", editable = "packages/pykit-triton" },
     { name = "pykit-util", editable = "packages/pykit-util" },
     { name = "pykit-validation", editable = "packages/pykit-validation" },
     { name = "pykit-version", editable = "packages/pykit-version" },
@@ -2291,6 +2274,32 @@ requires-dist = [
     { name = "pykit-hook", editable = "packages/pykit-hook" },
     { name = "pykit-logging", editable = "packages/pykit-logging" },
 ]
+
+[[package]]
+name = "pykit-cache"
+version = "0.1.0"
+source = { editable = "packages/pykit-cache" }
+dependencies = [
+    { name = "pykit-component" },
+    { name = "pykit-errors" },
+    { name = "pykit-util" },
+    { name = "redis" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "pykit-testutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pykit-component", editable = "packages/pykit-component" },
+    { name = "pykit-errors", editable = "packages/pykit-errors" },
+    { name = "pykit-testutil", marker = "extra == 'test'", editable = "packages/pykit-testutil" },
+    { name = "pykit-util", editable = "packages/pykit-util" },
+    { name = "redis" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "pykit-chain"
@@ -2548,6 +2557,20 @@ requires-dist = [
 ]
 
 [[package]]
+name = "pykit-inference"
+version = "0.1.0"
+source = { editable = "packages/pykit-inference" }
+
+[package.optional-dependencies]
+grpc = [
+    { name = "tritonclient", extra = ["grpc"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "tritonclient", extras = ["grpc"], marker = "extra == 'grpc'" }]
+provides-extras = ["grpc"]
+
+[[package]]
 name = "pykit-integration"
 version = "0.1.0"
 source = { editable = "packages/pykit-integration" }
@@ -2580,25 +2603,6 @@ requires-dist = [
     { name = "pykit-provider", editable = "packages/pykit-provider" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },
     { name = "pykit-validation", editable = "packages/pykit-validation" },
-]
-
-[[package]]
-name = "pykit-kafka-middleware"
-version = "0.1.0"
-source = { editable = "packages/pykit-kafka-middleware" }
-dependencies = [
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
-    { name = "pykit-messaging" },
-    { name = "pykit-resilience" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "opentelemetry-api" },
-    { name = "prometheus-client" },
-    { name = "pykit-messaging", editable = "packages/pykit-messaging" },
-    { name = "pykit-resilience", editable = "packages/pykit-resilience" },
 ]
 
 [[package]]
@@ -2695,8 +2699,11 @@ name = "pykit-messaging"
 version = "0.1.0"
 source = { editable = "packages/pykit-messaging" }
 dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "prometheus-client" },
     { name = "pykit-component" },
     { name = "pykit-errors" },
+    { name = "pykit-util" },
 ]
 
 [package.optional-dependencies]
@@ -2715,25 +2722,17 @@ kafka = [
 requires-dist = [
     { name = "aiokafka", marker = "extra == 'kafka'" },
     { name = "cramjam", marker = "extra == 'kafka'" },
+    { name = "opentelemetry-api" },
+    { name = "prometheus-client" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-dag", marker = "extra == 'bridges'", editable = "packages/pykit-dag" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
     { name = "pykit-pipeline", marker = "extra == 'bridges'", editable = "packages/pykit-pipeline" },
     { name = "pykit-provider", marker = "extra == 'bridges'", editable = "packages/pykit-provider" },
+    { name = "pykit-util", editable = "packages/pykit-util" },
     { name = "pykit-worker", marker = "extra == 'bridges'", editable = "packages/pykit-worker" },
 ]
 provides-extras = ["kafka", "bridges"]
-
-[[package]]
-name = "pykit-metrics"
-version = "0.1.0"
-source = { editable = "packages/pykit-metrics" }
-dependencies = [
-    { name = "prometheus-client" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "prometheus-client" }]
 
 [[package]]
 name = "pykit-observability"
@@ -2743,6 +2742,7 @@ dependencies = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
+    { name = "prometheus-client" },
     { name = "pykit-component" },
     { name = "pykit-errors" },
 ]
@@ -2752,6 +2752,7 @@ requires-dist = [
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=0.43b0" },
     { name = "opentelemetry-sdk" },
+    { name = "prometheus-client" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
 ]
@@ -2782,30 +2783,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "pykit-errors", editable = "packages/pykit-errors" }]
-
-[[package]]
-name = "pykit-redis"
-version = "0.1.0"
-source = { editable = "packages/pykit-redis" }
-dependencies = [
-    { name = "pykit-component" },
-    { name = "pykit-errors" },
-    { name = "redis" },
-]
-
-[package.optional-dependencies]
-test = [
-    { name = "fakeredis" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fakeredis", marker = "extra == 'test'" },
-    { name = "pykit-component", editable = "packages/pykit-component" },
-    { name = "pykit-errors", editable = "packages/pykit-errors" },
-    { name = "redis" },
-]
-provides-extras = ["test"]
 
 [[package]]
 name = "pykit-resilience"
@@ -2984,20 +2961,6 @@ dependencies = [
 requires-dist = [{ name = "pykit-errors", editable = "packages/pykit-errors" }]
 
 [[package]]
-name = "pykit-triton"
-version = "0.1.0"
-source = { editable = "packages/pykit-triton" }
-
-[package.optional-dependencies]
-grpc = [
-    { name = "tritonclient", extra = ["grpc"] },
-]
-
-[package.metadata]
-requires-dist = [{ name = "tritonclient", extras = ["grpc"], marker = "extra == 'grpc'" }]
-provides-extras = ["grpc"]
-
-[[package]]
 name = "pykit-util"
 version = "0.1.0"
 source = { editable = "packages/pykit-util" }
@@ -3018,9 +2981,9 @@ requires-dist = [
 ]
 
 [[package]]
-name = "pykit-vector-store"
+name = "pykit-vectorstore"
 version = "0.1.0"
-source = { editable = "packages/pykit-vector-store" }
+source = { editable = "packages/pykit-vectorstore" }
 dependencies = [
     { name = "numpy" },
 ]
@@ -3083,7 +3046,6 @@ dev = [
     { name = "aiosqlite" },
     { name = "argon2-cffi" },
     { name = "cramjam" },
-    { name = "fakeredis" },
     { name = "import-linter" },
     { name = "mypy" },
     { name = "pykit" },
@@ -3092,6 +3054,7 @@ dev = [
     { name = "pykit-authz" },
     { name = "pykit-bench" },
     { name = "pykit-bootstrap" },
+    { name = "pykit-cache" },
     { name = "pykit-chain" },
     { name = "pykit-component" },
     { name = "pykit-config" },
@@ -3107,20 +3070,18 @@ dev = [
     { name = "pykit-grpc" },
     { name = "pykit-hook" },
     { name = "pykit-httpclient" },
+    { name = "pykit-inference" },
     { name = "pykit-integration" },
-    { name = "pykit-kafka-middleware" },
     { name = "pykit-llm" },
     { name = "pykit-llm-providers" },
     { name = "pykit-logging" },
     { name = "pykit-mcp" },
     { name = "pykit-media" },
     { name = "pykit-messaging" },
-    { name = "pykit-metrics" },
     { name = "pykit-observability" },
     { name = "pykit-pipeline" },
     { name = "pykit-process" },
     { name = "pykit-provider" },
-    { name = "pykit-redis" },
     { name = "pykit-resilience" },
     { name = "pykit-schema" },
     { name = "pykit-security" },
@@ -3131,10 +3092,9 @@ dev = [
     { name = "pykit-testutil" },
     { name = "pykit-tool" },
     { name = "pykit-transcription" },
-    { name = "pykit-triton" },
     { name = "pykit-util" },
     { name = "pykit-validation" },
-    { name = "pykit-vector-store" },
+    { name = "pykit-vectorstore" },
     { name = "pykit-version" },
     { name = "pykit-worker" },
     { name = "pykit-workload" },
@@ -3155,7 +3115,6 @@ dev = [
     { name = "aiosqlite" },
     { name = "argon2-cffi", specifier = ">=25.1.0" },
     { name = "cramjam", specifier = ">=2.11.0" },
-    { name = "fakeredis" },
     { name = "import-linter" },
     { name = "mypy" },
     { name = "pykit", editable = "packages/pykit" },
@@ -3164,6 +3123,7 @@ dev = [
     { name = "pykit-authz", editable = "packages/pykit-authz" },
     { name = "pykit-bench", editable = "packages/pykit-bench" },
     { name = "pykit-bootstrap", editable = "packages/pykit-bootstrap" },
+    { name = "pykit-cache", editable = "packages/pykit-cache" },
     { name = "pykit-chain", editable = "packages/pykit-chain" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-config", editable = "packages/pykit-config" },
@@ -3179,20 +3139,18 @@ dev = [
     { name = "pykit-grpc", editable = "packages/pykit-grpc" },
     { name = "pykit-hook", editable = "packages/pykit-hook" },
     { name = "pykit-httpclient", editable = "packages/pykit-httpclient" },
+    { name = "pykit-inference", editable = "packages/pykit-inference" },
     { name = "pykit-integration", editable = "packages/pykit-integration" },
-    { name = "pykit-kafka-middleware", editable = "packages/pykit-kafka-middleware" },
     { name = "pykit-llm", editable = "packages/pykit-llm" },
     { name = "pykit-llm-providers", editable = "packages/pykit-llm-providers" },
     { name = "pykit-logging", editable = "packages/pykit-logging" },
     { name = "pykit-mcp", editable = "packages/pykit-mcp" },
     { name = "pykit-media", editable = "packages/pykit-media" },
     { name = "pykit-messaging", editable = "packages/pykit-messaging" },
-    { name = "pykit-metrics", editable = "packages/pykit-metrics" },
     { name = "pykit-observability", editable = "packages/pykit-observability" },
     { name = "pykit-pipeline", editable = "packages/pykit-pipeline" },
     { name = "pykit-process", editable = "packages/pykit-process" },
     { name = "pykit-provider", editable = "packages/pykit-provider" },
-    { name = "pykit-redis", editable = "packages/pykit-redis" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },
     { name = "pykit-schema", editable = "packages/pykit-schema" },
     { name = "pykit-security", editable = "packages/pykit-security" },
@@ -3203,10 +3161,9 @@ dev = [
     { name = "pykit-testutil", editable = "packages/pykit-testutil" },
     { name = "pykit-tool", editable = "packages/pykit-tool" },
     { name = "pykit-transcription", editable = "packages/pykit-transcription" },
-    { name = "pykit-triton", editable = "packages/pykit-triton" },
     { name = "pykit-util", editable = "packages/pykit-util" },
     { name = "pykit-validation", editable = "packages/pykit-validation" },
-    { name = "pykit-vector-store", editable = "packages/pykit-vector-store" },
+    { name = "pykit-vectorstore", editable = "packages/pykit-vectorstore" },
     { name = "pykit-version", editable = "packages/pykit-version" },
     { name = "pykit-worker", editable = "packages/pykit-worker" },
     { name = "pykit-workload", editable = "packages/pykit-workload" },
@@ -3785,8 +3742,8 @@ name = "uvicorn"
 version = "0.46.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click" },
-    { name = "h11" },
+    { name = "click", marker = "sys_platform != 'emscripten'" },
+    { name = "h11", marker = "sys_platform != 'emscripten'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1f/93/041fca8274050e40e6791f267d82e0e2e27dd165627bd640d3e0e378d877/uvicorn-0.46.0.tar.gz", hash = "sha256:fb9da0926999cc6cb22dc7cd71a94a632f078e6ae47ff683c5c420750fb7413d", size = 88758, upload-time = "2026-04-23T07:16:00.151Z" }
 wheels = [

@@ -6,7 +6,7 @@ import pytest
 
 # Convenience re-exports for common marks
 integration = pytest.mark.integration
-"""Mark a test as requiring live services (Redis, PostgreSQL, Kafka, etc.)"""
+"""Mark a test as requiring live services (cache, PostgreSQL, Kafka, etc.)"""
 
 slow = pytest.mark.slow
 """Mark a test as slow-running (> 1 second). Skipped with -m 'not slow'."""

@@ -305,14 +305,14 @@ class TestTranslatorEdgeCases:
         with pytest.raises((json.JSONDecodeError, ValueError)):
             t.deserialize(b"<<not json>>")
 
-    def test_json_translator_non_serializable_uses_str(self):
-        """Non-JSON-serializable values fall back to str() via default=str."""
+    def test_json_translator_datetime_uses_isoformat(self):
+        """Datetime values use the shared JSON codec's ISO-8601 representation."""
         t = JsonTranslator()
         now = datetime.now(UTC)
         data = {"ts": now}
         raw = t.serialize(data)
         result = t.deserialize(raw)
-        assert result["ts"] == str(now)
+        assert result["ts"] == now.isoformat()
 
 
 # ── InMemoryBroker Edge Cases ────────────────────────────────────────

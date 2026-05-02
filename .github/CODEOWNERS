@@ -40,9 +40,9 @@
 
 # Infrastructure
 /packages/pykit-database/         @kbukum
-/packages/pykit-redis/            @kbukum
+/packages/pykit-cache/            @kbukum
 /packages/pykit-messaging/        @kbukum
-/packages/pykit-kafka-middleware/ @kbukum
+/packages/pykit-messaging/ @kbukum
 /packages/pykit-httpclient/       @kbukum
 
 # Servers
@@ -62,7 +62,7 @@
 # Platform
 /packages/pykit-discovery/ @kbukum
 /packages/pykit-process/   @kbukum
-/packages/pykit-metrics/   @kbukum
+/packages/pykit-observability/   @kbukum
 /packages/pykit-explain/   @kbukum
 /packages/pykit-schema/    @kbukum
 

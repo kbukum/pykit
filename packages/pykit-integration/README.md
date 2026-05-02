@@ -23,5 +23,5 @@ uv run pytest packages/pykit-integration/
 ## Features
 
 - End-to-end scenarios spanning Foundation → Core → Infrastructure layers
-- In-memory fakes and stubs for external dependencies (Redis, DB, Kafka)
+- In-memory fakes and stubs for external dependencies (cache, DB, Kafka)
 - Async pytest fixtures with proper lifecycle management

@@ -21,7 +21,7 @@ class CacheComponent:
         return "cache"
 
     async def start(self) -> None:
-        self._pool = await create_redis_pool()
+        self._pool = await create_cache_pool()
 
     async def stop(self) -> None:
         await self._pool.close()

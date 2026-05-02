@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TypeVar
 
-from pykit_provider.base import Duplex, RequestResponse, Sink, StreamProvider
+from pykit_provider.base import Duplex, RequestResponse, Sink, Stream
 
 InputT = TypeVar("InputT")
 OutputT = TypeVar("OutputT")
@@ -14,9 +14,7 @@ type Middleware[InputT, OutputT] = Callable[
     [RequestResponse[InputT, OutputT]], RequestResponse[InputT, OutputT]
 ]
 type SinkMiddleware[InputT] = Callable[[Sink[InputT]], Sink[InputT]]
-type StreamMiddleware[InputT, OutputT] = Callable[
-    [StreamProvider[InputT, OutputT]], StreamProvider[InputT, OutputT]
-]
+type StreamMiddleware[InputT, OutputT] = Callable[[Stream[InputT, OutputT]], Stream[InputT, OutputT]]
 type DuplexMiddleware[InputT, OutputT] = Callable[[Duplex[InputT, OutputT]], Duplex[InputT, OutputT]]
 
 
@@ -45,7 +43,7 @@ def chain_sink(*middlewares: SinkMiddleware[InputT]) -> SinkMiddleware[InputT]:
 def chain_stream(*middlewares: StreamMiddleware[InputT, OutputT]) -> StreamMiddleware[InputT, OutputT]:
     """Compose stream middleware left-to-right."""
 
-    def combined(inner: StreamProvider[InputT, OutputT]) -> StreamProvider[InputT, OutputT]:
+    def combined(inner: Stream[InputT, OutputT]) -> Stream[InputT, OutputT]:
         for middleware in reversed(middlewares):
             inner = middleware(inner)
         return inner

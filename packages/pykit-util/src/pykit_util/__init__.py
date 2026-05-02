@@ -4,6 +4,7 @@ __version__ = "0.1.0"
 
 from pykit_util.clock import Clock, FakeClock, SystemClock
 from pykit_util.collections import chunk, first, flatten, group_by, unique
+from pykit_util.json import Codec, JsonCodec
 from pykit_util.merge import deep_merge
 from pykit_util.parse import mask_secret, parse_bool, parse_size
 from pykit_util.registry import Registry
@@ -14,6 +15,7 @@ __all__ = [
     # clock
     "Clock",
     "FakeClock",
+    "Codec",
     "SystemClock",
     # collections
     "chunk",
@@ -26,6 +28,7 @@ __all__ = [
     "group_by",
     # sanitize
     "is_safe_string",
+    "JsonCodec",
     # parse
     "mask_secret",
     "parse_bool",
