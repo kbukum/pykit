@@ -164,9 +164,11 @@ def _attributes_match(expected: Attributes, actual: Attributes) -> bool:
 class Checker(Protocol):
     """Authorization checker protocol."""
 
-    def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision: ...
+    def authorize(self, request: AuthorizationRequest) -> AuthorizationDecision:
+        """Return an :class:`AuthorizationDecision` for *request*."""
 
-    def check(self, request: AuthorizationRequest) -> bool: ...
+    def check(self, request: AuthorizationRequest) -> bool:
+        """Return ``True`` if *request* is allowed, ``False`` otherwise."""
 
 
 class CheckerFunc:

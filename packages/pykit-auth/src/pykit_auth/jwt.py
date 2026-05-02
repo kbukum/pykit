@@ -72,10 +72,11 @@ class JWTConfig:
                 raise ValueError("HS256 shared_secret must be at least 32 bytes")
             return
 
-        if self.shared_secret is not None:
-            raise ValueError("shared_secret is only valid for HS256")
-        if self.private_key is None and self.public_key is None:
-            raise ValueError("asymmetric JWT configuration requires a private_key or public_key")
+        if self.algorithm in _ASYMMETRIC_ALGORITHMS:
+            if self.shared_secret is not None:
+                raise ValueError("shared_secret is only valid for HS256")
+            if self.private_key is None and self.public_key is None:
+                raise ValueError("asymmetric JWT configuration requires a private_key or public_key")
 
     def signing_key(self) -> str | bytes:
         """Return the configured signing key."""

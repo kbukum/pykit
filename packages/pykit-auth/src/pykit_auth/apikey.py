@@ -101,24 +101,31 @@ class APIKeyValidationError(InvalidInputError):
 class APIKeyStore(Protocol):
     """Persistence contract for API keys."""
 
-    async def create(self, key: APIKeyRecord) -> None: ...
+    async def create(self, key: APIKeyRecord) -> None:
+        """Persist a new API key record."""
 
-    async def list_by_prefix(self, key_prefix: str) -> Sequence[APIKeyRecord]: ...
+    async def list_by_prefix(self, key_prefix: str) -> Sequence[APIKeyRecord]:
+        """Return all records whose prefix matches *key_prefix*."""
 
-    async def get_by_id(self, key_id: str) -> APIKeyRecord: ...
+    async def get_by_id(self, key_id: str) -> APIKeyRecord:
+        """Return the record for *key_id*, raising if not found."""
 
-    async def update_last_used(self, key_id: str, used_at: datetime) -> None: ...
+    async def update_last_used(self, key_id: str, used_at: datetime) -> None:
+        """Stamp *key_id* with the *used_at* timestamp."""
 
-    async def set_rotation(self, key_id: str, grace_ends_at: datetime, rotated_by_id: str) -> None: ...
+    async def set_rotation(self, key_id: str, grace_ends_at: datetime, rotated_by_id: str) -> None:
+        """Mark *key_id* as rotated with a grace window ending at *grace_ends_at*."""
 
-    async def set_active(self, key_id: str, active: bool) -> None: ...
+    async def set_active(self, key_id: str, active: bool) -> None:
+        """Enable or disable *key_id*."""
 
 
 @runtime_checkable
 class APIKeyValidator(Protocol):
     """Protocol used by API key middleware."""
 
-    async def validate_key(self, plain_key: str, required_scopes: Sequence[str] = ()) -> APIKeyRecord: ...
+    async def validate_key(self, plain_key: str, required_scopes: Sequence[str] = ()) -> APIKeyRecord:
+        """Validate *plain_key* and enforce *required_scopes*, returning the record on success."""
 
 
 def split_api_key(plain_key: str) -> tuple[str, str]:
