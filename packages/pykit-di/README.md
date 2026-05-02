@@ -22,7 +22,7 @@ container.register("config", lambda: load_config(), RegistrationMode.EAGER)
 
 # Lazy/Singleton: factory deferred until first resolve, then cached
 container.register_lazy("db", lambda: Database(container.resolve("config")))
-container.register_singleton("cache", lambda: cacheCache("localhost:6379"))
+container.register_singleton("cache", lambda: {"address": "localhost:6379"})
 
 # Register a pre-built instance directly
 container.register_instance("logger", my_logger)
