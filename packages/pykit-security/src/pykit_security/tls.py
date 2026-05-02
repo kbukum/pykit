@@ -16,7 +16,7 @@ class TLSConfig:
     cert_file: str = ""
     key_file: str = ""
     server_hostname: str = ""
-    min_version: ssl.TLSVersion = ssl.TLSVersion.TLSv1_2
+    min_version: ssl.TLSVersion = ssl.TLSVersion.TLSv1_3
 
     def build(self) -> ssl.SSLContext | None:
         """Create a client-side ssl.SSLContext from config. Returns None if no settings configured."""
@@ -62,6 +62,8 @@ class TLSConfig:
         """Check config consistency. Raises ValueError or FileNotFoundError if invalid."""
         if bool(self.cert_file) != bool(self.key_file):
             raise ValueError("Both cert_file and key_file must be provided together")
+        if self.min_version < ssl.TLSVersion.TLSv1_2:
+            raise ValueError("min_version must be TLS 1.2 or newer")
 
         if self.ca_file and not Path(self.ca_file).exists():
             raise FileNotFoundError(f"CA file not found: {self.ca_file}")

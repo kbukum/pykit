@@ -1,6 +1,6 @@
 # pykit-security
 
-TLS configuration helpers for Python's `ssl` module with separate client and server context builders.
+TLS, secure headers, CORS, and bearer-token extraction policies.
 
 ## Installation
 
@@ -13,33 +13,26 @@ uv add pykit-security
 ## Quick Start
 
 ```python
-from pykit_security import TLSConfig
+from pykit_security import CORSConfig, SecurityHeadersPolicy, TLSConfig, extract_bearer_token
 
-# Client-side TLS with mutual authentication
 tls = TLSConfig(
     ca_file="/certs/ca.pem",
     cert_file="/certs/client.pem",
     key_file="/certs/client-key.pem",
-    min_version=ssl.TLSVersion.TLSv1_2,
 )
-tls.validate()  # Raises ValueError/FileNotFoundError on bad config
-ssl_ctx = tls.build()  # Returns ssl.SSLContext or None if not enabled
-
-# Server-side TLS
-server_ctx = tls.build_server()  # Returns server-mode ssl.SSLContext
-
-# Skip verification for development
-dev_tls = TLSConfig(skip_verify=True)
-dev_ctx = dev_tls.build()
+headers = SecurityHeadersPolicy().build_headers(tls_enabled=True)
+cors_headers = CORSConfig(allowed_origins=("https://app.example.com",)).build_preflight_headers(
+    "https://app.example.com"
+)
+token = extract_bearer_token({"Authorization": "Bearer eyJ..."})
 ```
 
 ## Key Components
 
-- **TLSConfig** — Dataclass with `ca_file`, `cert_file`, `key_file`, `server_hostname`, `skip_verify`, and `min_version` fields
-  - **build()** — Create a client-side `ssl.SSLContext` (returns `None` if no TLS settings configured)
-  - **build_server()** — Create a server-side `ssl.SSLContext` with `CERT_REQUIRED` when CA is provided
-  - **validate()** — Check configuration consistency (cert/key pairing, file existence)
-  - **is_enabled()** — Returns `True` if any TLS setting is configured
+- **TLSConfig** — TLS 1.3-default client/server context builder with TLS 1.2 floor
+- **SecurityHeadersPolicy** — Secure-by-default HSTS/CSP/referrer/permissions headers
+- **CORSConfig** — Exact-match CORS preflight policy
+- **extract_bearer_token()** — Header-only bearer extraction that rejects query-string tokens
 
 ## Dependencies
 

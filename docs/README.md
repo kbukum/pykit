@@ -7,6 +7,7 @@
 | [Getting Started](getting-started.md) | Installation and quickstart guide |
 | [Architecture](architecture.md) | Layer model and design principles |
 | [Package Catalog](PACKAGES.md) | All 55 packages with descriptions |
+| [Security Model](security-model.md) | Auth, authz, security, and encryption threat model |
 | [Releasing](RELEASING.md) | Release process for maintainers |
 | [Versioning](VERSIONING.md) | Workspace versioning guide |
 | [Examples](EXAMPLES.md) | Code examples |

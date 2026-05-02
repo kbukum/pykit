@@ -26,8 +26,8 @@ particularly in the following areas:
 - **Servers**: `pykit-server`, `pykit-grpc`
 - **AI/ML**: `pykit-llm`, `pykit-llm-providers`, `pykit-bench`,
   `pykit-dataset`
-- **Security**: `pykit-auth`, `pykit-auth-oidc`, `pykit-auth-apikey`,
-  `pykit-authz`, `pykit-encryption`
+- **Security**: `pykit-auth`, `pykit-authz`, `pykit-security`,
+  `pykit-encryption`
 
 If you are interested, please open an issue using the
 [engineering review template](.github/ISSUE_TEMPLATE/) describing your area

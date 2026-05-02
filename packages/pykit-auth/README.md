@@ -1,6 +1,6 @@
 # pykit-auth
 
-JWT authentication and password hashing with bcrypt and scrypt support.
+JWT, API key, OIDC, and password authentication primitives with Argon2id defaults.
 
 ## Installation
 
@@ -13,35 +13,47 @@ uv add pykit-auth
 ## Quick Start
 
 ```python
-from pykit_auth import JWTConfig, JWTService, PasswordHasher, HashAlgorithm
+from pykit_auth import (
+    APIKeyHashingConfig,
+    APIKeyHasher,
+    JWTConfig,
+    JWTService,
+    PasswordHasher,
+)
 
-# JWT token generation and validation
-config = JWTConfig(secret="my-secret", issuer="my-app", default_ttl=3600)
-jwt = JWTService(config)
+jwt_service = JWTService(
+    JWTConfig(
+        issuer="my-app",
+        audience="my-clients",
+        private_key=PRIVATE_KEY_PEM,
+        public_key=PUBLIC_KEY_PEM,
+    )
+)
+token = jwt_service.generate({"sub": "user-1"})
+claims = jwt_service.validate(token)
 
-token = jwt.generate({"user_id": "abc", "role": "admin"})
-claims = jwt.validate(token)
-print(claims["user_id"])  # "abc"
-
-# Password hashing (bcrypt by default)
 hasher = PasswordHasher()
 hashed = hasher.hash("my-password")
 assert hasher.verify("my-password", hashed)
+
+apikey_hasher = APIKeyHasher(APIKeyHashingConfig(pepper="x" * 32))
+issued = apikey_hasher.generate_key("pk")
 ```
 
 ## Key Components
 
-- **JWTConfig** — Configuration dataclass for JWT signing (secret, algorithm, issuer, audience, TTL)
-- **JWTService** — JWT token generation and validation implementing `TokenValidator` and `TokenGenerator` protocols; supports `generate()`, `validate()`, and `decode_unverified()`
-- **TokenValidator** — Protocol defining `validate(token) -> dict` for pluggable token validation
-- **TokenGenerator** — Protocol defining `generate(claims, expires_in) -> str` for pluggable token creation
-- **PasswordHasher** — Password hashing and verification with configurable rounds
-- **HashAlgorithm** — StrEnum with `BCRYPT` and `ARGON2` (scrypt-based) algorithms
+- **JWTConfig / JWTService** — RS256-first JWT signing and verification; HS256 is explicit internal-only fallback
+- **APIKeyHasher / APIKeyManager** — Prefix-based API key issuance, HMAC-SHA-256 hashing with pepper, rotation, and ASGI middleware
+- **OIDC** — discovery parsing, PKCE request building, JWKS caching, refresh rotation, and ID token validation
+- **PasswordHasher** — Argon2id default hashing with bcrypt migration fallback
 
 ## Dependencies
 
 - `pyjwt` — JWT encoding/decoding
-- `bcrypt` — Password hashing
+- `argon2-cffi` — Argon2id password hashing
+- `bcrypt` — Password migration fallback
+- `httpx` — OIDC discovery/JWKS/refresh transport
+- `cryptography` — JWT signing keys and JWKS handling
 - `pykit-errors` — Error types (`InvalidInputError` on validation failure)
 
 ## See Also
