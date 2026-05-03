@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import importlib
 from datetime import UTC, datetime, timedelta
 from inspect import isawaitable
@@ -43,14 +42,16 @@ class S3Storage:
 
     async def upload(self, path: str, data: bytes | BinaryIO) -> None:
         """Upload bytes or a binary stream to S3."""
-        key = _validate_key(path)
-        raw = data if isinstance(data, bytes) else await asyncio.to_thread(data.read)
+        key = validate_key(path)
         async with self._client() as client:
-            await client.put_object(Bucket=self._bucket, Key=key, Body=raw)
+            if isinstance(data, bytes):
+                await client.put_object(Bucket=self._bucket, Key=key, Body=data)
+            else:
+                await client.upload_fileobj(data, self._bucket, key)
 
     async def download(self, path: str) -> bytes:
         """Download an object from S3."""
-        key = _validate_key(path)
+        key = validate_key(path)
         async with self._client() as client:
             try:
                 response = await client.get_object(Bucket=self._bucket, Key=key)
@@ -66,13 +67,13 @@ class S3Storage:
 
     async def delete(self, path: str) -> None:
         """Delete an object from S3."""
-        key = _validate_key(path)
+        key = validate_key(path)
         async with self._client() as client:
             await client.delete_object(Bucket=self._bucket, Key=key)
 
     async def exists(self, path: str) -> bool:
         """Return whether an object exists."""
-        key = _validate_key(path)
+        key = validate_key(path)
         async with self._client() as client:
             try:
                 await client.head_object(Bucket=self._bucket, Key=key)
@@ -87,7 +88,7 @@ class S3Storage:
 
     async def list(self, prefix: str = "") -> list[FileInfo]:
         """List object metadata under a prefix."""
-        safe_prefix = "" if prefix == "" else f"{_validate_key(prefix.rstrip('/'))}/"
+        safe_prefix = "" if prefix == "" else f"{validate_key(prefix.rstrip('/'))}/"
         items: list[FileInfo] = []
         async with self._client() as client:
             paginator = client.get_paginator("list_objects_v2")
@@ -108,7 +109,7 @@ class S3Storage:
 
     async def url(self, path: str) -> str:
         """Return an s3:// URL for the object."""
-        return f"s3://{self._bucket}/{_validate_key(path)}"
+        return f"s3://{self._bucket}/{validate_key(path)}"
 
     async def signed_url(self, path: str, expiry: timedelta) -> str:
         """Create a bounded presigned GET URL."""
@@ -118,7 +119,7 @@ class S3Storage:
         async with self._client() as client:
             url = client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": self._bucket, "Key": _validate_key(path)},
+                Params={"Bucket": self._bucket, "Key": validate_key(path)},
                 ExpiresIn=seconds,
             )
             if isawaitable(url):
@@ -129,7 +130,8 @@ class S3Storage:
         return self._session.client("s3", endpoint_url=self._endpoint_url)
 
 
-def _validate_key(path: str) -> str:
+def validate_key(path: str) -> str:
+    """Validate and return a normalized S3 object key."""
     if path == "" or "\x00" in path:
         raise InvalidInputError("storage key must be non-empty and must not contain NUL bytes", field="path")
     if path.startswith("/") or any(part in {"", ".", ".."} for part in path.split("/")):

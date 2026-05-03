@@ -20,7 +20,7 @@ from pykit_cache import (
 )
 from pykit_cache.redis import RedisCacheBackend
 from pykit_component import HealthStatus
-from pykit_errors import InvalidInputError
+from pykit_errors import InvalidInputError, ServiceUnavailableError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -256,6 +256,16 @@ class TestCacheComponent:
         comp._client = fake
         # Verify ping works
         assert await fake.ping() is True
+
+    async def test_start_fails_when_backend_ping_returns_false(self) -> None:
+        registry = CacheRegistry()
+        backend = InMemoryCache()
+        await backend.close()
+        registry.register("memory", lambda _config: backend)
+        comp = CacheComponent(CacheConfig(), registry=registry)
+
+        with pytest.raises(ServiceUnavailableError, match="ping failed"):
+            await comp.start()
 
     async def test_health_ping_failure(self) -> None:
         """Cover component.py lines 48-49: health check when ping raises."""

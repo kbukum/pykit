@@ -6,6 +6,7 @@ from pykit_cache.client import CacheClient
 from pykit_cache.config import CacheConfig
 from pykit_cache.registry import CacheRegistry, default_cache_registry
 from pykit_component import Health, HealthStatus
+from pykit_errors import ServiceUnavailableError
 
 
 class CacheComponent:
@@ -29,7 +30,8 @@ class CacheComponent:
         if not self._config.enabled:
             return
         self._client = CacheClient(self._config, registry=self._registry)
-        await self._client.ping()
+        if not await self._client.ping():
+            raise ServiceUnavailableError(self.name, "ping failed")
 
     async def stop(self) -> None:
         """Close the underlying cache backend."""
