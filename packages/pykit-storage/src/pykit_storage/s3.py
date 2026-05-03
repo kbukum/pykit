@@ -56,6 +56,11 @@ class S3Storage:
                 response = await client.get_object(Bucket=self._bucket, Key=key)
             except client.exceptions.NoSuchKey as exc:
                 raise NotFoundError("file", key) from exc
+            except client.exceptions.ClientError as exc:
+                error = exc.response.get("Error", {})
+                if error.get("Code") in {"404", "NoSuchKey", "NotFound"}:
+                    raise NotFoundError("file", key) from exc
+                raise AppError(ErrorCode.EXTERNAL_SERVICE, "S3 get_object failed").with_cause(exc) from exc
             body = response["Body"]
             return bytes(await body.read())
 
