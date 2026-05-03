@@ -123,7 +123,7 @@ class InMemoryVectorStore:
         limit: int,
         filter: SearchFilter | None = None,
     ) -> list[SearchResult]:
-        """Search for similar vectors using brute-force cosine similarity."""
+        """Search for similar vectors using the collection's configured metric."""
         with self._lock:
             col = self._collections.get(collection)
             if col is None:

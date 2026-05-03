@@ -25,23 +25,22 @@ class CacheClient:
     ) -> None:
         self._config = config or CacheConfig()
         self._backend = backend or (registry or default_cache_registry()).create(self._config)
-        self._redis = self._backend
 
     async def get(self, key: str) -> str | None:
         """Retrieve a value by key."""
-        return await self._redis.get(key)
+        return await self._backend.get(key)
 
     async def set(self, key: str, value: str, ex: int | None = None) -> None:
         """Store a value with optional expiration in seconds."""
-        await self._redis.set(key, value, ex=ex)
+        await self._backend.set(key, value, ex=ex)
 
     async def delete(self, *keys: str) -> int:
         """Delete one or more keys. Returns number of keys removed."""
-        return await self._redis.delete(*keys)
+        return await self._backend.delete(*keys)
 
     async def exists(self, *keys: str) -> int:
         """Return the number of provided keys that exist."""
-        return await self._redis.exists(*keys)
+        return await self._backend.exists(*keys)
 
     async def get_json(self, key: str, type_hint: type[T] = dict) -> T | None:  # type: ignore[assignment]
         """Get a key and JSON-decode the value."""
@@ -57,7 +56,7 @@ class CacheClient:
 
     async def ping(self) -> bool:
         """Return ``True`` when the backend is healthy."""
-        result = self._redis.ping()
+        result = self._backend.ping()
         if isawaitable(result):
             return bool(await result)
         return bool(result)
@@ -68,4 +67,4 @@ class CacheClient:
 
     def unwrap(self) -> object:
         """Access the underlying backend."""
-        return self._redis
+        return self._backend

@@ -21,7 +21,6 @@ from pykit_cache import (
 from pykit_cache.redis import RedisCacheBackend
 from pykit_component import HealthStatus
 from pykit_errors import InvalidInputError
-from pykit_testutil import FakeAsyncKeyValue
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -35,11 +34,9 @@ class _SampleState:
 
 
 def _make_client(config: CacheConfig | None = None) -> CacheClient:
-    """Create a CacheClient backed by pykit-testutil."""
+    """Create a CacheClient backed by the default in-memory backend."""
     cfg = config or CacheConfig()
-    client = CacheClient(cfg)
-    client._redis = FakeAsyncKeyValue(decode_responses=cfg.decode_responses)
-    return client
+    return CacheClient(cfg)
 
 
 # ---------------------------------------------------------------------------

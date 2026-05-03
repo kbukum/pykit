@@ -12,7 +12,6 @@ import pytest
 
 from pykit_cache import CacheClient, CacheComponent, CacheConfig, TypedStore
 from pykit_component import HealthStatus
-from pykit_testutil import FakeAsyncKeyValue
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,11 +29,9 @@ class _ComplexState:
 
 
 def _make_client(config: CacheConfig | None = None) -> CacheClient:
-    """Create a CacheClient backed by pykit-testutil."""
+    """Create a CacheClient backed by the default in-memory backend."""
     cfg = config or CacheConfig()
-    client = CacheClient(cfg)
-    client._redis = FakeAsyncKeyValue(decode_responses=cfg.decode_responses)
-    return client
+    return CacheClient(cfg)
 
 
 # ---------------------------------------------------------------------------
