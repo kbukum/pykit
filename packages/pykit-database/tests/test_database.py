@@ -162,11 +162,14 @@ class TestDatabase:
         database = Database(config)
         await database.run_migrations(Base.metadata)
 
-        with pytest.raises(asyncio.CancelledError):
+        async def insert_then_cancel() -> None:
             async with database.session() as sess:
                 sess.add(User(name="Cancelled", email="cancelled@x.com"))
                 await sess.flush()
                 raise asyncio.CancelledError
+
+        with pytest.raises(asyncio.CancelledError):
+            await insert_then_cancel()
 
         from sqlalchemy import select
 

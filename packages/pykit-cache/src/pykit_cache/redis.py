@@ -16,17 +16,23 @@ if TYPE_CHECKING:
 class RedisClient(Protocol):
     """Subset of the Redis async client used by the cache adapter."""
 
-    def get(self, key: str) -> Awaitable[object]: ...
+    def get(self, key: str) -> Awaitable[object]:
+        raise NotImplementedError
 
-    def set(self, key: str, value: str, *, ex: int | None = None) -> Awaitable[object]: ...
+    def set(self, key: str, value: str, *, ex: int | None = None) -> Awaitable[object]:
+        raise NotImplementedError
 
-    def delete(self, *keys: str) -> Awaitable[object]: ...
+    def delete(self, *keys: str) -> Awaitable[object]:
+        raise NotImplementedError
 
-    def exists(self, *keys: str) -> Awaitable[object]: ...
+    def exists(self, *keys: str) -> Awaitable[object]:
+        raise NotImplementedError
 
-    def ping(self) -> Awaitable[object] | object: ...
+    def ping(self) -> Awaitable[object] | object:
+        raise NotImplementedError
 
-    def aclose(self) -> Awaitable[None]: ...
+    def aclose(self) -> Awaitable[None]:
+        raise NotImplementedError
 
 
 class RedisCacheBackend:

@@ -16,17 +16,23 @@ from pykit_errors import InvalidInputError
 class CacheBackend(Protocol):
     """Async key-value cache backend contract."""
 
-    async def get(self, key: str) -> str | None: ...
+    async def get(self, key: str) -> str | None:
+        raise NotImplementedError
 
-    async def set(self, key: str, value: str, ex: int | None = None) -> None: ...
+    async def set(self, key: str, value: str, ex: int | None = None) -> None:
+        raise NotImplementedError
 
-    async def delete(self, *keys: str) -> int: ...
+    async def delete(self, *keys: str) -> int:
+        raise NotImplementedError
 
-    async def exists(self, *keys: str) -> int: ...
+    async def exists(self, *keys: str) -> int:
+        raise NotImplementedError
 
-    async def ping(self) -> bool: ...
+    async def ping(self) -> bool:
+        raise NotImplementedError
 
-    async def close(self) -> None: ...
+    async def close(self) -> None:
+        raise NotImplementedError
 
 
 CacheFactory = Callable[[CacheConfig], CacheBackend]
