@@ -89,6 +89,16 @@ class TestInMemoryVectorStore:
 
         assert [result.id for result in results] == ["large", "small"]
 
+    async def test_constructor_metric_is_default_collection_metric(self) -> None:
+        store = InMemoryVectorStore(metric="dot")
+        await store.ensure_collection("test", 2)
+        await store.upsert("test", "small", [1.0, 0.0], PointPayload())
+        await store.upsert("test", "large", [2.0, 0.0], PointPayload())
+
+        results = await store.search("test", [1.0, 0.0], 2)
+
+        assert [result.id for result in results] == ["large", "small"]
+
     async def test_l2_metric_recall(self) -> None:
         store = InMemoryVectorStore()
         await store.ensure_collection("test", 2, metric="l2")

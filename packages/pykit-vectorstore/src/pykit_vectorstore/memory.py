@@ -65,29 +65,35 @@ class InMemoryVectorStore:
     Thread-safe via threading.Lock.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, metric: VectorMetric = "cosine") -> None:
+        if metric not in ("cosine", "dot", "l2"):
+            raise VectorStoreError(f"unsupported vector metric: {metric}")
+        self._metric = metric
         self._collections: dict[str, _Collection] = {}
         self._lock = threading.Lock()
 
     async def ensure_collection(
-        self, collection: str, dimensions: int, metric: VectorMetric = "cosine"
+        self, collection: str, dimensions: int, metric: VectorMetric | None = None
     ) -> None:
         """Ensure a collection exists, creating it if necessary."""
-        if metric not in ("cosine", "dot", "l2"):
-            raise VectorStoreError(f"unsupported vector metric: {metric}")
+        selected_metric = metric or self._metric
+        if selected_metric not in ("cosine", "dot", "l2"):
+            raise VectorStoreError(f"unsupported vector metric: {selected_metric}")
         with self._lock:
             existing = self._collections.get(collection)
             if existing is None:
-                self._collections[collection] = _Collection(dimensions=dimensions, metric=metric, points=[])
+                self._collections[collection] = _Collection(
+                    dimensions=dimensions, metric=selected_metric, points=[]
+                )
                 return
             if existing.dimensions != dimensions:
                 raise VectorStoreError(
                     f"collection '{collection}' dimensions mismatch: "
                     f"expected {existing.dimensions}, got {dimensions}"
                 )
-            if existing.metric != metric:
+            if existing.metric != selected_metric:
                 raise VectorStoreError(
-                    f"collection '{collection}' metric mismatch: expected {existing.metric}, got {metric}"
+                    f"collection '{collection}' metric mismatch: expected {existing.metric}, got {selected_metric}"
                 )
 
     async def upsert(

@@ -24,8 +24,11 @@ try:
         Distance,
         FieldCondition,
         Filter,
+        IsNullCondition,
         MatchValue,
+        PayloadField,
         PointStruct,
+        Range,
         VectorParams,
     )
 
@@ -114,9 +117,8 @@ class QdrantVectorStore:
         """Search for similar vectors in Qdrant."""
         query_filter = None
         if filter is not None and filter.conditions():
-            conditions = [
-                FieldCondition(key=field, match=MatchValue(value=value))
-                for field, value in filter.conditions()
+            conditions: list[Any] = [
+                _condition_to_qdrant(field, value) for field, value in filter.conditions()
             ]
             query_filter = Filter(must=conditions)
 
@@ -162,6 +164,16 @@ def _to_qdrant_distance(metric: VectorMetric) -> Distance:
     if metric == "l2":
         return Distance.EUCLID
     raise VectorStoreError(f"unsupported Qdrant metric: {metric}")
+
+
+def _condition_to_qdrant(field: str, value: object) -> Any:
+    if value is None:
+        return IsNullCondition(is_null=PayloadField(key=field))
+    if isinstance(value, float):
+        return FieldCondition(key=field, range=Range(gte=value, lte=value))
+    if isinstance(value, str | int | bool):
+        return FieldCondition(key=field, match=MatchValue(value=value))
+    raise VectorStoreError(f"unsupported Qdrant filter value for field '{field}': {value!r}")
 
 
 def _from_config(config: VectorStoreConfig) -> QdrantVectorStore:

@@ -33,7 +33,7 @@ class VectorStoreRegistry:
 
 def register_memory(registry: VectorStoreRegistry) -> None:
     """Register the in-memory vectorstore backend."""
-    registry.register("memory", lambda config: InMemoryVectorStore())
+    registry.register("memory", lambda config: InMemoryVectorStore(metric=config.metric))
 
 
 def default_vectorstore_registry() -> VectorStoreRegistry:

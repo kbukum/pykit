@@ -81,7 +81,7 @@ class VectorStore(Protocol):
     """Protocol for vector similarity search stores."""
 
     async def ensure_collection(
-        self, collection: str, dimensions: int, metric: VectorMetric = "cosine"
+        self, collection: str, dimensions: int, metric: VectorMetric | None = None
     ) -> None:
         """Ensure a collection exists, creating it if necessary."""
         ...
