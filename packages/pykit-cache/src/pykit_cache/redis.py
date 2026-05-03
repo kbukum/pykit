@@ -2,15 +2,31 @@
 
 from __future__ import annotations
 
+import importlib
+from collections.abc import Awaitable
 from inspect import isawaitable
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Protocol, cast
 
 from pykit_cache.config import CacheConfig
 
 if TYPE_CHECKING:
-    from redis.asyncio import Redis
-
     from pykit_cache.registry import CacheRegistry
+
+
+class RedisClient(Protocol):
+    """Subset of the Redis async client used by the cache adapter."""
+
+    def get(self, key: str) -> Awaitable[object]: ...
+
+    def set(self, key: str, value: str, *, ex: int | None = None) -> Awaitable[object]: ...
+
+    def delete(self, *keys: str) -> Awaitable[object]: ...
+
+    def exists(self, *keys: str) -> Awaitable[object]: ...
+
+    def ping(self) -> Awaitable[object] | object: ...
+
+    def aclose(self) -> Awaitable[None]: ...
 
 
 class RedisCacheBackend:
@@ -21,20 +37,23 @@ class RedisCacheBackend:
 
     def __init__(self, config: CacheConfig) -> None:
         try:
-            import redis.asyncio as aioredis
+            aioredis = importlib.import_module("redis.asyncio")
         except ImportError as exc:
             msg = "redis is required for RedisCacheBackend; install pykit-cache[redis]"
             raise ImportError(msg) from exc
 
-        self._redis: Redis = aioredis.Redis.from_url(
-            config.url,
-            password=config.password or None,
-            db=config.db,
-            max_connections=config.max_connections,
-            socket_timeout=config.socket_timeout,
-            socket_connect_timeout=config.socket_connect_timeout,
-            retry_on_timeout=config.retry_on_timeout,
-            decode_responses=config.decode_responses,
+        self._redis = cast(
+            "RedisClient",
+            aioredis.Redis.from_url(
+                config.url,
+                password=config.password or None,
+                db=config.db,
+                max_connections=config.max_connections,
+                socket_timeout=config.socket_timeout,
+                socket_connect_timeout=config.socket_connect_timeout,
+                retry_on_timeout=config.retry_on_timeout,
+                decode_responses=config.decode_responses,
+            ),
         )
 
     async def get(self, key: str) -> str | None:
@@ -64,7 +83,7 @@ class RedisCacheBackend:
         """Close the underlying connection pool."""
         await self._redis.aclose()
 
-    def unwrap(self) -> Redis:
+    def unwrap(self) -> RedisClient:
         """Access the underlying Redis client."""
         return self._redis
 
