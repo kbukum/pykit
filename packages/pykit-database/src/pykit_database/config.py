@@ -11,7 +11,7 @@ class DatabaseConfig:
 
     name: str = "database"
     backend: str = "sqlalchemy"
-    dsn: str = "sqlite+aiosqlite:///db.sqlite3"
+    dsn: str = ""
     echo: bool = False
     pool_size: int = 5
     max_overflow: int = 10

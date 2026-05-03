@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 from datetime import UTC, datetime, timedelta
+from inspect import isawaitable
 from typing import TYPE_CHECKING, Any, BinaryIO
 
 from pykit_errors import AppError, InvalidInputError, NotFoundError
@@ -110,13 +111,14 @@ class S3Storage:
         if seconds <= 0 or seconds > self._signed_url_max_seconds:
             raise InvalidInputError("signed URL expiry is out of bounds", field="expiry")
         async with self._client() as client:
-            return str(
-                await client.generate_presigned_url(
-                    "get_object",
-                    Params={"Bucket": self._bucket, "Key": _validate_key(path)},
-                    ExpiresIn=seconds,
-                )
+            url = client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": self._bucket, "Key": _validate_key(path)},
+                ExpiresIn=seconds,
             )
+            if isawaitable(url):
+                url = await url
+            return str(url)
 
     def _client(self) -> Any:
         return self._session.client("s3", endpoint_url=self._endpoint_url)

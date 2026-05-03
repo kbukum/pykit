@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+import pykit_cache.backends as cache_backends
 from pykit_cache import (
     CacheClient,
     CacheComponent,
@@ -100,13 +101,14 @@ class TestCacheClient:
         await client.set("k1", "v1", ex=60)
         assert await client.get("k1") == "v1"
 
-    async def test_ttl_boundary_expires(self) -> None:
+    async def test_ttl_boundary_expires(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        now = 1_000.0
+        monkeypatch.setattr(cache_backends.time, "monotonic", lambda: now)
         client = CacheClient(CacheConfig())
         await client.set("short", "v", ex=1)
         assert await client.get("short") == "v"
-        import asyncio
 
-        await asyncio.sleep(1.01)
+        now += 1.01
         assert await client.get("short") is None
 
     async def test_delete(self, client: CacheClient) -> None:

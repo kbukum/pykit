@@ -80,7 +80,7 @@ class TestDatabaseConfig:
         cfg = DatabaseConfig()
         assert cfg.name == "database"
         assert cfg.backend == "sqlalchemy"
-        assert cfg.dsn == "sqlite+aiosqlite:///db.sqlite3"
+        assert cfg.dsn == ""
         assert cfg.echo is False
         assert cfg.pool_size == 5
         assert cfg.max_overflow == 10

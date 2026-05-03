@@ -74,8 +74,19 @@ class InMemoryVectorStore:
         if metric not in ("cosine", "dot", "l2"):
             raise VectorStoreError(f"unsupported vector metric: {metric}")
         with self._lock:
-            if collection not in self._collections:
+            existing = self._collections.get(collection)
+            if existing is None:
                 self._collections[collection] = _Collection(dimensions=dimensions, metric=metric, points=[])
+                return
+            if existing.dimensions != dimensions:
+                raise VectorStoreError(
+                    f"collection '{collection}' dimensions mismatch: "
+                    f"expected {existing.dimensions}, got {dimensions}"
+                )
+            if existing.metric != metric:
+                raise VectorStoreError(
+                    f"collection '{collection}' metric mismatch: expected {existing.metric}, got {metric}"
+                )
 
     async def upsert(
         self,

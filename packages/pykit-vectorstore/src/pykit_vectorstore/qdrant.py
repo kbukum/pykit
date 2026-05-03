@@ -63,14 +63,17 @@ class QdrantVectorStore:
         self._client = QdrantClient(**kwargs)
 
     async def ensure_collection(
-        self, collection: str, dimensions: int, metric: VectorMetric = "cosine"
+        self, collection: str, dimensions: int, metric: VectorMetric | None = None
     ) -> None:
         """Ensure a Qdrant collection exists."""
+        selected_metric = metric or self._metric
         try:
             if not self._client.collection_exists(collection):
                 self._client.create_collection(
                     collection_name=collection,
-                    vectors_config=VectorParams(size=dimensions, distance=_to_qdrant_distance(metric)),
+                    vectors_config=VectorParams(
+                        size=dimensions, distance=_to_qdrant_distance(selected_metric)
+                    ),
                 )
         except Exception as exc:
             raise VectorStoreError(f"failed to ensure Qdrant collection: {exc}") from exc

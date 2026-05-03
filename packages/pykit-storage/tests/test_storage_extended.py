@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from pykit_errors import InvalidInputError
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
 from pykit_storage.s3 import _validate_key
 
@@ -55,11 +56,11 @@ class TestPathTraversalSecurity:
 
 class TestS3ConfigValidation:
     def test_s3_key_rejects_path_traversal(self) -> None:
-        with pytest.raises(Exception, match="normalized relative"):
+        with pytest.raises(InvalidInputError, match="normalized relative"):
             _validate_key("../secret")
 
     def test_s3_key_rejects_absolute_paths(self) -> None:
-        with pytest.raises(Exception, match="normalized relative"):
+        with pytest.raises(InvalidInputError, match="normalized relative"):
             _validate_key("/bucket/key")
 
     def test_s3_key_accepts_normalized_relative_key(self) -> None:

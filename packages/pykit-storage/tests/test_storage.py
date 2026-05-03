@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from pykit_component import HealthStatus
-from pykit_errors import NotFoundError
+from pykit_errors import AppError, NotFoundError
 from pykit_storage import (
     FileInfo,
     LocalStorage,
@@ -155,12 +155,12 @@ class TestStorageComponent:
 
     async def test_unknown_provider_raises(self) -> None:
         comp = StorageComponent(StorageConfig(provider="gcs"))
-        with pytest.raises(Exception, match="not registered"):
+        with pytest.raises(AppError, match="not registered"):
             await comp.start()
 
     async def test_s3_provider_requires_explicit_registration(self) -> None:
         comp = StorageComponent(StorageConfig(provider="s3"))
-        with pytest.raises(Exception, match="not registered"):
+        with pytest.raises(AppError, match="not registered"):
             await comp.start()
 
     async def test_roundtrip_through_component(self, tmp_path: Path) -> None:
