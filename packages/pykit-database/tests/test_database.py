@@ -178,6 +178,33 @@ class TestDatabase:
             assert result.scalars().first() is None
         await database.close()
 
+    async def test_session_rollback_is_shielded(self):
+        config = DatabaseConfig(dsn=IN_MEMORY_DSN)
+        database = Database(config)
+        await database.run_migrations(Base.metadata)
+
+        original_shield = asyncio.shield
+        shielded = False
+
+        async def shield_spy(awaitable):
+            nonlocal shielded
+            shielded = True
+            return await original_shield(awaitable)
+
+        from unittest.mock import patch as _patch
+
+        with (
+            _patch("pykit_database.database.asyncio.shield", side_effect=shield_spy),
+            pytest.raises(asyncio.CancelledError),
+        ):
+            async with database.session() as sess:
+                sess.add(User(name="Shielded", email="shielded@x.com"))
+                await sess.flush()
+                raise asyncio.CancelledError
+
+        assert shielded is True
+        await database.close()
+
     async def test_ping_returns_false_on_failure(self):
         """Cover database.py lines 65-66: ping returns False when exception occurs."""
         config = DatabaseConfig(dsn=IN_MEMORY_DSN)

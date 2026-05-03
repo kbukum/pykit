@@ -50,6 +50,8 @@ def _l2_similarity(a: list[float], b: list[float]) -> float:
 def _matches_filter(payload: PointPayload, filt: SearchFilter) -> bool:
     """Check whether a payload matches all must conditions."""
     for field_name, expected in filt.conditions():
+        if field_name not in payload.fields:
+            return False
         actual = payload.fields.get(field_name)
         if actual != expected:
             return False

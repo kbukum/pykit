@@ -149,6 +149,13 @@ class TestStorageComponent:
         h = await comp.health()
         assert h.status == HealthStatus.UNHEALTHY
 
+    async def test_disabled_health_is_healthy(self) -> None:
+        comp = StorageComponent(StorageConfig(enabled=False))
+        await comp.start()
+        h = await comp.health()
+        assert h.status == HealthStatus.HEALTHY
+        assert h.message == "storage disabled"
+
     async def test_name(self) -> None:
         comp = StorageComponent(StorageConfig(name="my-storage"))
         assert comp.name == "my-storage"

@@ -52,6 +52,22 @@ class TestInMemoryVectorStore:
         assert len(results) == 1
         assert results[0].id == "1"
 
+    async def test_search_filter_none_requires_present_field(self) -> None:
+        store = InMemoryVectorStore()
+        await store.ensure_collection("test", 2)
+
+        await store.upsert("test", "missing", [1.0, 0.0], PointPayload(fields={}))
+        await store.upsert("test", "explicit", [1.0, 0.0], PointPayload(fields={"archived_at": None}))
+
+        results = await store.search(
+            "test",
+            [1.0, 0.0],
+            10,
+            filter=SearchFilter().must_match("archived_at", None),
+        )
+
+        assert [result.id for result in results] == ["explicit"]
+
     async def test_search_with_tenant_filter(self) -> None:
         store = InMemoryVectorStore()
         await store.ensure_collection("test", 2)

@@ -39,6 +39,8 @@ class StorageComponent:
         self._storage = None
 
     async def health(self) -> Health:
+        if not self._config.enabled:
+            return Health(name=self.name, status=HealthStatus.HEALTHY, message="storage disabled")
         if self._storage is None:
             return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="storage not started")
         return Health(name=self.name, status=HealthStatus.HEALTHY)

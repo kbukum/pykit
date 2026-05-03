@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -50,7 +51,7 @@ class Database:
                 yield sess
                 await sess.commit()
             except BaseException:
-                await sess.rollback()
+                await asyncio.shield(sess.rollback())
                 raise
 
     async def execute(self, stmt: Any) -> Any:
