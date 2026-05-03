@@ -18,7 +18,9 @@ from pykit_cache import (
     default_cache_registry,
     register_memory,
 )
+from pykit_cache.redis import RedisCacheBackend
 from pykit_component import HealthStatus
+from pykit_errors import InvalidInputError
 from pykit_testutil import FakeAsyncKeyValue
 
 # ---------------------------------------------------------------------------
@@ -78,6 +80,11 @@ class TestCacheConfig:
         assert cfg.url == "redis://remote:6380/2"
         assert cfg.db == 2
         assert cfg.max_connections == 50
+
+    def test_redis_backend_rejects_byte_responses(self) -> None:
+        cfg = CacheConfig(decode_responses=False)
+        with pytest.raises(InvalidInputError, match="decode_responses=True"):
+            RedisCacheBackend(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +244,12 @@ class TestCacheComponent:
         comp = CacheComponent(CacheConfig(enabled=False))
         await comp.start()
         assert comp.client is None
+
+    async def test_disabled_health_is_healthy(self) -> None:
+        comp = CacheComponent(CacheConfig(enabled=False))
+        h = await comp.health()
+        assert h.status == HealthStatus.HEALTHY
+        assert h.message == "cache disabled"
 
     async def test_start_enabled_creates_client(self) -> None:
         """Cover component.py lines 29-30: start with enabled config creates client and pings."""

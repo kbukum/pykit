@@ -39,6 +39,8 @@ class CacheComponent:
 
     async def health(self) -> Health:
         """Return current health status."""
+        if not self._config.enabled:
+            return Health(name=self.name, status=HealthStatus.HEALTHY, message="cache disabled")
         if self._client is None:
             return Health(
                 name=self.name,

@@ -88,6 +88,8 @@ class LocalStorage:
         return await asyncio.to_thread(_list_sync)
 
     async def url(self, path: str) -> str:
+        full = self._resolve(path)
         if self._public_url:
-            return f"{self._public_url}/{path}"
-        return self._resolve(path)
+            relative = Path(full).relative_to(self._base_path).as_posix()
+            return f"{self._public_url}/{relative}"
+        return full

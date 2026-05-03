@@ -8,6 +8,7 @@ from inspect import isawaitable
 from typing import TYPE_CHECKING, Protocol, cast
 
 from pykit_cache.config import CacheConfig
+from pykit_errors import InvalidInputError
 
 if TYPE_CHECKING:
     from pykit_cache.registry import CacheRegistry
@@ -42,6 +43,11 @@ class RedisCacheBackend:
     """
 
     def __init__(self, config: CacheConfig) -> None:
+        if not config.decode_responses:
+            raise InvalidInputError(
+                "Redis cache backend requires decode_responses=True",
+                field="decode_responses",
+            )
         try:
             aioredis = importlib.import_module("redis.asyncio")
         except ImportError as exc:

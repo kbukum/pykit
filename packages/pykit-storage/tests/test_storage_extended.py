@@ -305,6 +305,11 @@ class TestURLGeneration:
         result = await store.url("path/to/file.txt")
         assert result == "https://cdn.example.com/path/to/file.txt"
 
+    async def test_url_with_public_url_rejects_traversal(self, tmp_path: Path) -> None:
+        store = LocalStorage(base_path=str(tmp_path), public_url="https://cdn.example.com/")
+        with pytest.raises(InvalidInputError, match="normalized relative"):
+            await store.url("../secret.txt")
+
     async def test_url_without_public_url_returns_local_path(self, tmp_path: Path) -> None:
         store = LocalStorage(base_path=str(tmp_path))
         result = await store.url("file.txt")
