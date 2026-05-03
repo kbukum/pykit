@@ -195,12 +195,12 @@ class TestDatabase:
 
         with (
             _patch("pykit_database.database.asyncio.shield", side_effect=shield_spy),
-            pytest.raises(asyncio.CancelledError),
+            pytest.raises(RuntimeError, match="forced rollback"),
         ):
             async with database.session() as sess:
                 sess.add(User(name="Shielded", email="shielded@x.com"))
                 await sess.flush()
-                raise asyncio.CancelledError
+                raise RuntimeError("forced rollback")
 
         assert shielded is True
         await database.close()
