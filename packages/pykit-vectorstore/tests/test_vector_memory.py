@@ -112,6 +112,13 @@ class TestInMemoryVectorStore:
         with pytest.raises(VectorStoreError, match="does not exist"):
             await store.search("nonexistent", [1.0], 10)
 
+    async def test_search_wrong_dimensions(self) -> None:
+        store = InMemoryVectorStore()
+        await store.ensure_collection("test", 3)
+
+        with pytest.raises(VectorStoreError, match="dimensions mismatch"):
+            await store.search("test", [1.0, 0.0], 10)
+
     async def test_delete_missing_collection(self) -> None:
         store = InMemoryVectorStore()
 

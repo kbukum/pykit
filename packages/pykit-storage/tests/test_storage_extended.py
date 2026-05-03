@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from pykit_errors import InvalidInputError
+from pykit_errors import InvalidInputError, NotFoundError
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
 from pykit_storage.s3 import _validate_key
 
@@ -24,32 +24,24 @@ class TestPathTraversalSecurity:
 
     async def test_upload_traversal_rejected(self, store: LocalStorage, tmp_path: Path) -> None:
         """Upload with ../../ must not escape the storage base."""
-        from pykit_errors import InvalidInputError
-
         with pytest.raises(InvalidInputError):
             await store.upload("../../etc/passwd", b"hacked")
-        assert not (tmp_path.parent / "etc" / "passwd").exists()
+        assert list(tmp_path.rglob("*")) == []
 
     async def test_download_traversal_returns_error_or_not_found(
         self, store: LocalStorage, tmp_path: Path
     ) -> None:
         """Downloading a traversal path should fail cleanly."""
-        from pykit_errors import InvalidInputError, NotFoundError
-
         with pytest.raises((InvalidInputError, NotFoundError, FileNotFoundError, OSError)):
             await store.download("../../../etc/shadow")
 
     async def test_exists_traversal_path(self, store: LocalStorage) -> None:
         """Exists with traversal path should not crash."""
-        from pykit_errors import InvalidInputError
-
         with pytest.raises(InvalidInputError):
             await store.exists("../../etc/passwd")
 
     async def test_delete_traversal_nonexistent_is_noop(self, store: LocalStorage) -> None:
         """Delete with traversal on nonexistent path should not crash."""
-        from pykit_errors import InvalidInputError
-
         with pytest.raises(InvalidInputError):
             await store.delete("../../nonexistent_file.txt")
 

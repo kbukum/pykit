@@ -126,6 +126,10 @@ class InMemoryVectorStore:
             col = self._collections.get(collection)
             if col is None:
                 raise VectorStoreError(f"collection '{collection}' does not exist")
+            if len(vector) != col.dimensions:
+                raise VectorStoreError(
+                    f"vector dimensions mismatch: expected {col.dimensions}, got {len(vector)}"
+                )
 
             scored: list[SearchResult] = []
             for point in col.points:

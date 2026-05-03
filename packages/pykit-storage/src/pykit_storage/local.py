@@ -31,6 +31,8 @@ class LocalStorage:
             )
         if Path(path).is_absolute():
             raise InvalidInputError("storage path must be relative", field="path")
+        if any(part in {".", ".."} for part in Path(path).parts):
+            raise InvalidInputError("storage path must be a normalized relative path", field="path")
         resolved = (Path(self._base_path) / path).resolve()
         base = Path(self._base_path)
         if resolved != base and base not in resolved.parents:
