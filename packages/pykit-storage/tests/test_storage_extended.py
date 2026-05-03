@@ -62,7 +62,7 @@ class TestS3ConfigValidation:
     async def test_s3_stream_upload_uses_file_object_api(self) -> None:
         storage = S3Storage.__new__(S3Storage)
         storage._bucket = "bucket"
-        storage._client = lambda: _FakeS3ClientContext()  # type: ignore[method-assign]
+        storage._client = _FakeS3ClientContext  # type: ignore[method-assign]
         stream = _UnreadableStream(b"payload")
 
         await storage.upload("tenant/a.bin", stream)
