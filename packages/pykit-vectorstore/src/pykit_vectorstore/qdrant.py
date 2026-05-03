@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from pykit_errors.codes import ErrorCode
 from pykit_vectorstore.store import (
     PointPayload,
     SearchFilter,
@@ -76,7 +77,9 @@ class QdrantVectorStore:
                     ),
                 )
         except Exception as exc:
-            raise VectorStoreError(f"failed to ensure Qdrant collection: {exc}") from exc
+            raise VectorStoreError(
+                f"failed to ensure Qdrant collection: {exc}", ErrorCode.EXTERNAL_SERVICE
+            ) from exc
 
     async def upsert(
         self,
@@ -99,7 +102,7 @@ class QdrantVectorStore:
                 wait=True,
             )
         except Exception as exc:
-            raise VectorStoreError(f"failed to upsert to Qdrant: {exc}") from exc
+            raise VectorStoreError(f"failed to upsert to Qdrant: {exc}", ErrorCode.EXTERNAL_SERVICE) from exc
 
     async def search(
         self,
@@ -126,7 +129,7 @@ class QdrantVectorStore:
                 with_payload=True,
             )
         except Exception as exc:
-            raise VectorStoreError(f"failed to search Qdrant: {exc}") from exc
+            raise VectorStoreError(f"failed to search Qdrant: {exc}", ErrorCode.EXTERNAL_SERVICE) from exc
 
         return [
             SearchResult(
@@ -146,7 +149,9 @@ class QdrantVectorStore:
                 wait=True,
             )
         except Exception as exc:
-            raise VectorStoreError(f"failed to delete from Qdrant: {exc}") from exc
+            raise VectorStoreError(
+                f"failed to delete from Qdrant: {exc}", ErrorCode.EXTERNAL_SERVICE
+            ) from exc
 
 
 def _to_qdrant_distance(metric: VectorMetric) -> Distance:

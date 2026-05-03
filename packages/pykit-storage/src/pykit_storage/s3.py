@@ -82,7 +82,7 @@ class S3Storage:
 
     async def list(self, prefix: str = "") -> list[FileInfo]:
         """List object metadata under a prefix."""
-        safe_prefix = "" if prefix == "" else _validate_key(prefix.rstrip("/") + "/")
+        safe_prefix = "" if prefix == "" else f"{_validate_key(prefix.rstrip('/'))}/"
         items: list[FileInfo] = []
         async with self._client() as client:
             paginator = client.get_paginator("list_objects_v2")

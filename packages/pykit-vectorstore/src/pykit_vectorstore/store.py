@@ -16,8 +16,8 @@ FilterValue = str | int | float | bool | None
 class VectorStoreError(AppError):
     """Raised when a vector store operation fails."""
 
-    def __init__(self, message: str) -> None:
-        super().__init__(ErrorCode.INVALID_INPUT, message)
+    def __init__(self, message: str, code: ErrorCode = ErrorCode.INVALID_INPUT) -> None:
+        super().__init__(code, message)
 
 
 @dataclass
