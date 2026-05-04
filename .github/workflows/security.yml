@@ -23,18 +23,18 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-      - uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v3
+      - uses: github/codeql-action/init@e46ed2cbd01164d986452f91f178727624ae40d7
         with:
           languages: python
           queries: security-and-quality
-      - uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v3
+      - uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7
 
   pip-audit:
     name: pip-audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
       - name: Export requirements
         run: uv export --only-group dev --format requirements-txt --no-emit-workspace > /tmp/reqs.txt
       - name: Run pip-audit
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
       - run: uv sync --only-group dev
       - name: Run bandit
         run: uv run bandit -lll -iii -r packages/ -f json -o bandit-report.json
