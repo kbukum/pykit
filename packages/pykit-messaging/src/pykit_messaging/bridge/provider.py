@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from typing import Any
 
 from pykit_messaging.protocols import MessageConsumer, MessageProducer
 from pykit_messaging.types import Message
@@ -64,7 +63,7 @@ class _ConsumerBoxIterator(BoxIterator[Message]):
     def __init__(self, consumer: MessageConsumer) -> None:
         self._consumer = consumer
         self._queue: asyncio.Queue[Message | None] = asyncio.Queue()
-        self._task: asyncio.Task[Any] | None = None
+        self._task: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
         """Start the background consume loop."""

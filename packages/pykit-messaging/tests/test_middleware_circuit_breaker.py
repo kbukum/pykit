@@ -89,7 +89,7 @@ class TestCircuitBreakerHandler:
 
         # Simulate timeout
         base_time = time.monotonic()
-        with patch("pykit_messaging.middleware.circuit_breaker.time") as mock_time:
+        with patch("pykit_resilience.circuit_breaker.time") as mock_time:
             mock_time.monotonic.return_value = base_time + 2.0
             assert cb.state == CircuitState.HALF_OPEN
 
@@ -113,7 +113,7 @@ class TestCircuitBreakerHandler:
 
         # Simulate timeout elapsed by patching time
         base_time = time.monotonic()
-        with patch("pykit_messaging.middleware.circuit_breaker.time") as mock_time:
+        with patch("pykit_resilience.circuit_breaker.time") as mock_time:
             mock_time.monotonic.return_value = base_time + 2.0
             assert cb.state == CircuitState.HALF_OPEN
 
@@ -132,7 +132,7 @@ class TestCircuitBreakerHandler:
 
         # Simulate timeout elapsed to transition to half-open
         base_time = time.monotonic()
-        with patch("pykit_messaging.middleware.circuit_breaker.time") as mock_time:
+        with patch("pykit_resilience.circuit_breaker.time") as mock_time:
             mock_time.monotonic.return_value = base_time + 2.0
             assert cb.state == CircuitState.HALF_OPEN
 
@@ -164,7 +164,7 @@ class TestCircuitBreakerHandler:
 
         # Simulate timeout to transition to half-open
         base_time = time.monotonic()
-        with patch("pykit_messaging.middleware.circuit_breaker.time") as mock_time:
+        with patch("pykit_resilience.circuit_breaker.time") as mock_time:
             mock_time.monotonic.return_value = base_time + 2.0
 
             # Two probes should be allowed in half-open
@@ -190,11 +190,11 @@ class TestCircuitBreakerHandler:
         for _ in range(2):
             with pytest.raises(RuntimeError):
                 await cb.handle(_make_msg())
-        assert cb._failures == 2
+        assert cb.failures == 2
 
         # 1 success should reset failure count
         await cb.handle(_make_msg())
-        assert cb._failures == 0
+        assert cb.failures == 0
         assert cb.state == CircuitState.CLOSED
 
     async def test_circuit_breaker_middleware_factory(self) -> None:

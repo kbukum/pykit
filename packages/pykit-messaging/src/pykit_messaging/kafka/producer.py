@@ -2,18 +2,58 @@
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
+import importlib
 import logging
-from typing import Any
+from typing import Protocol
 
-from aiokafka import AIOKafkaProducer  # type: ignore[import-untyped]
-
+from pykit_messaging.config import validate_topic_name
 from pykit_messaging.kafka.config import KafkaConfig
-from pykit_messaging.types import Event, Message
+from pykit_messaging.types import Event, JsonValue, Message
+from pykit_resilience import RetryConfig, RetryExhaustedError, retry
 from pykit_util import JsonCodec
 
 logger = logging.getLogger(__name__)
+
+
+class _KafkaProducerClient(Protocol):
+    async def start(self) -> None: ...
+
+    async def stop(self) -> None: ...
+
+    async def send_and_wait(
+        self,
+        topic: str,
+        *,
+        value: bytes,
+        key: bytes | None = None,
+        headers: list[tuple[str, bytes]] | None = None,
+    ) -> object: ...
+
+    async def flush(self) -> None: ...
+
+
+class _KafkaErrorFallback(Exception):
+    pass
+
+
+AIOKafkaProducer: object | None = None
+KafkaError: type[Exception] = _KafkaErrorFallback
+
+
+def _load_aiokafka() -> None:
+    global AIOKafkaProducer, KafkaError
+    if AIOKafkaProducer is not None:
+        return
+    try:
+        aiokafka = importlib.import_module("aiokafka")
+        aiokafka_errors = importlib.import_module("aiokafka.errors")
+    except ImportError as exc:
+        msg = "aiokafka is required for Kafka messaging; install pykit-messaging[kafka]"
+        raise ImportError(msg) from exc
+    AIOKafkaProducer = aiokafka.AIOKafkaProducer
+    KafkaError = aiokafka_errors.KafkaError
+
 
 _MAX_START_RETRIES = 30
 _START_BACKOFF_BASE = 1.0
@@ -25,45 +65,69 @@ class KafkaProducer:
 
     def __init__(self, config: KafkaConfig) -> None:
         self._config = config
-        self._producer: AIOKafkaProducer | None = None
+        self._producer: _KafkaProducerClient | None = None
 
     async def start(self) -> None:
         """Create and start the underlying AIOKafkaProducer with retry."""
+        _load_aiokafka()
         cfg = self._config
-        kwargs: dict[str, Any] = {
+        kwargs: dict[str, object] = {
             "bootstrap_servers": ",".join(cfg.brokers),
             "compression_type": cfg.compression_type,
             "max_batch_size": cfg.max_batch_size,
             "request_timeout_ms": cfg.request_timeout_ms,
             "retry_backoff_ms": cfg.retry_backoff_ms,
             "security_protocol": cfg.security_protocol,
+            "linger_ms": cfg.linger_ms,
+            "acks": cfg.acks,
+            "enable_idempotence": cfg.enable_idempotence,
+            "max_in_flight_requests_per_connection": cfg.max_in_flight,
         }
+        if cfg.transactional_id:
+            kwargs["transactional_id"] = cfg.transactional_id
+        if cfg.ssl_context is not None:
+            kwargs["ssl_context"] = cfg.ssl_context
         if cfg.sasl_mechanism:
             kwargs["sasl_mechanism"] = cfg.sasl_mechanism
             kwargs["sasl_plain_username"] = cfg.sasl_username
             kwargs["sasl_plain_password"] = cfg.sasl_password
 
-        for attempt in range(1, _MAX_START_RETRIES + 1):
+        def _on_retry(attempt: int, _exc: Exception, _backoff: float) -> None:
+            if attempt == 1:
+                logger.warning("Kafka not ready, retrying producer connection...")
+
+        async def _start_once() -> None:
             try:
-                self._producer = AIOKafkaProducer(**kwargs)
+                producer_factory = AIOKafkaProducer
+                if producer_factory is None:
+                    raise RuntimeError("aiokafka producer factory was not loaded")
+                self._producer = producer_factory(**kwargs)
                 await self._producer.start()
-                return
-            except Exception:
-                # Clean up the failed producer to avoid "Unclosed AIOKafkaProducer" warnings
+            except KafkaError:
                 if self._producer is not None:
-                    with contextlib.suppress(Exception):
+                    with contextlib.suppress(KafkaError, RuntimeError):
                         await self._producer.stop()
                     self._producer = None
-                if attempt == _MAX_START_RETRIES:
-                    logger.error(
-                        "Kafka producer failed to start after %d attempts",
-                        _MAX_START_RETRIES,
-                    )
-                    raise
-                backoff = min(_START_BACKOFF_BASE * (2 ** (attempt - 1)), _START_BACKOFF_MAX)
-                if attempt == 1:
-                    logger.warning("Kafka not ready, retrying producer connection...")
-                await asyncio.sleep(backoff)
+                raise
+
+        try:
+            await retry(
+                _start_once,
+                RetryConfig(
+                    max_attempts=_MAX_START_RETRIES,
+                    initial_backoff=_START_BACKOFF_BASE,
+                    max_backoff=_START_BACKOFF_MAX,
+                    jitter=0.0,
+                    retry_if=lambda exc: isinstance(exc, KafkaError),
+                    on_retry=_on_retry,
+                ),
+            )
+        except RetryExhaustedError as exc:
+            logger.error(
+                "Kafka producer failed to start after %d attempts",
+                _MAX_START_RETRIES,
+            )
+            raise exc.last_error from exc
 
     async def stop(self) -> None:
         """Stop the producer."""
@@ -79,6 +143,7 @@ class KafkaProducer:
         headers: dict[str, str] | None = None,
     ) -> None:
         """Send a raw message to the given topic."""
+        validate_topic_name(topic, "topic")
         if self._producer is None:
             raise RuntimeError("Producer is not started")
 
@@ -102,9 +167,9 @@ class KafkaProducer:
             headers={"event-type": event.type},
         )
 
-    async def send_json(self, topic: str, data: Any, key: str | None = None) -> None:
+    async def send_json(self, topic: str, data: JsonValue, key: str | None = None) -> None:
         """Serialize *data* as JSON and send it."""
-        value = JsonCodec[Any](stringify_unknown=False).encode(data)
+        value = JsonCodec[JsonValue](stringify_unknown=False).encode(data)
         await self.send(topic, value=value, key=key)
 
     async def send_batch(self, messages: list[Message]) -> None:

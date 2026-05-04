@@ -4,16 +4,61 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import importlib
 import logging
-from typing import Any
-
-from aiokafka import AIOKafkaConsumer  # type: ignore[import-untyped]
-from aiokafka.errors import KafkaConnectionError, KafkaError  # type: ignore[import-untyped]
+from typing import Protocol
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, EventHandler, Message, MessageHandler
+from pykit_resilience import RetryConfig, RetryExhaustedError, calculate_backoff, retry
 
 logger = logging.getLogger(__name__)
+
+
+class _KafkaConsumerRecord(Protocol):
+    key: bytes | None
+    value: bytes
+    topic: str
+    partition: int
+    offset: int
+    headers: list[tuple[str | bytes, bytes]] | None
+
+
+class _KafkaConsumerClient(Protocol):
+    async def start(self) -> None: ...
+
+    async def stop(self) -> None: ...
+
+    def subscribe(self, topics: list[str]) -> object: ...
+
+    async def commit(self) -> object: ...
+
+    def __aiter__(self) -> object: ...
+
+
+class _KafkaErrorFallback(Exception):
+    pass
+
+
+AIOKafkaConsumer: object | None = None
+KafkaError: type[Exception] = _KafkaErrorFallback
+KafkaConnectionError: type[Exception] = _KafkaErrorFallback
+
+
+def _load_aiokafka() -> None:
+    global AIOKafkaConsumer, KafkaConnectionError, KafkaError
+    if AIOKafkaConsumer is not None:
+        return
+    try:
+        aiokafka = importlib.import_module("aiokafka")
+        aiokafka_errors = importlib.import_module("aiokafka.errors")
+    except ImportError as exc:
+        msg = "aiokafka is required for Kafka messaging; install pykit-messaging[kafka]"
+        raise ImportError(msg) from exc
+    AIOKafkaConsumer = aiokafka.AIOKafkaConsumer
+    KafkaError = aiokafka_errors.KafkaError
+    KafkaConnectionError = aiokafka_errors.KafkaConnectionError
+
 
 _MAX_START_RETRIES = 30
 _START_BACKOFF_BASE = 1.0
@@ -25,20 +70,25 @@ class KafkaConsumer:
 
     def __init__(self, config: KafkaConfig) -> None:
         self._config = config
-        self._consumer: AIOKafkaConsumer | None = None
+        self._consumer: _KafkaConsumerClient | None = None
         self._stopped = False
 
-    def _build_kwargs(self) -> dict[str, Any]:
+    def _build_kwargs(self) -> dict[str, object]:
         cfg = self._config
-        kwargs: dict[str, Any] = {
+        kwargs: dict[str, object] = {
             "bootstrap_servers": ",".join(cfg.brokers),
-            "group_id": cfg.group_id or None,
+            "group_id": cfg.consumer_group or cfg.group_id or None,
             "auto_offset_reset": cfg.auto_offset_reset,
             "session_timeout_ms": cfg.session_timeout_ms,
             "heartbeat_interval_ms": cfg.heartbeat_interval_ms,
             "security_protocol": cfg.security_protocol,
-            "enable_auto_commit": False,
+            "enable_auto_commit": cfg.commit_strategy.value == "auto",
+            "request_timeout_ms": cfg.request_timeout_ms,
+            "retry_backoff_ms": cfg.retry_backoff_ms,
         }
+        kwargs["max_poll_records"] = cfg.max_poll_records or cfg.max_in_flight
+        if cfg.ssl_context is not None:
+            kwargs["ssl_context"] = cfg.ssl_context
         if cfg.sasl_mechanism:
             kwargs["sasl_mechanism"] = cfg.sasl_mechanism
             kwargs["sasl_plain_username"] = cfg.sasl_username
@@ -47,49 +97,81 @@ class KafkaConsumer:
 
     async def start(self) -> None:
         """Create and start the underlying AIOKafkaConsumer with retry."""
+        _load_aiokafka()
         self._stopped = False
         cfg = self._config
         kwargs = self._build_kwargs()
-        topics_str = ", ".join(cfg.topics) if cfg.topics else "(none)"
+        topics = cfg.subscriptions or cfg.topics
+        topics_str = ", ".join(topics) if topics else "(none)"
 
-        for attempt in range(1, _MAX_START_RETRIES + 1):
+        def _on_retry(attempt: int, _exc: Exception, _backoff: float) -> None:
+            if attempt == 1:
+                logger.warning(
+                    "Kafka not ready, retrying connection (topics: %s)...",
+                    topics_str,
+                )
+
+        async def _start_once() -> None:
             try:
-                self._consumer = AIOKafkaConsumer(*cfg.topics, **kwargs)
+                consumer_factory = AIOKafkaConsumer
+                if consumer_factory is None:
+                    raise RuntimeError("aiokafka consumer factory was not loaded")
+                self._consumer = consumer_factory(*topics, **kwargs)
                 await self._consumer.start()
-                return
-            except Exception:
-                if attempt == _MAX_START_RETRIES:
-                    logger.error(
-                        "Kafka consumer failed to start after %d attempts (topics: %s)",
-                        _MAX_START_RETRIES,
-                        topics_str,
-                    )
-                    raise
-                backoff = min(_START_BACKOFF_BASE * (2 ** (attempt - 1)), _START_BACKOFF_MAX)
-                if attempt == 1:
-                    logger.warning(
-                        "Kafka not ready, retrying connection (topics: %s)...",
-                        topics_str,
-                    )
-                await asyncio.sleep(backoff)
+            except KafkaError:
+                if self._consumer is not None:
+                    with contextlib.suppress(KafkaError, RuntimeError):
+                        await self._consumer.stop()
+                    self._consumer = None
+                raise
+
+        try:
+            await retry(
+                _start_once,
+                RetryConfig(
+                    max_attempts=_MAX_START_RETRIES,
+                    initial_backoff=_START_BACKOFF_BASE,
+                    max_backoff=_START_BACKOFF_MAX,
+                    jitter=0.0,
+                    retry_if=lambda exc: isinstance(exc, KafkaError),
+                    on_retry=_on_retry,
+                ),
+            )
+        except RetryExhaustedError as exc:
+            logger.error(
+                "Kafka consumer failed to start after %d attempts (topics: %s)",
+                _MAX_START_RETRIES,
+                topics_str,
+            )
+            raise exc.last_error from exc
 
     async def _reconnect(self) -> None:
         """Stop current consumer and restart with backoff."""
-        topics_str = ", ".join(self._config.topics) if self._config.topics else "(none)"
+        topics = self._config.subscriptions or self._config.topics
+        topics_str = ", ".join(topics) if topics else "(none)"
         # Silently close old consumer
         if self._consumer is not None:
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(KafkaError, RuntimeError):
                 await self._consumer.stop()
             self._consumer = None
 
-        backoff = 1.0
+        attempt = 1
+        backoff_config = RetryConfig(
+            initial_backoff=1.0,
+            max_backoff=_START_BACKOFF_MAX,
+            jitter=0.0,
+        )
+        backoff = calculate_backoff(attempt, backoff_config)
         while not self._stopped:
             try:
-                self._consumer = AIOKafkaConsumer(*self._config.topics, **self._build_kwargs())
+                consumer_factory = AIOKafkaConsumer
+                if consumer_factory is None:
+                    raise RuntimeError("aiokafka consumer factory was not loaded")
+                self._consumer = consumer_factory(*topics, **self._build_kwargs())
                 await self._consumer.start()
                 logger.info("Kafka consumer reconnected (topics: %s)", topics_str)
                 return
-            except Exception:
+            except KafkaError:
                 if self._stopped:
                     return
                 logger.warning(
@@ -98,7 +180,8 @@ class KafkaConsumer:
                     topics_str,
                 )
                 await asyncio.sleep(backoff)
-                backoff = min(backoff * 2, _START_BACKOFF_MAX)
+                attempt += 1
+                backoff = calculate_backoff(attempt, backoff_config)
 
     async def stop(self) -> None:
         """Stop the consumer."""
@@ -140,19 +223,14 @@ class KafkaConsumer:
                     )
                     await handler(msg)
 
-                    # Manual commit after successful processing
-                    with contextlib.suppress(KafkaError):
-                        await self._consumer.commit()
+                    if self._config.commit_strategy.value == "post_handler_success":
+                        with contextlib.suppress(KafkaError):
+                            await self._consumer.commit()
 
             except (KafkaConnectionError, KafkaError) as e:
                 if self._stopped:
                     return
                 logger.warning("Kafka connection lost (%s), reconnecting...", e)
-                await self._reconnect()
-            except Exception as e:
-                if self._stopped:
-                    return
-                logger.error("Unexpected consumer error: %s", e)
                 await self._reconnect()
 
     async def consume_events(self, handler: EventHandler) -> None:

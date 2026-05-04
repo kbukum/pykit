@@ -138,9 +138,9 @@ class TestConfigEdgeCases:
     def test_broker_config_defaults(self):
         """BrokerConfig has expected default values."""
         cfg = BrokerConfig()
-        assert cfg.name == ""
+        assert cfg.name == "memory"
         assert cfg.enabled is True
-        assert cfg.brokers == []
+        assert not hasattr(cfg, "brokers")
         assert cfg.retries == 3
         assert cfg.request_timeout_ms == 30000
 
@@ -149,22 +149,22 @@ class TestConfigEdgeCases:
         cfg = BrokerConfig(
             name="prod",
             enabled=False,
-            brokers=["broker1:9092", "broker2:9092"],
             retries=5,
             request_timeout_ms=60000,
         )
         assert cfg.name == "prod"
         assert cfg.enabled is False
-        assert len(cfg.brokers) == 2
+        assert not hasattr(cfg, "brokers")
         assert cfg.retries == 5
         assert cfg.request_timeout_ms == 60000
 
-    def test_broker_config_brokers_list_is_independent(self):
-        """Each BrokerConfig gets its own brokers list (no shared mutable default)."""
-        cfg1 = BrokerConfig()
-        cfg2 = BrokerConfig()
-        cfg1.brokers.append("broker1:9092")
-        assert cfg2.brokers == []
+    def test_broker_config_has_no_adapter_connection_fields(self):
+        """Core BrokerConfig does not carry broker-specific endpoint fields."""
+        cfg = BrokerConfig()
+        assert not hasattr(cfg, "brokers")
+        assert cfg.consumer_group == ""
+        assert cfg.topics == []
+        assert cfg.subscriptions == []
 
 
 # ── Router Edge Cases ────────────────────────────────────────────────

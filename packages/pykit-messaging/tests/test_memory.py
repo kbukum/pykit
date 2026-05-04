@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 
-from pykit_messaging.memory import InMemoryBroker
+from pykit_messaging import MemoryConfig, MessagingRegistry
+from pykit_messaging.memory import InMemoryBroker, InMemoryProducer, clear_memory_brokers
+from pykit_messaging.memory import register as register_memory
 from pykit_messaging.types import Event, Message
 
 
@@ -217,6 +219,62 @@ class TestInMemoryBrokerHistory:
         await producer.send_batch(msgs)
 
         assert broker.message_count("batch") == 2
+
+    async def test_history_is_bounded_to_configured_limit(self) -> None:
+        broker = InMemoryBroker(history_limit=2)
+        producer = broker.producer()
+
+        await producer.send("events", b"first")
+        await producer.send("events", b"second")
+        await producer.send("events", b"third")
+
+        assert [message.value for message in broker.all_messages()] == [b"second", b"third"]
+        assert broker.message_count("events") == 2
+
+    async def test_memory_config_history_limit_is_applied_by_registry(self) -> None:
+        registry = MessagingRegistry()
+        register_memory(registry)
+        producer = registry.producer(MemoryConfig(name="bounded", history_limit=1))
+        assert isinstance(producer, InMemoryProducer)
+
+        await producer.send("events", b"first")
+        await producer.send("events", b"second")
+
+        assert [message.value for message in producer._broker.all_messages()] == [b"second"]
+
+
+class TestMemoryRegistryState:
+    """Tests for bounded broker cache and explicit cleanup."""
+
+    async def test_registered_memory_brokers_are_bounded_by_config(self) -> None:
+        registry = MessagingRegistry()
+        register_memory(registry)
+
+        first = registry.producer(MemoryConfig(name="first", max_brokers=2))
+        second = registry.producer(MemoryConfig(name="second", max_brokers=2))
+        third = registry.producer(MemoryConfig(name="third", max_brokers=2))
+        first_again = registry.producer(MemoryConfig(name="first", max_brokers=2))
+
+        assert isinstance(first, InMemoryProducer)
+        assert isinstance(second, InMemoryProducer)
+        assert isinstance(third, InMemoryProducer)
+        assert isinstance(first_again, InMemoryProducer)
+        assert first_again._broker is not first._broker
+        assert second._broker is not third._broker
+
+    async def test_clear_memory_brokers_drops_registry_owned_brokers(self) -> None:
+        registry = MessagingRegistry()
+        register_memory(registry)
+        producer = registry.producer(MemoryConfig(name="events"))
+        assert isinstance(producer, InMemoryProducer)
+        await producer.send("events", b"payload")
+
+        clear_memory_brokers(registry)
+        replacement = registry.producer(MemoryConfig(name="events"))
+
+        assert isinstance(replacement, InMemoryProducer)
+        assert replacement._broker is not producer._broker
+        assert replacement._broker.all_messages() == []
 
 
 class TestAssertionHelpers:

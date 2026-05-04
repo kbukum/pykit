@@ -10,11 +10,14 @@ dependencies = [
     "pykit-errors",
     "pykit-component",
     "pykit-util",
+    "pykit-resilience",
     "pykit-observability",
 ]
 
 [project.optional-dependencies]
 kafka = ["aiokafka", "cramjam"]
+nats = ["nats-py>=2.10"]
+rabbitmq = ["aio-pika>=9.5"]
 bridges = ["pykit-provider", "pykit-pipeline", "pykit-dag", "pykit-worker"]
 
 [build-system]

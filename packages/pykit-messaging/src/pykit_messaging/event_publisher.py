@@ -15,10 +15,8 @@ Example::
 
 from __future__ import annotations
 
-from typing import Any
-
 from pykit_messaging.protocols import MessageProducer
-from pykit_messaging.types import Event
+from pykit_messaging.types import Event, JsonValue
 
 
 class EventPublisher:
@@ -40,7 +38,7 @@ class EventPublisher:
         self,
         topic: str,
         event_type: str,
-        data: Any = None,
+        data: JsonValue = None,
     ) -> None:
         """Publish *data* as a domain event.
 
@@ -54,7 +52,7 @@ class EventPublisher:
         self,
         topic: str,
         event_type: str,
-        data: Any,
+        data: JsonValue,
         key: str,
     ) -> None:
         """Publish *data* with an explicit partition key.
@@ -69,7 +67,7 @@ class EventPublisher:
         self,
         topic: str,
         event_type: str,
-        items: list[Any],
+        items: list[JsonValue],
     ) -> None:
         """Publish multiple items, each wrapped in its own event envelope."""
         for item in items:

@@ -50,7 +50,7 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | `pykit-database` | Async database access with SQLAlchemy and asyncpg |
 | `pykit-cache` | cache client and caching utilities |
 | `pykit-storage` | Object/file storage abstraction — local and S3 backends |
-| `pykit-messaging` | Transport-agnostic messaging with Kafka provider and middleware — DLQ, retry, metrics, tracing |
+| `pykit-messaging` | Transport-agnostic messaging registry with memory default, optional Kafka/NATS/RabbitMQ extras, DLQ, retry, metrics, and tracing |
 | `pykit-httpclient` | Async HTTP client with bounded redirects and resilience integration |
 
 ## Servers

@@ -82,6 +82,11 @@ def _calculate_backoff(attempt: int, config: RetryConfig) -> float:
     return max(backoff, 0.0)
 
 
+def calculate_backoff(attempt: int, config: RetryConfig) -> float:
+    """Return the canonical retry backoff for a one-based failed attempt."""
+    return _calculate_backoff(attempt, config)
+
+
 async def retry[T](
     fn: Callable[[], Awaitable[T]],
     config: RetryConfig | None = None,

@@ -6,9 +6,10 @@ import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
 
 from pykit_util import JsonCodec
+
+JsonValue = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
 
 
 @dataclass
@@ -33,13 +34,13 @@ class Event:
     subject: str = ""
     content_type: str = "application/json"
     version: str = "1.0"
-    data: Any = None
+    data: JsonValue = None
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def to_json(self) -> bytes:
         """Serialize event to JSON bytes."""
-        payload: dict[str, Any] = {
+        payload: dict[str, JsonValue] = {
             "id": self.id,
             "type": self.type,
             "source": self.source,
@@ -49,12 +50,12 @@ class Event:
             "timestamp": self.timestamp.isoformat(),
             "data": self.data,
         }
-        return JsonCodec[dict[str, Any]](stringify_unknown=False).encode(payload)
+        return JsonCodec[dict[str, JsonValue]](stringify_unknown=False).encode(payload)
 
     @classmethod
     def from_json(cls, raw: bytes) -> Event:
         """Deserialize event from JSON bytes."""
-        d = JsonCodec[dict[str, Any]]().decode(raw)
+        d = JsonCodec[dict[str, JsonValue]]().decode(raw)
         return cls(
             id=d["id"],
             type=d["type"],
