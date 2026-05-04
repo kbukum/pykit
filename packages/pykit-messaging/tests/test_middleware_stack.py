@@ -83,7 +83,7 @@ async def test_retry_succeeds_after_failures() -> None:
 
 @pytest.mark.asyncio
 async def test_retry_exhausted_calls_callback() -> None:
-    """Test that exhaustion callback is called when retries are exhausted."""
+    """Test that exhaustion callback is called and error is re-raised."""
     exhausted_msgs: list[Message] = []
 
     async def on_exhausted(msg: Message, err: Exception) -> None:
@@ -95,7 +95,8 @@ async def test_retry_exhausted_calls_callback() -> None:
     cfg = RetryConfig(max_attempts=2, initial_backoff=0.001, on_exhausted=on_exhausted)
     wrapped = RetryHandler(FuncHandler(always_fail), cfg)
 
-    await wrapped.handle(_make_msg())
+    with pytest.raises(RuntimeError, match="boom"):
+        await wrapped.handle(_make_msg())
 
     assert len(exhausted_msgs) == 1
 

@@ -71,10 +71,10 @@ optional extras; core and memory imports do not pull optional SDKs into the runt
 Factories validate creation-time config. Unsupported shared semantics are rejected with
 `AppError` instead of being silently ignored; for example, core NATS subjects reject ack-based
 at-least-once/exactly-once settings, RabbitMQ requires `auto_ack` to match `commit_strategy`,
-and Kafka exactly-once delivery requires a `transactional_id`. Secure connection settings are
-the default (`SSL`, `tls://`, `amqps://`); plaintext development endpoints require
-`allow_insecure_dev=True`. Credentials belong in typed fields or secret-managed settings, never
-in broker URLs or examples.
+and Kafka does not support exactly-once delivery (at-least-once is the maximum guarantee).
+Secure connection settings are the default (`SSL`, `tls://`, `amqps://`); plaintext development
+endpoints require `allow_insecure_dev=True`. Credentials belong in typed fields or secret-managed
+settings, never in broker URLs or examples.
 
 ### Handler Middleware
 

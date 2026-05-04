@@ -69,13 +69,20 @@ class NatsConsumer:
         await self.start()
         client = _require_client(self._client)
 
-        async def _callback(raw_message: object) -> None:
-            await handler(_to_message(raw_message))
-
         for topic in self._topics:
+            async def _make_callback(
+                logical_topic: str,
+            ) -> object:
+                async def _callback(raw_message: object) -> None:
+                    await handler(_to_message(raw_message, logical_topic))
+
+                return _callback
+
             self._subscriptions.append(
                 await client.subscribe(
-                    self._config.subject(topic), cb=_callback, queue=self._config.queue_group
+                    self._config.subject(topic),
+                    cb=await _make_callback(topic),
+                    queue=self._config.queue_group,
                 )
             )
         await self._closed.wait()
@@ -112,14 +119,17 @@ def _require_client(client: _NatsClient | None) -> _NatsClient:
     return client
 
 
-def _to_message(raw_message: object) -> Message:
+def _to_message(raw_message: object, topic: str = "") -> Message:
     message = cast("_NatsRawMessage", raw_message)
     headers = _headers_to_dict(message.headers)
     key = headers.pop("message-key", None)
+    # Use logical topic name if provided (when consuming via subject_prefix).
+    # Fall back to broker subject if topic not specified (e.g., direct subject subscriptions).
+    msg_topic = topic if topic else message.subject
     return Message(
         key=key,
         value=message.data,
-        topic=message.subject,
+        topic=msg_topic,
         partition=0,
         offset=0,
         timestamp=datetime.now(UTC),

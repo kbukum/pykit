@@ -40,9 +40,11 @@ class RetryHandler:
         try:
             await retry_async(_handle, cfg)
         except RetryExhaustedError as exc:
-            if cfg.on_exhausted is None:
-                raise exc.last_error from exc
-            await cfg.on_exhausted(msg, exc.last_error)
+            if cfg.on_exhausted is not None:
+                await cfg.on_exhausted(msg, exc.last_error)
+            # Always re-raise terminal error so outer middleware (circuit breaker, metrics)
+            # knows this was a failure, even if on_exhausted() succeeds (e.g., DLQ handling).
+            raise exc.last_error from exc
 
 
 def retry(
