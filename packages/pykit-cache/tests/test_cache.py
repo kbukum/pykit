@@ -266,6 +266,8 @@ class TestCacheComponent:
 
         with pytest.raises(ServiceUnavailableError, match="ping failed"):
             await comp.start()
+        assert comp.client is None
+        assert await backend.ping() is False
 
     async def test_health_ping_failure(self) -> None:
         """Cover component.py lines 48-49: health check when ping raises."""

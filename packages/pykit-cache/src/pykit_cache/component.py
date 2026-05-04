@@ -29,9 +29,11 @@ class CacheComponent:
         """Create the client and verify backend health."""
         if not self._config.enabled:
             return
-        self._client = CacheClient(self._config, registry=self._registry)
-        if not await self._client.ping():
+        client = CacheClient(self._config, registry=self._registry)
+        if not await client.ping():
+            await client.close()
             raise ServiceUnavailableError(self.name, "ping failed")
+        self._client = client
 
     async def stop(self) -> None:
         """Close the underlying cache backend."""

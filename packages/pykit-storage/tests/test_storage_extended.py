@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pytest
 
-import pykit_storage.s3 as s3
 from pykit_errors import InvalidInputError, NotFoundError
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
 from pykit_storage.s3 import S3Storage, validate_key
@@ -73,7 +72,7 @@ class TestS3ConfigValidation:
         assert _FakeS3Client.last_key == "tenant/a.bin"
 
     async def test_s3_exists_handles_botocore_client_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setattr(s3, "_client_error_type", lambda: _FakeClientError)
+        monkeypatch.setattr("pykit_storage.s3._client_error_type", lambda: _FakeClientError)
         storage = S3Storage.__new__(S3Storage)
         storage._bucket = "bucket"
         storage._client = _MissingS3ClientContext  # type: ignore[method-assign]
@@ -83,7 +82,7 @@ class TestS3ConfigValidation:
     async def test_s3_download_maps_botocore_client_error_to_not_found(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        monkeypatch.setattr(s3, "_client_error_type", lambda: _FakeClientError)
+        monkeypatch.setattr("pykit_storage.s3._client_error_type", lambda: _FakeClientError)
         storage = S3Storage.__new__(S3Storage)
         storage._bucket = "bucket"
         storage._client = _MissingS3ClientContext  # type: ignore[method-assign]

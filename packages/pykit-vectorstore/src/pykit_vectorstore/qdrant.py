@@ -171,7 +171,7 @@ def _condition_to_qdrant(field: str, value: object) -> Any:
         return IsNullCondition(is_null=PayloadField(key=field))
     if isinstance(value, float):
         return FieldCondition(key=field, range=Range(gte=value, lte=value))
-    if isinstance(value, str | int | bool):
+    if isinstance(value, (str, int, bool)):
         return FieldCondition(key=field, match=MatchValue(value=value))
     raise VectorStoreError(f"unsupported Qdrant filter value for field '{field}': {value!r}")
 

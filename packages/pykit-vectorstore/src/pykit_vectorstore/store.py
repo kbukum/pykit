@@ -11,6 +11,7 @@ from pykit_errors.codes import ErrorCode
 
 VectorMetric = Literal["cosine", "dot", "l2"]
 FilterValue = str | int | float | bool | None
+PayloadValue = object
 
 
 class VectorStoreError(AppError):
@@ -24,9 +25,9 @@ class VectorStoreError(AppError):
 class PointPayload:
     """Payload stored alongside each vector point."""
 
-    fields: dict[str, FilterValue] = field(default_factory=dict)
+    fields: dict[str, PayloadValue] = field(default_factory=dict)
 
-    def with_field(self, key: str, value: FilterValue) -> PointPayload:
+    def with_field(self, key: str, value: PayloadValue) -> PointPayload:
         """Add a field and return self for chaining."""
         self.fields[key] = value
         return self
