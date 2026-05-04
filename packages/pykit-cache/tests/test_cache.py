@@ -9,6 +9,7 @@ import pytest
 
 import pykit_cache.backends as cache_backends
 from pykit_cache import (
+    CacheBackend,
     CacheClient,
     CacheComponent,
     CacheConfig,
@@ -146,8 +147,8 @@ class TestCacheClient:
         await client.close()
 
     async def test_unwrap(self, client: CacheClient) -> None:
-        raw = client.unwrap()
-        assert raw is not None
+        raw: CacheBackend = client.unwrap()
+        assert await raw.ping() is True
 
 
 # ---------------------------------------------------------------------------

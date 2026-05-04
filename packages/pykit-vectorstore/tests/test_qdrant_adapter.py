@@ -43,17 +43,51 @@ class _FakeFilter:
 
 
 @dataclass
+class _FakeVectorParams:
+    size: int
+    distance: object
+
+
+@dataclass
+class _FakeCollectionParams:
+    vectors: object
+
+
+@dataclass
+class _FakeCollectionConfig:
+    params: _FakeCollectionParams
+
+
+@dataclass
+class _FakeCollectionInfo:
+    config: _FakeCollectionConfig
+
+
+@dataclass
 class _FakeQueryResults:
     points: list[object]
 
 
 class _FakeClient:
-    def __init__(self) -> None:
+    def __init__(self, collection_info: object | None = None) -> None:
         self.query_filter: object | None = None
+        self.collection_info = collection_info
+        self.created_collection: dict[str, object] | None = None
 
     def query_points(self, **kwargs: object) -> _FakeQueryResults:
         self.query_filter = kwargs["query_filter"]
         return _FakeQueryResults(points=[])
+
+    def collection_exists(self, collection: str) -> bool:
+        return self.collection_info is not None
+
+    def create_collection(self, **kwargs: object) -> None:
+        self.created_collection = dict(kwargs)
+
+    def get_collection(self, *, collection_name: str) -> object:
+        _ = collection_name
+        assert self.collection_info is not None
+        return self.collection_info
 
 
 async def test_qdrant_search_translates_none_filter_to_null_check(monkeypatch: Any) -> None:
@@ -114,3 +148,55 @@ async def test_qdrant_search_translates_float_values_to_exact_range(monkeypatch:
     assert client.query_filter == _FakeFilter(
         must=[_FakeFieldCondition(key="score", range=_FakeRange(gte=0.5, lte=0.5))]
     )
+
+
+async def test_qdrant_ensure_collection_validates_existing_vector_config() -> None:
+    store = qdrant.QdrantVectorStore.__new__(qdrant.QdrantVectorStore)
+    store._metric = "cosine"
+    store._client = _FakeClient(
+        _FakeCollectionInfo(
+            config=_FakeCollectionConfig(
+                params=_FakeCollectionParams(vectors=_FakeVectorParams(size=3, distance="Cosine"))
+            )
+        )
+    )
+
+    await store.ensure_collection("docs", 3, metric="cosine")
+
+
+async def test_qdrant_ensure_collection_rejects_existing_dimension_mismatch() -> None:
+    store = qdrant.QdrantVectorStore.__new__(qdrant.QdrantVectorStore)
+    store._metric = "cosine"
+    store._client = _FakeClient(
+        _FakeCollectionInfo(
+            config=_FakeCollectionConfig(
+                params=_FakeCollectionParams(vectors=_FakeVectorParams(size=3, distance="Cosine"))
+            )
+        )
+    )
+
+    try:
+        await store.ensure_collection("docs", 4, metric="cosine")
+    except qdrant.VectorStoreError as exc:
+        assert "vector size" in str(exc)
+    else:
+        raise AssertionError("dimension mismatch should fail")
+
+
+async def test_qdrant_ensure_collection_rejects_existing_metric_mismatch() -> None:
+    store = qdrant.QdrantVectorStore.__new__(qdrant.QdrantVectorStore)
+    store._metric = "cosine"
+    store._client = _FakeClient(
+        _FakeCollectionInfo(
+            config=_FakeCollectionConfig(
+                params=_FakeCollectionParams(vectors=_FakeVectorParams(size=3, distance="Dot"))
+            )
+        )
+    )
+
+    try:
+        await store.ensure_collection("docs", 3, metric="cosine")
+    except qdrant.VectorStoreError as exc:
+        assert "metric" in str(exc)
+    else:
+        raise AssertionError("metric mismatch should fail")

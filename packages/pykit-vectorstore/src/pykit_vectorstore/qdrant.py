@@ -79,6 +79,11 @@ class QdrantVectorStore:
                         size=dimensions, distance=_to_qdrant_distance(selected_metric)
                     ),
                 )
+                return
+            collection_info = self._client.get_collection(collection_name=collection)
+            _validate_collection_config(collection_info, dimensions, selected_metric)
+        except VectorStoreError:
+            raise
         except Exception as exc:
             raise VectorStoreError(
                 f"failed to ensure Qdrant collection: {exc}", ErrorCode.EXTERNAL_SERVICE
@@ -164,6 +169,53 @@ def _to_qdrant_distance(metric: VectorMetric) -> Distance:
     if metric == "l2":
         return Distance.EUCLID
     raise VectorStoreError(f"unsupported Qdrant metric: {metric}")
+
+
+def _validate_collection_config(info: object, dimensions: int, metric: VectorMetric) -> None:
+    vectors = _collection_vectors_config(info)
+    if isinstance(vectors, dict):
+        raise VectorStoreError(
+            "existing Qdrant collection uses named vectors; expected unnamed vector config"
+        )
+    if vectors is None:
+        raise VectorStoreError("existing Qdrant collection has no vector configuration")
+
+    size = _read_field(vectors, "size")
+    distance = _read_field(vectors, "distance")
+    if size != dimensions:
+        raise VectorStoreError(
+            f"existing Qdrant collection vector size {size!r} does not match requested dimensions {dimensions}"
+        )
+
+    existing_metric = _metric_from_qdrant_distance(distance)
+    if existing_metric != metric:
+        raise VectorStoreError(
+            f"existing Qdrant collection metric {existing_metric!r} does not match requested metric {metric!r}"
+        )
+
+
+def _collection_vectors_config(info: object) -> object | None:
+    config = _read_field(info, "config")
+    params = _read_field(config, "params")
+    return _read_field(params, "vectors") or _read_field(params, "vectors_config")
+
+
+def _read_field(value: object, name: str) -> object | None:
+    if isinstance(value, dict):
+        return value.get(name)
+    return getattr(value, name, None)
+
+
+def _metric_from_qdrant_distance(distance: object) -> VectorMetric:
+    raw = getattr(distance, "value", distance)
+    normalized = raw.lower() if isinstance(raw, str) else str(raw).lower()
+    if normalized in {"cosine", "distance.cosine"}:
+        return "cosine"
+    if normalized in {"dot", "distance.dot"}:
+        return "dot"
+    if normalized in {"euclid", "euclidean", "distance.euclid"}:
+        return "l2"
+    raise VectorStoreError(f"unsupported existing Qdrant collection distance: {distance!r}")
 
 
 def _condition_to_qdrant(field: str, value: object) -> Any:

@@ -65,6 +65,6 @@ class CacheClient:
         """Close the underlying backend."""
         await self._backend.close()
 
-    def unwrap(self) -> object:
+    def unwrap(self) -> CacheBackend:
         """Access the underlying backend."""
         return self._backend
