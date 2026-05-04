@@ -55,18 +55,32 @@ class Event:
     @classmethod
     def from_json(cls, raw: bytes) -> Event:
         """Deserialize event from JSON bytes."""
-        d = JsonCodec[dict[str, JsonValue]]().decode(raw)
+        payload = JsonCodec[dict[str, JsonValue]]().decode(raw)
         return cls(
-            id=d["id"],
-            type=d["type"],
-            source=d["source"],
-            timestamp=datetime.fromisoformat(d["timestamp"]),
-            subject=d.get("subject", ""),
-            content_type=d.get("content_type", "application/json"),
-            version=d.get("version", "1.0"),
-            data=d.get("data"),
+            id=_required_str(payload, "id"),
+            type=_required_str(payload, "type"),
+            source=_required_str(payload, "source"),
+            timestamp=datetime.fromisoformat(_required_str(payload, "timestamp")),
+            subject=_optional_str(payload, "subject", ""),
+            content_type=_optional_str(payload, "content_type", "application/json"),
+            version=_optional_str(payload, "version", "1.0"),
+            data=payload.get("data"),
         )
 
 
 MessageHandler = Callable[[Message], Awaitable[None]]
 EventHandler = Callable[[Event], Awaitable[None]]
+
+
+def _required_str(payload: dict[str, JsonValue], key: str) -> str:
+    value = payload[key]
+    if not isinstance(value, str):
+        raise ValueError(f"event field '{key}' must be a string")
+    return value
+
+
+def _optional_str(payload: dict[str, JsonValue], key: str, default: str) -> str:
+    value = payload.get(key, default)
+    if not isinstance(value, str):
+        raise ValueError(f"event field '{key}' must be a string")
+    return value

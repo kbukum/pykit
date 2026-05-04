@@ -5,7 +5,8 @@ from __future__ import annotations
 import contextlib
 import importlib
 import logging
-from typing import Protocol
+from collections.abc import Callable
+from typing import Protocol, cast
 
 from pykit_messaging.config import validate_topic_name
 from pykit_messaging.kafka.config import KafkaConfig
@@ -37,7 +38,10 @@ class _KafkaErrorFallback(Exception):
     pass
 
 
-AIOKafkaProducer: object | None = None
+_KafkaProducerFactory = Callable[..., _KafkaProducerClient]
+
+
+AIOKafkaProducer: _KafkaProducerFactory | None = None
 KafkaError: type[Exception] = _KafkaErrorFallback
 
 
@@ -51,8 +55,8 @@ def _load_aiokafka() -> None:
     except ImportError as exc:
         msg = "aiokafka is required for Kafka messaging; install pykit-messaging[kafka]"
         raise ImportError(msg) from exc
-    AIOKafkaProducer = aiokafka.AIOKafkaProducer
-    KafkaError = aiokafka_errors.KafkaError
+    AIOKafkaProducer = cast("_KafkaProducerFactory", aiokafka.AIOKafkaProducer)
+    KafkaError = cast("type[Exception]", aiokafka_errors.KafkaError)
 
 
 _MAX_START_RETRIES = 30

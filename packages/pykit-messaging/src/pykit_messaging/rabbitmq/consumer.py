@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+from collections.abc import Awaitable, Mapping
 from datetime import UTC, datetime
+from types import TracebackType
 from typing import Protocol, cast
 
 from pykit_messaging.rabbitmq.config import RabbitMqConfig
@@ -17,7 +19,18 @@ class _RabbitRawMessage(Protocol):
     correlation_id: str | None
     headers: object | None
 
-    def process(self) -> object: ...
+    def process(self) -> _RabbitMessageProcess: ...
+
+
+class _RabbitMessageProcess(Protocol):
+    async def __aenter__(self) -> object: ...
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> object: ...
 
 
 class _Exchange(Protocol):
@@ -57,6 +70,12 @@ class _Connection(Protocol):
     async def close(self) -> object: ...
 
 
+class _AioPikaModule(Protocol):
+    ExchangeType: object
+
+    def connect_robust(self, url: str, **kwargs: object) -> Awaitable[_Connection]: ...
+
+
 class RabbitMqConsumer:
     """RabbitMQ-backed consumer requiring the ``rabbitmq`` extra."""
 
@@ -64,7 +83,7 @@ class RabbitMqConsumer:
         config.validate()
         self._config = config
         self._topics = list(config.topics)
-        self._aio_pika: object | None = None
+        self._aio_pika: _AioPikaModule | None = None
         self._connection: _Connection | None = None
         self._channel: _Channel | None = None
         self._exchange: _Exchange | None = None
@@ -83,9 +102,7 @@ class RabbitMqConsumer:
             connect_kwargs["password"] = self._config.password
         if self._config.connection_name:
             connect_kwargs["client_properties"] = {"connection_name": self._config.connection_name}
-        self._connection = cast(
-            "_Connection", await aio_pika.connect_robust(self._config.url, **connect_kwargs)
-        )
+        self._connection = await aio_pika.connect_robust(self._config.url, **connect_kwargs)
         self._channel = await self._connection.channel(publisher_confirms=False)
         await self._channel.set_qos(prefetch_count=self._config.max_in_flight)
         self._exchange = await _resolve_exchange(aio_pika, self._channel, self._config)
@@ -136,15 +153,15 @@ class RabbitMqConsumer:
         self._exchange = None
 
 
-def _import_aio_pika() -> object:
+def _import_aio_pika() -> _AioPikaModule:
     try:
-        return importlib.import_module("aio_pika")
+        return cast("_AioPikaModule", importlib.import_module("aio_pika"))
     except ImportError as exc:
         msg = "aio-pika is required for RabbitMQ messaging; install pykit-messaging[rabbitmq]"
         raise ImportError(msg) from exc
 
 
-async def _resolve_exchange(aio_pika: object, channel: _Channel, config: RabbitMqConfig) -> _Exchange:
+async def _resolve_exchange(aio_pika: _AioPikaModule, channel: _Channel, config: RabbitMqConfig) -> _Exchange:
     if not config.exchange_name:
         return channel.default_exchange
     exchange_type = getattr(aio_pika.ExchangeType, config.exchange_type.upper())
@@ -164,7 +181,7 @@ def _require_exchange(exchange: _Exchange | None) -> _Exchange:
 
 
 def _to_message(raw_message: _RabbitRawMessage) -> Message:
-    headers = {str(k): str(v) for k, v in dict(raw_message.headers or {}).items()}
+    headers = _headers_to_dict(raw_message.headers)
     return Message(
         key=raw_message.correlation_id,
         value=raw_message.body,
@@ -174,3 +191,10 @@ def _to_message(raw_message: _RabbitRawMessage) -> Message:
         timestamp=datetime.now(UTC),
         headers=headers,
     )
+
+
+def _headers_to_dict(raw_headers: object | None) -> dict[str, str]:
+    if raw_headers is None or not isinstance(raw_headers, Mapping):
+        return {}
+    headers_map = cast("Mapping[object, object]", raw_headers)
+    return {str(key): str(value) for key, value in headers_map.items()}

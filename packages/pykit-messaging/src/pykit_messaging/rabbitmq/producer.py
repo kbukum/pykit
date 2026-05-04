@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+from collections.abc import Awaitable, Callable
 from typing import Protocol, cast
 
 from pykit_messaging.rabbitmq.config import RabbitMqConfig
@@ -28,13 +29,25 @@ class _Connection(Protocol):
     async def close(self) -> object: ...
 
 
+class _DeliveryMode(Protocol):
+    PERSISTENT: object
+
+
+class _AioPikaModule(Protocol):
+    Message: Callable[..., object]
+    DeliveryMode: _DeliveryMode
+    ExchangeType: object
+
+    def connect_robust(self, url: str, **kwargs: object) -> Awaitable[_Connection]: ...
+
+
 class RabbitMqProducer:
     """RabbitMQ-backed producer requiring the ``rabbitmq`` extra."""
 
     def __init__(self, config: RabbitMqConfig) -> None:
         config.validate()
         self._config = config
-        self._aio_pika: object | None = None
+        self._aio_pika: _AioPikaModule | None = None
         self._connection: _Connection | None = None
         self._channel: _Channel | None = None
         self._exchange: _Exchange | None = None
@@ -51,9 +64,7 @@ class RabbitMqProducer:
             connect_kwargs["password"] = self._config.password
         if self._config.connection_name:
             connect_kwargs["client_properties"] = {"connection_name": self._config.connection_name}
-        self._connection = cast(
-            "_Connection", await aio_pika.connect_robust(self._config.url, **connect_kwargs)
-        )
+        self._connection = await aio_pika.connect_robust(self._config.url, **connect_kwargs)
         self._channel = await self._connection.channel(publisher_confirms=self._config.publisher_confirms)
         self._exchange = await _resolve_exchange(aio_pika, self._channel, self._config)
 
@@ -104,22 +115,22 @@ class RabbitMqProducer:
         self._exchange = None
 
 
-def _import_aio_pika() -> object:
+def _import_aio_pika() -> _AioPikaModule:
     try:
-        return importlib.import_module("aio_pika")
+        return cast("_AioPikaModule", importlib.import_module("aio_pika"))
     except ImportError as exc:
         msg = "aio-pika is required for RabbitMQ messaging; install pykit-messaging[rabbitmq]"
         raise ImportError(msg) from exc
 
 
-async def _resolve_exchange(aio_pika: object, channel: _Channel, config: RabbitMqConfig) -> _Exchange:
+async def _resolve_exchange(aio_pika: _AioPikaModule, channel: _Channel, config: RabbitMqConfig) -> _Exchange:
     if not config.exchange_name:
         return channel.default_exchange
     exchange_type = getattr(aio_pika.ExchangeType, config.exchange_type.upper())
     return await channel.declare_exchange(config.exchange_name, exchange_type, durable=config.durable)
 
 
-def _require_module(module: object | None) -> object:
+def _require_module(module: _AioPikaModule | None) -> _AioPikaModule:
     if module is None:
         raise RuntimeError("aio-pika is not loaded")
     return module

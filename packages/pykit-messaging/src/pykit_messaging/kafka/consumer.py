@@ -6,7 +6,8 @@ import asyncio
 import contextlib
 import importlib
 import logging
-from typing import Protocol
+from collections.abc import AsyncIterator, Callable
+from typing import Protocol, cast
 
 from pykit_messaging.kafka.config import KafkaConfig
 from pykit_messaging.types import Event, EventHandler, Message, MessageHandler
@@ -33,14 +34,17 @@ class _KafkaConsumerClient(Protocol):
 
     async def commit(self) -> object: ...
 
-    def __aiter__(self) -> object: ...
+    def __aiter__(self) -> AsyncIterator[_KafkaConsumerRecord]: ...
 
 
 class _KafkaErrorFallback(Exception):
     pass
 
 
-AIOKafkaConsumer: object | None = None
+_KafkaConsumerFactory = Callable[..., _KafkaConsumerClient]
+
+
+AIOKafkaConsumer: _KafkaConsumerFactory | None = None
 KafkaError: type[Exception] = _KafkaErrorFallback
 KafkaConnectionError: type[Exception] = _KafkaErrorFallback
 
@@ -55,9 +59,9 @@ def _load_aiokafka() -> None:
     except ImportError as exc:
         msg = "aiokafka is required for Kafka messaging; install pykit-messaging[kafka]"
         raise ImportError(msg) from exc
-    AIOKafkaConsumer = aiokafka.AIOKafkaConsumer
-    KafkaError = aiokafka_errors.KafkaError
-    KafkaConnectionError = aiokafka_errors.KafkaConnectionError
+    AIOKafkaConsumer = cast("_KafkaConsumerFactory", aiokafka.AIOKafkaConsumer)
+    KafkaError = cast("type[Exception]", aiokafka_errors.KafkaError)
+    KafkaConnectionError = cast("type[Exception]", aiokafka_errors.KafkaConnectionError)
 
 
 _MAX_START_RETRIES = 30

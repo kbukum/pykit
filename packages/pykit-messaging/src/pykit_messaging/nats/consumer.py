@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Mapping
 from datetime import UTC, datetime
 from inspect import isawaitable
 from typing import Protocol, cast
@@ -23,6 +23,10 @@ class _NatsClient(Protocol):
     def close(self) -> Awaitable[None] | None: ...
 
     async def subscribe(self, subject: str, *, cb: object, queue: str = "") -> object: ...
+
+
+class _NatsModule(Protocol):
+    def connect(self, **kwargs: object) -> Awaitable[_NatsClient]: ...
 
 
 class NatsConsumer:
@@ -53,7 +57,7 @@ class NatsConsumer:
         if self._config.username:
             kwargs["user"] = self._config.username
             kwargs["password"] = self._config.password
-        self._client = cast("_NatsClient", await nats.connect(**kwargs))
+        self._client = await nats.connect(**kwargs)
         self._closed.clear()
 
     async def subscribe(self, topics: list[str]) -> None:
@@ -94,9 +98,9 @@ class NatsConsumer:
         self._client = None
 
 
-def _import_nats() -> object:
+def _import_nats() -> _NatsModule:
     try:
-        return importlib.import_module("nats")
+        return cast("_NatsModule", importlib.import_module("nats"))
     except ImportError as exc:
         msg = "nats-py is required for NATS messaging; install pykit-messaging[nats]"
         raise ImportError(msg) from exc
@@ -126,9 +130,11 @@ def _to_message(raw_message: object) -> Message:
 def _headers_to_dict(raw_headers: object) -> dict[str, str]:
     if raw_headers is None:
         return {}
-    items = cast("object", raw_headers).items()
+    if not isinstance(raw_headers, Mapping):
+        return {}
+    headers_map = cast("Mapping[object, object]", raw_headers)
     headers: dict[str, str] = {}
-    for key, value in items:
+    for key, value in headers_map.items():
         if isinstance(value, list):
             headers[str(key)] = str(value[-1]) if value else ""
         else:

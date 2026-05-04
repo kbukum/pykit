@@ -54,9 +54,9 @@ class MessagingRegistry:
             for cleanup in self._state_cleanups.values():
                 cleanup()
             return
-        cleanup = self._state_cleanups.get(backend)
-        if cleanup is not None:
-            cleanup()
+        selected_cleanup = self._state_cleanups.get(backend)
+        if selected_cleanup is not None:
+            selected_cleanup()
 
     def producer(self, config: BrokerConfig) -> MessageProducer:
         """Create a producer for ``config.backend`` using *config*."""

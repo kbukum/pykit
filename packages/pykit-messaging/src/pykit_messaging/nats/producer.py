@@ -29,6 +29,10 @@ class _NatsClient(Protocol):
     async def drain(self) -> object: ...
 
 
+class _NatsModule(Protocol):
+    def connect(self, **kwargs: object) -> Awaitable[_NatsClient]: ...
+
+
 class NatsProducer:
     """NATS-backed message producer requiring the ``nats`` extra."""
 
@@ -54,7 +58,7 @@ class NatsProducer:
         if self._config.username:
             kwargs["user"] = self._config.username
             kwargs["password"] = self._config.password
-        self._client = cast("_NatsClient", await nats.connect(**kwargs))
+        self._client = await nats.connect(**kwargs)
 
     async def send(
         self,
@@ -104,9 +108,9 @@ class NatsProducer:
         self._client = None
 
 
-def _import_nats() -> object:
+def _import_nats() -> _NatsModule:
     try:
-        return importlib.import_module("nats")
+        return cast("_NatsModule", importlib.import_module("nats"))
     except ImportError as exc:
         msg = "nats-py is required for NATS messaging; install pykit-messaging[nats]"
         raise ImportError(msg) from exc
