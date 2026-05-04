@@ -1,59 +1,57 @@
 # pykit-cache
 
-Async cache client with component lifecycle, health checking, and a generic typed JSON store.
+Async cache abstraction with an in-memory lean default, explicit backend registries, component
+lifecycle, and a generic typed JSON store.
 
 ## Installation
 
 ```bash
 pip install pykit-cache
-# or
+pip install 'pykit-cache[redis]'  # optional Redis adapter
+
 uv add pykit-cache
+uv add 'pykit-cache[redis]'  # optional Redis adapter
 ```
 
 ## Quick Start
 
 ```python
-from pykit_cache import CacheConfig, CacheComponent, TypedStore
+from pykit_cache import CacheComponent, CacheConfig, TypedStore
 
-# Create and start the cache component
-config = CacheConfig(url="redis://localhost:6379/0", max_connections=20)
-component = CacheComponent(config)
+component = CacheComponent(CacheConfig())  # default backend="memory"
 await component.start()
 
-# Use the client directly
 client = component.client
 await client.set("key", "value", ex=300)
-val = await client.get("key")  # "value"
+assert await client.get("key") == "value"
 
-# JSON operations
-await client.set_json("user:1", {"name": "Alice", "role": "admin"})
-user = await client.get_json("user:1")  # {"name": "Alice", "role": "admin"}
-
-# Typed store with key prefix
 store: TypedStore[dict] = TypedStore(client, key_prefix="sessions")
 await store.save("abc", {"user_id": 42}, ttl=3600)
-session = await store.load("abc")  # {"user_id": 42}
+```
 
-# Health check
-health = await component.health()  # Health(status=HEALTHY, ...)
+## Explicit Redis registration
 
-await component.stop()
+Redis is optional and is never imported or registered by the core package.
+
+```python
+from pykit_cache import CacheComponent, CacheConfig, CacheRegistry, register_memory
+from pykit_cache.redis import register as register_redis
+
+registry = CacheRegistry()
+register_memory(registry)
+register_redis(registry)
+
+component = CacheComponent(
+    CacheConfig(backend="redis", url="redis://localhost:6379/0"),
+    registry=registry,
+)
+await component.start()
 ```
 
 ## Key Components
 
-- **CacheConfig** — Configuration dataclass (url, password, db, max_connections, timeouts, retry settings)
-- **CacheClient** — Thin async wrapper around `redis.asyncio.Redis` with `get`, `set`, `delete`, `exists`, `get_json`, `set_json`, `ping`, and `unwrap()` for raw access
-- **CacheComponent** — Lifecycle-managed component with `start()`, `stop()`, and `health()` (implements Component protocol)
-- **TypedStore[T]** — Generic JSON-serialized key-value store with optional key prefix and TTL support
-
-## Dependencies
-
-- `pykit-errors`, `pykit-component`
-- `redis` (redis-py async client)
-- Optional: `pykit-testutil` (for testing)
-
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- **CacheConfig** — backend selection plus memory and Redis adapter settings.
+- **CacheRegistry** — injected registry; a new empty registry has no backends.
+- **InMemoryCache** — bounded in-process LRU cache with TTL support.
+- **CacheClient** — backend-agnostic async `get`, `set`, `delete`, `exists`, JSON helpers.
+- **TypedStore[T]** — JSON-serialized key-value store with optional key prefix.

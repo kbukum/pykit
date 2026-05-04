@@ -7,8 +7,17 @@ from pathlib import Path
 import pytest
 
 from pykit_component import HealthStatus
-from pykit_errors import NotFoundError
-from pykit_storage import FileInfo, LocalStorage, Storage, StorageComponent, StorageConfig
+from pykit_errors import AppError, NotFoundError
+from pykit_storage import (
+    FileInfo,
+    LocalStorage,
+    Storage,
+    StorageComponent,
+    StorageConfig,
+    StorageRegistry,
+    default_storage_registry,
+    register_local,
+)
 
 # ---------------------------------------------------------------------------
 # Config
@@ -25,6 +34,20 @@ class TestStorageConfig:
         assert cfg.max_file_size == 104_857_600
         assert cfg.public_url == ""
         assert cfg.allowed_types == []
+        assert cfg.bucket == ""
+
+    def test_empty_registry_has_no_side_effect_backends(self) -> None:
+        registry = StorageRegistry()
+        assert registry.names() == ()
+
+    def test_explicit_local_registration(self, tmp_path: Path) -> None:
+        registry = StorageRegistry()
+        register_local(registry)
+        storage = registry.create(StorageConfig(base_path=str(tmp_path)))
+        assert isinstance(storage, LocalStorage)
+
+    def test_default_registry_only_contains_local(self) -> None:
+        assert default_storage_registry().names() == ("local",)
 
 
 # ---------------------------------------------------------------------------
@@ -126,18 +149,25 @@ class TestStorageComponent:
         h = await comp.health()
         assert h.status == HealthStatus.UNHEALTHY
 
+    async def test_disabled_health_is_healthy(self) -> None:
+        comp = StorageComponent(StorageConfig(enabled=False))
+        await comp.start()
+        h = await comp.health()
+        assert h.status == HealthStatus.HEALTHY
+        assert h.message == "storage disabled"
+
     async def test_name(self) -> None:
         comp = StorageComponent(StorageConfig(name="my-storage"))
         assert comp.name == "my-storage"
 
     async def test_unknown_provider_raises(self) -> None:
         comp = StorageComponent(StorageConfig(provider="gcs"))
-        with pytest.raises(ValueError, match="Unknown storage provider"):
+        with pytest.raises(AppError, match="not registered"):
             await comp.start()
 
-    async def test_s3_provider_raises_not_implemented(self) -> None:
+    async def test_s3_provider_requires_explicit_registration(self) -> None:
         comp = StorageComponent(StorageConfig(provider="s3"))
-        with pytest.raises(NotImplementedError, match="S3 provider"):
+        with pytest.raises(AppError, match="not registered"):
             await comp.start()
 
     async def test_roundtrip_through_component(self, tmp_path: Path) -> None:

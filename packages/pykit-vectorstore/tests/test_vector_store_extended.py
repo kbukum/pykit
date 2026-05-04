@@ -82,7 +82,7 @@ class TestVectorStoreError:
 
     def test_message(self) -> None:
         err = VectorStoreError("bad thing")
-        assert str(err) == "bad thing"
+        assert "bad thing" in str(err)
 
 
 # ---------------------------------------------------------------------------

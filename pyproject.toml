@@ -286,8 +286,8 @@ ignore = [
     "S608",    # SQL injection (parameterized queries handled at call site)
     "PLC0105", # TypeVar naming conventions (In/Out are clear)
     "PLE0643", # potential-index-error (bounds checked at runtime)
-    "UP046",   # non-pep695-generic-class (migration in progress)
-    "UP047",   # non-pep695-generic-function (migration in progress)
+    "UP046",   # non-pep695-generic-class (legacy syntax allowed)
+    "UP047",   # non-pep695-generic-function (legacy syntax allowed)
     "TRY004",  # prefer-type-error (ValueError is more appropriate in context)
     "TRY201",  # verbose-raise (explicit re-raise for clarity)
     "RUF022",  # unsorted-dunder-all (order is intentional)
@@ -442,6 +442,31 @@ layers = [
     "pykit_hook | pykit_provider | pykit_component | pykit_resilience | pykit_schema",
     "pykit_validation | pykit_encryption | pykit_util | pykit_version | pykit_media",
     "pykit_errors | pykit_config | pykit_logging",
+]
+
+[[tool.importlinter.contracts]]
+name = "Data core packages do not import optional adapters"
+type = "forbidden"
+source_modules = [
+    "pykit_cache.backends",
+    "pykit_cache.client",
+    "pykit_cache.component",
+    "pykit_cache.config",
+    "pykit_cache.registry",
+    "pykit_cache.typed_store",
+    "pykit_storage.base",
+    "pykit_storage.component",
+    "pykit_storage.config",
+    "pykit_storage.local",
+    "pykit_storage.registry",
+    "pykit_vectorstore.memory",
+    "pykit_vectorstore.registry",
+    "pykit_vectorstore.store",
+]
+forbidden_modules = [
+    "pykit_cache.redis",
+    "pykit_storage.s3",
+    "pykit_vectorstore.qdrant",
 ]
 
 [tool.bandit]

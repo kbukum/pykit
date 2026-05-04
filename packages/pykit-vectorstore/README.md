@@ -1,68 +1,60 @@
 # pykit-vectorstore
 
-Vector similarity search store with in-memory and Qdrant backends, builder-pattern filters, and cosine similarity.
+Vector similarity abstraction with an in-memory lean default, optional Qdrant adapter, explicit
+backend registries, canonical metrics (`cosine`, `dot`, `l2`), and tenant-aware filters.
 
 ## Installation
 
 ```bash
 pip install pykit-vectorstore
-# or
-uv add pykit-vectorstore
+pip install 'pykit-vectorstore[qdrant]'  # optional Qdrant adapter
 
-# With Qdrant backend
-pip install pykit-vectorstore[qdrant]
+uv add pykit-vectorstore
+uv add 'pykit-vectorstore[qdrant]'  # optional Qdrant adapter
 ```
 
-## Quick Start
+## In-memory Quick Start
 
 ```python
-from pykit_vectorstore import (
-    InMemoryVectorStore, PointPayload, SearchFilter, VectorStore,
+from pykit_vectorstore import InMemoryVectorStore, PointPayload, SearchFilter
+
+store = InMemoryVectorStore()
+await store.ensure_collection("docs", dimensions=384, metric="cosine")
+await store.upsert(
+    "docs",
+    id="doc-1",
+    vector=[0.1, 0.2, ...],
+    payload=PointPayload(fields={"tenant_id": "tenant-a", "lang": "en"}),
 )
 
-store: VectorStore = InMemoryVectorStore()
-await store.ensure_collection("docs", dimensions=384)
-
-# Upsert vectors with metadata
-payload = PointPayload().with_field("title", "Introduction").with_field("lang", "en")
-await store.upsert("docs", id="doc-1", vector=[0.1, 0.2, ...], payload=payload)
-
-# Search with optional filtering
 results = await store.search(
     "docs",
     vector=[0.15, 0.25, ...],
     limit=5,
-    filter=SearchFilter().must_match("lang", "en"),
+    filter=SearchFilter().for_tenant("tenant-a").must_match("lang", "en"),
 )
-for r in results:
-    print(f"{r.id}: score={r.score:.3f}, title={r.payload.fields['title']}")
 ```
 
-### Qdrant Backend
+## Config-driven selection and Qdrant registration
 
 ```python
-from pykit_vectorstore.qdrant import QdrantVectorStore, QdrantConfig
+from pykit_vectorstore import VectorStoreConfig, VectorStoreRegistry, register_memory
+from pykit_vectorstore.qdrant import register as register_qdrant
 
-store = QdrantVectorStore(QdrantConfig(url="http://localhost:6333"))
-await store.ensure_collection("embeddings", dimensions=768)
+registry = VectorStoreRegistry()
+register_memory(registry)
+register_qdrant(registry)
+
+store = registry.create(VectorStoreConfig(backend="qdrant", metric="cosine"))
 ```
+
+Importing `pykit_vectorstore` does not import Qdrant. The optional adapter fails only when
+constructed without `qdrant-client` installed.
 
 ## Key Components
 
-- **VectorStore** — Protocol defining the async vector store interface: `ensure_collection`, `upsert`, `search`, `delete`
-- **PointPayload** — Metadata stored with each vector, with fluent `with_field()` builder
-- **SearchResult** — Search result with `id`, `score`, and `payload`
-- **SearchFilter** — Optional query filter with fluent `must_match()` builder
-- **InMemoryVectorStore** — Thread-safe in-memory implementation using cosine similarity (for testing/prototyping)
-- **QdrantVectorStore** — Production backend using Qdrant with cosine distance metric
-- **VectorStoreError** — Raised on vector store operation failures
-
-## Dependencies
-
-- `numpy`
-- Optional: `qdrant-client` (qdrant extra)
-
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- **VectorStore** — async protocol: `ensure_collection`, `upsert`, `search`, `delete`.
+- **VectorStoreRegistry** — injected backend registry; empty registries have no backends.
+- **SearchFilter** — normalized filter conditions plus tenant isolation via `for_tenant()`.
+- **InMemoryVectorStore** — deterministic linear-scan backend for tests/prototyping.
+- **QdrantVectorStore** — optional adapter in `pykit_vectorstore.qdrant`.

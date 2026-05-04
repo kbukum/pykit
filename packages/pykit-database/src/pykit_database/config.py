@@ -10,7 +10,8 @@ class DatabaseConfig:
     """Configuration for async SQLAlchemy database connections."""
 
     name: str = "database"
-    dsn: str = "sqlite+aiosqlite:///db.sqlite3"
+    backend: str = "sqlalchemy"
+    dsn: str = ""
     echo: bool = False
     pool_size: int = 5
     max_overflow: int = 10

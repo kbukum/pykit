@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -10,12 +11,15 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from pykit_database.config import DatabaseConfig
+from pykit_errors import InvalidInputError
 
 
 class Database:
     """Thin wrapper around an async SQLAlchemy engine and session factory."""
 
     def __init__(self, config: DatabaseConfig) -> None:
+        if not config.dsn:
+            raise InvalidInputError("database DSN is required", field="dsn")
         self._config = config
 
         # SQLite does not support pool_size / max_overflow / pool_timeout / pool_recycle
@@ -46,8 +50,8 @@ class Database:
             try:
                 yield sess
                 await sess.commit()
-            except Exception:
-                await sess.rollback()
+            except BaseException:
+                await asyncio.shield(sess.rollback())
                 raise
 
     async def execute(self, stmt: Any) -> Any:

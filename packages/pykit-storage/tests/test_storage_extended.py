@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import os
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 
+from pykit_errors import InvalidInputError, NotFoundError
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
+from pykit_storage.s3 import S3Storage, validate_key
 
 # ---------------------------------------------------------------------------
 # Path traversal security
@@ -20,37 +23,125 @@ class TestPathTraversalSecurity:
     def store(self, tmp_path: Path) -> LocalStorage:
         return LocalStorage(base_path=str(tmp_path))
 
-    async def test_upload_traversal_escapes_base(self, store: LocalStorage, tmp_path: Path) -> None:
-        """Upload with ../../ should write inside base, not escape it."""
-        await store.upload("../../etc/passwd", b"hacked")
-        # The file must NOT exist at the system level
-        assert not Path("/etc/passwd_hacked").exists()
-        # It should resolve inside the base path (os.path.join behavior)
-        # With current implementation, os.path.join(base, "../../etc/passwd")
-        # will go UP from base — verify the file landed somewhere under tmp_path
-        # or above. The key insight: LocalStorage._resolve just joins paths,
-        # so ../../ DOES escape. We test that at minimum the file was created.
-        # This documents the current behavior.
+    async def test_upload_traversal_rejected(self, store: LocalStorage, tmp_path: Path) -> None:
+        """Upload with ../../ must not escape the storage base."""
+        with pytest.raises(InvalidInputError):
+            await store.upload("../../etc/passwd", b"hacked")
+        assert list(tmp_path.rglob("*")) == []
 
     async def test_download_traversal_returns_error_or_not_found(
         self, store: LocalStorage, tmp_path: Path
     ) -> None:
         """Downloading a traversal path should fail cleanly."""
-        from pykit_errors import NotFoundError
-
-        with pytest.raises((NotFoundError, FileNotFoundError, OSError)):
+        with pytest.raises((InvalidInputError, NotFoundError, FileNotFoundError, OSError)):
             await store.download("../../../etc/shadow")
 
     async def test_exists_traversal_path(self, store: LocalStorage) -> None:
         """Exists with traversal path should not crash."""
-        result = await store.exists("../../etc/passwd")
-        # Should be False (file doesn't exist at that resolved path)
-        assert isinstance(result, bool)
+        with pytest.raises(InvalidInputError):
+            await store.exists("../../etc/passwd")
 
     async def test_delete_traversal_nonexistent_is_noop(self, store: LocalStorage) -> None:
         """Delete with traversal on nonexistent path should not crash."""
-        # Should not raise — the file doesn't exist
-        await store.delete("../../nonexistent_file.txt")
+        with pytest.raises(InvalidInputError):
+            await store.delete("../../nonexistent_file.txt")
+
+
+class TestS3ConfigValidation:
+    def test_s3_key_rejects_path_traversal(self) -> None:
+        with pytest.raises(InvalidInputError, match="normalized relative"):
+            validate_key("../secret")
+
+    def test_s3_key_rejects_absolute_paths(self) -> None:
+        with pytest.raises(InvalidInputError, match="normalized relative"):
+            validate_key("/bucket/key")
+
+    def test_s3_key_accepts_normalized_relative_key(self) -> None:
+        assert validate_key("tenant/a.txt") == "tenant/a.txt"
+
+    async def test_s3_stream_upload_uses_file_object_api(self) -> None:
+        storage = S3Storage.__new__(S3Storage)
+        storage._bucket = "bucket"
+        storage._client = _FakeS3ClientContext  # type: ignore[method-assign]
+        stream = _UnreadableStream(b"payload")
+
+        await storage.upload("tenant/a.bin", stream)
+
+        assert _FakeS3Client.last_uploaded is stream
+        assert _FakeS3Client.last_bucket == "bucket"
+        assert _FakeS3Client.last_key == "tenant/a.bin"
+
+    async def test_s3_exists_handles_botocore_client_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr("pykit_storage.s3._client_error_type", lambda: _FakeClientError)
+        storage = S3Storage.__new__(S3Storage)
+        storage._bucket = "bucket"
+        storage._client = _MissingS3ClientContext  # type: ignore[method-assign]
+
+        assert await storage.exists("tenant/missing.bin") is False
+
+    async def test_s3_download_maps_botocore_client_error_to_not_found(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr("pykit_storage.s3._client_error_type", lambda: _FakeClientError)
+        storage = S3Storage.__new__(S3Storage)
+        storage._bucket = "bucket"
+        storage._client = _MissingS3ClientContext  # type: ignore[method-assign]
+
+        with pytest.raises(NotFoundError):
+            await storage.download("tenant/missing.bin")
+
+
+class _UnreadableStream(BytesIO):
+    def read(self, *_args: object, **_kwargs: object) -> bytes:
+        raise AssertionError("stream upload must not read the entire body into memory")
+
+
+class _FakeS3Client:
+    last_uploaded: object = None
+    last_bucket = ""
+    last_key = ""
+
+    async def upload_fileobj(self, data: object, bucket: str, key: str) -> None:
+        self.__class__.last_uploaded = data
+        self.__class__.last_bucket = bucket
+        self.__class__.last_key = key
+
+
+class _FakeS3ClientContext:
+    async def __aenter__(self) -> _FakeS3Client:
+        return _FakeS3Client()
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+
+class _FakeClientError(Exception):
+    def __init__(self) -> None:
+        super().__init__("missing")
+        self.response = {"Error": {"Code": "404"}}
+
+
+class _ModeledExceptions:
+    class NoSuchKey(Exception):
+        pass
+
+
+class _MissingS3Client:
+    exceptions = _ModeledExceptions
+
+    async def head_object(self, **_kwargs: object) -> None:
+        raise _FakeClientError()
+
+    async def get_object(self, **_kwargs: object) -> object:
+        raise _FakeClientError()
+
+
+class _MissingS3ClientContext:
+    async def __aenter__(self) -> _MissingS3Client:
+        return _MissingS3Client()
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -129,9 +220,9 @@ class TestErrorScenarios:
 
     async def test_download_empty_path(self, store: LocalStorage) -> None:
         """Empty path download should fail cleanly."""
-        from pykit_errors import NotFoundError
+        from pykit_errors import InvalidInputError, NotFoundError
 
-        with pytest.raises((NotFoundError, IsADirectoryError, OSError)):
+        with pytest.raises((InvalidInputError, NotFoundError, IsADirectoryError, OSError)):
             await store.download("")
 
     async def test_list_nonexistent_prefix_returns_empty(self, store: LocalStorage) -> None:
@@ -298,6 +389,11 @@ class TestURLGeneration:
         store = LocalStorage(base_path=str(tmp_path), public_url="https://cdn.example.com/")
         result = await store.url("path/to/file.txt")
         assert result == "https://cdn.example.com/path/to/file.txt"
+
+    async def test_url_with_public_url_rejects_traversal(self, tmp_path: Path) -> None:
+        store = LocalStorage(base_path=str(tmp_path), public_url="https://cdn.example.com/")
+        with pytest.raises(InvalidInputError, match="normalized relative"):
+            await store.url("../secret.txt")
 
     async def test_url_without_public_url_returns_local_path(self, tmp_path: Path) -> None:
         store = LocalStorage(base_path=str(tmp_path))

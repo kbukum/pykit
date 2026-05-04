@@ -7,7 +7,7 @@ license = { text = "MIT" }
 keywords = ["vectorstore", "similarity-search", "embeddings", "ai"]
 requires-python = ">=3.13"
 dependencies = [
-    "numpy",
+    "pykit-errors",
 ]
 
 [project.optional-dependencies]

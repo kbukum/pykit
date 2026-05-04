@@ -1,4 +1,4 @@
-"""Prometheus metrics helpers for gRPC services."""
+"""Prometheus metrics helpers for services and message processing."""
 
 from __future__ import annotations
 

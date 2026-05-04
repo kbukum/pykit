@@ -14,6 +14,7 @@ from pykit_database.query import (
     build_paginated_result,
     parse_query_params,
 )
+from pykit_database.registry import DatabaseRegistry, default_database_registry, register_sqlalchemy
 from pykit_database.repository import ReadRepository, Repository
 from pykit_database.tenant import scope_to_tenant, set_session_variable
 
@@ -21,6 +22,7 @@ __all__ = [
     "Database",
     "DatabaseComponent",
     "DatabaseConfig",
+    "DatabaseRegistry",
     "PaginatedResult",
     "Pagination",
     "QueryConfig",
@@ -29,7 +31,9 @@ __all__ = [
     "Repository",
     "apply_to_query",
     "build_paginated_result",
+    "default_database_registry",
     "parse_query_params",
+    "register_sqlalchemy",
     "scope_to_tenant",
     "set_session_variable",
 ]

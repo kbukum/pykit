@@ -7,9 +7,21 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from pykit_cache import CacheClient, CacheComponent, CacheConfig, TypedStore
+import pykit_cache.backends as cache_backends
+from pykit_cache import (
+    CacheBackend,
+    CacheClient,
+    CacheComponent,
+    CacheConfig,
+    CacheRegistry,
+    InMemoryCache,
+    TypedStore,
+    default_cache_registry,
+    register_memory,
+)
+from pykit_cache.redis import RedisCacheBackend
 from pykit_component import HealthStatus
-from pykit_testutil import FakeAsyncKeyValue
+from pykit_errors import InvalidInputError, ServiceUnavailableError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -23,11 +35,9 @@ class _SampleState:
 
 
 def _make_client(config: CacheConfig | None = None) -> CacheClient:
-    """Create a CacheClient backed by pykit-testutil."""
+    """Create a CacheClient backed by the default in-memory backend."""
     cfg = config or CacheConfig()
-    client = CacheClient(cfg)
-    client._redis = FakeAsyncKeyValue(decode_responses=cfg.decode_responses)
-    return client
+    return CacheClient(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +49,7 @@ class TestCacheConfig:
     def test_defaults(self) -> None:
         cfg = CacheConfig()
         assert cfg.name == "cache"
+        assert cfg.backend == "memory"
         assert cfg.url == "redis://localhost:6379/0"
         assert cfg.db == 0
         assert cfg.max_connections == 10
@@ -48,12 +59,30 @@ class TestCacheConfig:
         assert cfg.decode_responses is True
         assert cfg.enabled is True
 
+    def test_empty_registry_has_no_side_effect_backends(self) -> None:
+        registry = CacheRegistry()
+        assert registry.names() == ()
+
+    def test_explicit_memory_registration(self) -> None:
+        registry = CacheRegistry()
+        register_memory(registry)
+        assert registry.names() == ("memory",)
+        assert isinstance(registry.create(CacheConfig()), InMemoryCache)
+
+    def test_default_registry_only_contains_memory(self) -> None:
+        assert default_cache_registry().names() == ("memory",)
+
     def test_custom_values(self) -> None:
         cfg = CacheConfig(name="cache", url="redis://remote:6380/2", db=2, max_connections=50)
         assert cfg.name == "cache"
         assert cfg.url == "redis://remote:6380/2"
         assert cfg.db == 2
         assert cfg.max_connections == 50
+
+    def test_redis_backend_rejects_byte_responses(self) -> None:
+        cfg = CacheConfig(decode_responses=False)
+        with pytest.raises(InvalidInputError, match="decode_responses=True"):
+            RedisCacheBackend(cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +105,16 @@ class TestCacheClient:
     async def test_set_with_expiry(self, client: CacheClient) -> None:
         await client.set("k1", "v1", ex=60)
         assert await client.get("k1") == "v1"
+
+    async def test_ttl_boundary_expires(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        now = 1_000.0
+        monkeypatch.setattr(cache_backends.time, "monotonic", lambda: now)
+        client = CacheClient(CacheConfig())
+        await client.set("short", "v", ex=1)
+        assert await client.get("short") == "v"
+
+        now += 1.01
+        assert await client.get("short") is None
 
     async def test_delete(self, client: CacheClient) -> None:
         await client.set("k1", "v1")
@@ -108,8 +147,8 @@ class TestCacheClient:
         await client.close()
 
     async def test_unwrap(self, client: CacheClient) -> None:
-        raw = client.unwrap()
-        assert raw is not None
+        raw: CacheBackend = client.unwrap()
+        assert await raw.ping() is True
 
 
 # ---------------------------------------------------------------------------
@@ -204,6 +243,12 @@ class TestCacheComponent:
         await comp.start()
         assert comp.client is None
 
+    async def test_disabled_health_is_healthy(self) -> None:
+        comp = CacheComponent(CacheConfig(enabled=False))
+        h = await comp.health()
+        assert h.status == HealthStatus.HEALTHY
+        assert h.message == "cache disabled"
+
     async def test_start_enabled_creates_client(self) -> None:
         """Cover component.py lines 29-30: start with enabled config creates client and pings."""
         comp = CacheComponent(CacheConfig())
@@ -212,6 +257,18 @@ class TestCacheComponent:
         comp._client = fake
         # Verify ping works
         assert await fake.ping() is True
+
+    async def test_start_fails_when_backend_ping_returns_false(self) -> None:
+        registry = CacheRegistry()
+        backend = InMemoryCache()
+        await backend.close()
+        registry.register("memory", lambda _config: backend)
+        comp = CacheComponent(CacheConfig(), registry=registry)
+
+        with pytest.raises(ServiceUnavailableError, match="ping failed"):
+            await comp.start()
+        assert comp.client is None
+        assert await backend.ping() is False
 
     async def test_health_ping_failure(self) -> None:
         """Cover component.py lines 48-49: health check when ping raises."""

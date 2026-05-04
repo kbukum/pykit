@@ -10,6 +10,7 @@ from pykit_vectorstore.store import (
     PointPayload,
     SearchFilter,
     SearchResult,
+    VectorMetric,
     VectorStoreError,
 )
 
@@ -24,6 +25,7 @@ class _StoredPoint:
 @dataclass
 class _Collection:
     dimensions: int
+    metric: VectorMetric
     points: list[_StoredPoint]
 
 
@@ -37,9 +39,19 @@ def _cosine_similarity(a: list[float], b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
+def _dot_similarity(a: list[float], b: list[float]) -> float:
+    return sum(x * y for x, y in zip(a, b, strict=True))
+
+
+def _l2_similarity(a: list[float], b: list[float]) -> float:
+    return -math.sqrt(sum((x - y) * (x - y) for x, y in zip(a, b, strict=True)))
+
+
 def _matches_filter(payload: PointPayload, filt: SearchFilter) -> bool:
     """Check whether a payload matches all must conditions."""
-    for field_name, expected in filt.must:
+    for field_name, expected in filt.conditions():
+        if field_name not in payload.fields:
+            return False
         actual = payload.fields.get(field_name)
         if actual != expected:
             return False
@@ -53,15 +65,36 @@ class InMemoryVectorStore:
     Thread-safe via threading.Lock.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, metric: VectorMetric = "cosine") -> None:
+        if metric not in ("cosine", "dot", "l2"):
+            raise VectorStoreError(f"unsupported vector metric: {metric}")
+        self._metric = metric
         self._collections: dict[str, _Collection] = {}
         self._lock = threading.Lock()
 
-    async def ensure_collection(self, collection: str, dimensions: int) -> None:
+    async def ensure_collection(
+        self, collection: str, dimensions: int, metric: VectorMetric | None = None
+    ) -> None:
         """Ensure a collection exists, creating it if necessary."""
+        selected_metric = metric or self._metric
+        if selected_metric not in ("cosine", "dot", "l2"):
+            raise VectorStoreError(f"unsupported vector metric: {selected_metric}")
         with self._lock:
-            if collection not in self._collections:
-                self._collections[collection] = _Collection(dimensions=dimensions, points=[])
+            existing = self._collections.get(collection)
+            if existing is None:
+                self._collections[collection] = _Collection(
+                    dimensions=dimensions, metric=selected_metric, points=[]
+                )
+                return
+            if existing.dimensions != dimensions:
+                raise VectorStoreError(
+                    f"collection '{collection}' dimensions mismatch: "
+                    f"expected {existing.dimensions}, got {dimensions}"
+                )
+            if existing.metric != selected_metric:
+                raise VectorStoreError(
+                    f"collection '{collection}' metric mismatch: expected {existing.metric}, got {selected_metric}"
+                )
 
     async def upsert(
         self,
@@ -96,17 +129,21 @@ class InMemoryVectorStore:
         limit: int,
         filter: SearchFilter | None = None,
     ) -> list[SearchResult]:
-        """Search for similar vectors using brute-force cosine similarity."""
+        """Search for similar vectors using the collection's configured metric."""
         with self._lock:
             col = self._collections.get(collection)
             if col is None:
                 raise VectorStoreError(f"collection '{collection}' does not exist")
+            if len(vector) != col.dimensions:
+                raise VectorStoreError(
+                    f"vector dimensions mismatch: expected {col.dimensions}, got {len(vector)}"
+                )
 
             scored: list[SearchResult] = []
             for point in col.points:
                 if filter is not None and not _matches_filter(point.payload, filter):
                     continue
-                score = _cosine_similarity(vector, point.vector)
+                score = _score(vector, point.vector, col.metric)
                 scored.append(SearchResult(id=point.id, score=score, payload=point.payload))
 
             scored.sort(key=lambda r: r.score, reverse=True)
@@ -119,3 +156,11 @@ class InMemoryVectorStore:
             if col is None:
                 raise VectorStoreError(f"collection '{collection}' does not exist")
             col.points = [p for p in col.points if p.id != id]
+
+
+def _score(a: list[float], b: list[float], metric: VectorMetric) -> float:
+    if metric == "cosine":
+        return _cosine_similarity(a, b)
+    if metric == "dot":
+        return _dot_similarity(a, b)
+    return _l2_similarity(a, b)
