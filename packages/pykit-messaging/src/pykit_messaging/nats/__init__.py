@@ -6,7 +6,7 @@ from dataclasses import fields
 from typing import TYPE_CHECKING
 
 from pykit_messaging.config import BrokerConfig
-from pykit_messaging.nats.config import BACKEND_NAME, NatsConfig
+from pykit_messaging.nats.config import ADAPTER_NAME, NatsConfig
 from pykit_messaging.nats.consumer import NatsConsumer
 from pykit_messaging.nats.producer import NatsProducer
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 def register(registry: MessagingRegistry) -> None:
     """Register config-free NATS producer and consumer factories."""
-    registry.register_producer(BACKEND_NAME, lambda config: NatsProducer(_config_from(config)))
-    registry.register_consumer(BACKEND_NAME, lambda config: NatsConsumer(_config_from(config)))
+    registry.register_producer(ADAPTER_NAME, lambda config: NatsProducer(_config_from(config)))
+    registry.register_consumer(ADAPTER_NAME, lambda config: NatsConsumer(_config_from(config)))
 
 
 def _config_from(config: BrokerConfig) -> NatsConfig:

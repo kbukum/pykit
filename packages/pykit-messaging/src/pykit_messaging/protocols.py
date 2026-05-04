@@ -43,7 +43,7 @@ class MessageConsumer(Protocol):
 
 @runtime_checkable
 class ControllableConsumer(Protocol):
-    """Optional pause/resume capability for backends that support it."""
+    """Optional pause/resume capability for adapters that support it."""
 
     async def pause(self) -> None: ...
 

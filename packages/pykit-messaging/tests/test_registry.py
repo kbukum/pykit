@@ -50,19 +50,19 @@ class DummyConsumer:
 def test_registry_starts_empty_and_has_no_side_effects() -> None:
     registry = MessagingRegistry()
 
-    assert registry.producer_backends() == []
-    assert registry.consumer_backends() == []
+    assert registry.producer_adapters() == []
+    assert registry.consumer_adapters() == []
     with pytest.raises(AppError):
-        registry.producer(BrokerConfig(backend="kafka"))
+        registry.producer(BrokerConfig(adapter="kafka"))
 
 
-def test_register_memory_backend_is_config_free() -> None:
+def test_register_memory_adapter_is_config_free() -> None:
     registry = MessagingRegistry()
 
     register_memory(registry)
 
-    assert registry.producer_backends() == ["memory"]
-    assert registry.consumer_backends() == ["memory"]
+    assert registry.producer_adapters() == ["memory"]
+    assert registry.consumer_adapters() == ["memory"]
     config = MemoryConfig(name="events", topics=["events"])
     assert registry.producer(config) is not None
     assert registry.consumer(config) is not None
@@ -76,8 +76,8 @@ def test_factories_are_invoked_with_creation_time_config() -> None:
     registry.register_producer("dummy", lambda config: producer_configs.append(config) or DummyProducer())
     registry.register_consumer("dummy", lambda config: consumer_configs.append(config) or DummyConsumer())
 
-    first = BrokerConfig(backend="dummy", name="first")
-    second = BrokerConfig(backend="dummy", name="second")
+    first = BrokerConfig(adapter="dummy", name="first")
+    second = BrokerConfig(adapter="dummy", name="second")
 
     registry.producer(first)
     registry.consumer(second)

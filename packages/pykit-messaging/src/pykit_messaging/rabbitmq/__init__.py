@@ -6,7 +6,7 @@ from dataclasses import fields
 from typing import TYPE_CHECKING
 
 from pykit_messaging.config import BrokerConfig
-from pykit_messaging.rabbitmq.config import BACKEND_NAME, RabbitMqConfig
+from pykit_messaging.rabbitmq.config import ADAPTER_NAME, RabbitMqConfig
 from pykit_messaging.rabbitmq.consumer import RabbitMqConsumer
 from pykit_messaging.rabbitmq.producer import RabbitMqProducer
 
@@ -16,8 +16,8 @@ if TYPE_CHECKING:
 
 def register(registry: MessagingRegistry) -> None:
     """Register config-free RabbitMQ producer and consumer factories."""
-    registry.register_producer(BACKEND_NAME, lambda config: RabbitMqProducer(_config_from(config)))
-    registry.register_consumer(BACKEND_NAME, lambda config: RabbitMqConsumer(_config_from(config)))
+    registry.register_producer(ADAPTER_NAME, lambda config: RabbitMqProducer(_config_from(config)))
+    registry.register_consumer(ADAPTER_NAME, lambda config: RabbitMqConsumer(_config_from(config)))
 
 
 def _config_from(config: BrokerConfig) -> RabbitMqConfig:

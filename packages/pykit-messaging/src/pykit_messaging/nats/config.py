@@ -14,7 +14,7 @@ from pykit_messaging.config import (
     validate_topic_name,
 )
 
-BACKEND_NAME = "nats"
+ADAPTER_NAME = "nats"
 DEFAULT_URL = "tls://localhost:4222"
 
 
@@ -22,8 +22,8 @@ DEFAULT_URL = "tls://localhost:4222"
 class NatsConfig(BrokerConfig):
     """Configuration for the core NATS adapter."""
 
-    backend: str = BACKEND_NAME
-    name: str = BACKEND_NAME
+    adapter: str = ADAPTER_NAME
+    name: str = ADAPTER_NAME
     delivery_guarantee: DeliveryGuarantee = DeliveryGuarantee.AT_MOST_ONCE
     commit_strategy: CommitStrategy = CommitStrategy.AUTO
 
@@ -43,7 +43,7 @@ class NatsConfig(BrokerConfig):
     def validate(self) -> None:
         """Validate NATS-specific and broker-neutral settings."""
         super().validate()
-        reject_exactly_once(self, BACKEND_NAME)
+        reject_exactly_once(self, ADAPTER_NAME)
         if self.delivery_guarantee is not DeliveryGuarantee.AT_MOST_ONCE:
             raise AppError.invalid_input(
                 "delivery_guarantee", "core NATS subjects support at-most-once delivery only"

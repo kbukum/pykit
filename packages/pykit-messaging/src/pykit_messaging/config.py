@@ -43,15 +43,15 @@ class DLQPolicy:
 
 @dataclass
 class BrokerConfig:
-    """Base configuration shared by all broker backends.
+    """Base configuration shared by all broker adapters.
 
     Core config intentionally contains only broker-neutral policy, including
-    topic/subscription names when a caller wants a backend-neutral selection.
+    topic/subscription names when a caller wants an adapter-neutral selection.
     Adapter modules own connection endpoints, protocol security, batching, and
     broker-specific timeouts.
     """
 
-    backend: str = "memory"
+    adapter: str = "memory"
     name: str = ""
     enabled: bool = True
     delivery_guarantee: DeliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE
@@ -71,8 +71,8 @@ class BrokerConfig:
 
     def apply_defaults(self) -> Self:
         """Normalize broker-neutral default values in-place and return ``self``."""
-        self.backend = self.backend.strip()
-        self.name = self.name.strip() or self.backend
+        self.adapter = self.adapter.strip()
+        self.name = self.name.strip() or self.adapter
         self.consumer_group = self.consumer_group.strip()
         try:
             self.delivery_guarantee = DeliveryGuarantee(self.delivery_guarantee)
@@ -91,11 +91,11 @@ class BrokerConfig:
 
     def validate(self) -> None:
         """Validate broker-neutral configuration fields."""
-        if not self.backend:
-            raise AppError.invalid_input("backend", "messaging backend name is required")
-        if not _NAME_RE.fullmatch(self.backend):
+        if not self.adapter:
+            raise AppError.invalid_input("adapter", "messaging adapter name is required")
+        if not _NAME_RE.fullmatch(self.adapter):
             raise AppError.invalid_input(
-                "backend", "messaging backend must contain only letters, digits, ., _, or -"
+                "adapter", "messaging adapter must contain only letters, digits, ., _, or -"
             )
         if not _NAME_RE.fullmatch(self.name):
             raise AppError.invalid_input(
@@ -119,12 +119,12 @@ class BrokerConfig:
             )
 
 
-def reject_exactly_once(config: BrokerConfig, backend: str) -> None:
-    """Raise a typed config error when *backend* cannot provide exactly-once delivery."""
+def reject_exactly_once(config: BrokerConfig, adapter: str) -> None:
+    """Raise a typed config error when *adapter* cannot provide exactly-once delivery."""
     if config.delivery_guarantee is DeliveryGuarantee.EXACTLY_ONCE:
         raise AppError.invalid_input(
             "delivery_guarantee",
-            f"{backend} does not support exactly-once delivery with this adapter",
+            f"{adapter} does not support exactly-once delivery with this adapter",
         )
 
 

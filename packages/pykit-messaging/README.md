@@ -60,9 +60,9 @@ await producer.send("events", b'{"action": "click"}', key="user-1")
 
 ### Configuration model
 
-`BrokerConfig` contains only broker-neutral policy: backend selection, name/enabled flags,
+`BrokerConfig` contains only broker-neutral policy: adapter selection, name/enabled flags,
 delivery guarantee, commit strategy, DLQ policy, retry/request timeout settings,
-`max_in_flight`, `consumer_group`, and backend-neutral `topics`/`subscriptions`. Broker
+`max_in_flight`, `consumer_group`, and adapter-neutral `topics`/`subscriptions`. Broker
 endpoints, protocol security credentials, batching, compression, routing/exchange details,
 and adapter-specific timeouts live in adapter configs such as `KafkaConfig`, `NatsConfig`,
 `RabbitMqConfig`, and `MemoryConfig`. Kafka, NATS, and RabbitMQ SDKs stay isolated behind

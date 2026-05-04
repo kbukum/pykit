@@ -57,7 +57,7 @@ class EventPublisher:
     ) -> None:
         """Publish *data* with an explicit partition key.
 
-        Sets ``Event.subject`` to *key* so messaging backends can use it
+        Sets ``Event.subject`` to *key* so messaging adapters can use it
         for ordering guarantees.
         """
         event = Event(type=event_type, source=self._source, subject=key, data=data)

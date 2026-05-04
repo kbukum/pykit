@@ -18,7 +18,7 @@ from pykit_util import JsonCodec
 if TYPE_CHECKING:
     from pykit_messaging.registry import MessagingRegistry
 
-_BACKEND_NAME = "memory"
+_ADAPTER_NAME = "memory"
 _DEFAULT_CAPACITY = 256
 _DEFAULT_HISTORY_LIMIT = 1024
 _DEFAULT_MAX_BROKERS = 32
@@ -26,19 +26,19 @@ _DEFAULT_MAX_BROKERS = 32
 
 @dataclass
 class MemoryConfig(BrokerConfig):
-    """Configuration for the in-memory messaging backend."""
+    """Configuration for the in-memory messaging adapter."""
 
-    backend: str = _BACKEND_NAME
-    name: str = _BACKEND_NAME
+    adapter: str = _ADAPTER_NAME
+    name: str = _ADAPTER_NAME
     capacity: int = _DEFAULT_CAPACITY
     history_limit: int = _DEFAULT_HISTORY_LIMIT
     max_brokers: int = _DEFAULT_MAX_BROKERS
     topics: list[str] = field(default_factory=list)
 
     def validate(self) -> None:
-        """Validate in-memory backend settings."""
+        """Validate in-memory adapter settings."""
         super().validate()
-        reject_exactly_once(self, _BACKEND_NAME)
+        reject_exactly_once(self, _ADAPTER_NAME)
         if self.capacity < 1:
             raise AppError.invalid_input("capacity", "capacity must be at least 1")
         if self.history_limit < 1:
@@ -138,8 +138,8 @@ def register(registry: MessagingRegistry) -> None:
             config.validate()
         else:
             config.validate()
-            reject_exactly_once(config, _BACKEND_NAME)
-        key = config.name or config.backend
+            reject_exactly_once(config, _ADAPTER_NAME)
+        key = config.name or config.adapter
         broker = brokers.get(key)
         if broker is not None:
             brokers.move_to_end(key)
@@ -166,14 +166,14 @@ def register(registry: MessagingRegistry) -> None:
             getattr(config, "subscriptions", []) or getattr(config, "topics", [])
         )
 
-    registry.register_producer(_BACKEND_NAME, producer)
-    registry.register_consumer(_BACKEND_NAME, consumer)
-    registry.register_backend_state_cleanup(_BACKEND_NAME, brokers.clear)
+    registry.register_producer(_ADAPTER_NAME, producer)
+    registry.register_consumer(_ADAPTER_NAME, consumer)
+    registry.register_adapter_state_cleanup(_ADAPTER_NAME, brokers.clear)
 
 
 def clear_memory_brokers(registry: MessagingRegistry) -> None:
     """Clear in-memory broker instances owned by *registry*."""
-    registry.clear_backend_state(_BACKEND_NAME)
+    registry.clear_adapter_state(_ADAPTER_NAME)
 
 
 class InMemoryProducer:

@@ -23,9 +23,9 @@ from pykit_messaging.rabbitmq import register as register_rabbitmq
 
 
 def test_core_broker_config_contains_only_shared_policy_and_defaults() -> None:
-    cfg = BrokerConfig(backend="  memory  ", name="")
+    cfg = BrokerConfig(adapter="  memory  ", name="")
 
-    assert cfg.backend == "memory"
+    assert cfg.adapter == "memory"
     assert cfg.name == "memory"
     assert cfg.enabled is True
     assert cfg.delivery_guarantee is DeliveryGuarantee.AT_LEAST_ONCE
@@ -43,7 +43,7 @@ def test_core_broker_config_contains_only_shared_policy_and_defaults() -> None:
 @pytest.mark.parametrize(
     ("kwargs", "field"),
     [
-        ({"backend": ""}, "backend"),
+        ({"adapter": ""}, "adapter"),
         ({"max_in_flight": 0}, "max_in_flight"),
         ({"retries": -1}, "retries"),
         ({"request_timeout_ms": 0}, "request_timeout_ms"),
@@ -172,7 +172,7 @@ def test_memory_config_preserves_bounded_settings_and_rejects_invalid_values() -
 
 
 @pytest.mark.parametrize(
-    "backend,register",
+    "adapter,register",
     [
         ("memory", register_memory),
         ("kafka", register_kafka),
@@ -181,13 +181,13 @@ def test_memory_config_preserves_bounded_settings_and_rejects_invalid_values() -
     ],
 )
 def test_factories_reject_unsupported_exactly_once_from_core_config(
-    backend: str, register: Callable[[MessagingRegistry], None]
+    adapter: str, register: Callable[[MessagingRegistry], None]
 ) -> None:
     registry = MessagingRegistry()
     register(registry)
 
     with pytest.raises(AppError) as exc_info:
-        registry.producer(BrokerConfig(backend=backend, delivery_guarantee=DeliveryGuarantee.EXACTLY_ONCE))
+        registry.producer(BrokerConfig(adapter=adapter, delivery_guarantee=DeliveryGuarantee.EXACTLY_ONCE))
 
     assert exc_info.value.details["field"] in {"delivery_guarantee", "transactional_id"}
 

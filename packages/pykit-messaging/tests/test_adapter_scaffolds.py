@@ -42,7 +42,7 @@ import pykit_messaging
 assert "pykit_messaging.kafka" not in sys.modules
 assert "pykit_messaging.nats" not in sys.modules
 assert "pykit_messaging.rabbitmq" not in sys.modules
-assert pykit_messaging.MessagingRegistry().producer_backends() == []
+assert pykit_messaging.MessagingRegistry().producer_adapters() == []
 """
     result = subprocess.run([sys.executable, "-c", code], check=False, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -53,8 +53,8 @@ def test_register_kafka_is_config_free_and_creates_real_adapter_instances() -> N
 
     register_kafka(registry)
 
-    assert registry.producer_backends() == ["kafka"]
-    assert registry.consumer_backends() == ["kafka"]
+    assert registry.producer_adapters() == ["kafka"]
+    assert registry.consumer_adapters() == ["kafka"]
     producer = registry.producer(KafkaConfig(brokers=["localhost:9092"]))
     consumer = registry.consumer(KafkaConfig(topics=["events"]))
     assert isinstance(producer, KafkaProducer)
@@ -68,8 +68,8 @@ def test_register_nats_is_config_free_and_creates_real_adapter_instances() -> No
 
     register_nats(registry)
 
-    assert registry.producer_backends() == ["nats"]
-    assert registry.consumer_backends() == ["nats"]
+    assert registry.producer_adapters() == ["nats"]
+    assert registry.consumer_adapters() == ["nats"]
     producer = registry.producer(NatsConfig(url="nats://localhost:4222", allow_insecure_dev=True))
     consumer = registry.consumer(NatsConfig(topics=["events"]))
     assert isinstance(producer, NatsProducer)
@@ -127,8 +127,8 @@ def test_register_rabbitmq_is_config_free_and_creates_real_adapter_instances() -
 
     register_rabbitmq(registry)
 
-    assert registry.producer_backends() == ["rabbitmq"]
-    assert registry.consumer_backends() == ["rabbitmq"]
+    assert registry.producer_adapters() == ["rabbitmq"]
+    assert registry.consumer_adapters() == ["rabbitmq"]
     producer = registry.producer(RabbitMqConfig(url="amqp://localhost:5672", allow_insecure_dev=True))
     consumer = registry.consumer(RabbitMqConfig(topics=["events"]))
     assert isinstance(producer, RabbitMqProducer)

@@ -14,7 +14,7 @@ from pykit_messaging.config import (
     validate_topic_name,
 )
 
-BACKEND_NAME = "rabbitmq"
+ADAPTER_NAME = "rabbitmq"
 DEFAULT_URL = "amqps://localhost:5671/"
 EXCHANGE_TYPES = {"direct", "fanout", "topic", "headers"}
 
@@ -23,8 +23,8 @@ EXCHANGE_TYPES = {"direct", "fanout", "topic", "headers"}
 class RabbitMqConfig(BrokerConfig):
     """Configuration for the RabbitMQ adapter."""
 
-    backend: str = BACKEND_NAME
-    name: str = BACKEND_NAME
+    adapter: str = ADAPTER_NAME
+    name: str = ADAPTER_NAME
     url: str = field(default=DEFAULT_URL, repr=False)
     routing_key_prefix: str = ""
     exchange_name: str = ""
@@ -43,7 +43,7 @@ class RabbitMqConfig(BrokerConfig):
     def validate(self) -> None:
         """Validate RabbitMQ-specific and broker-neutral settings."""
         super().validate()
-        reject_exactly_once(self, BACKEND_NAME)
+        reject_exactly_once(self, ADAPTER_NAME)
         if not self.url:
             raise AppError.invalid_input("url", "RabbitMQ connection URL is required")
         _validate_rabbitmq_url(self.url, self.allow_insecure_dev)

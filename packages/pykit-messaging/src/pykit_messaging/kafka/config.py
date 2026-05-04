@@ -21,7 +21,7 @@ _ACKS = {"0", "1", "all"}
 class KafkaConfig(BrokerConfig):
     """Configuration for the Kafka adapter."""
 
-    backend: str = "kafka"
+    adapter: str = "kafka"
     name: str = "kafka"
 
     # Kafka connection and subscription settings.

@@ -70,6 +70,7 @@ class NatsConsumer:
         client = _require_client(self._client)
 
         for topic in self._topics:
+
             async def _make_callback(
                 logical_topic: str,
             ) -> object:
