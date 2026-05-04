@@ -82,6 +82,11 @@ class BrokerConfig:
             self.commit_strategy = CommitStrategy(self.commit_strategy)
         except ValueError as exc:
             raise AppError.invalid_input("commit_strategy", "unsupported commit strategy") from exc
+        if self.commit_strategy is CommitStrategy.MANUAL:
+            raise AppError.invalid_input(
+                "commit_strategy",
+                "manual commits require an explicit ack/commit API and are not supported yet",
+            )
         return self
 
     def validate(self) -> None:

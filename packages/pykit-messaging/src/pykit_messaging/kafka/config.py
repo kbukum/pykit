@@ -5,7 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from pykit_errors import AppError
-from pykit_messaging.config import BrokerConfig, CommitStrategy, DeliveryGuarantee, validate_topic_name
+from pykit_messaging.config import (
+    BrokerConfig,
+    reject_exactly_once,
+    validate_topic_name,
+)
 
 _SECURITY_PROTOCOLS = {"PLAINTEXT", "SSL", "SASL_PLAINTEXT", "SASL_SSL"}
 _COMPRESSION_TYPES = {"gzip", "snappy", "lz4", "zstd", "none"}
@@ -98,17 +102,7 @@ class KafkaConfig(BrokerConfig):
             )
         if self.max_poll_records is not None and self.max_poll_records < 1:
             raise AppError.invalid_input("max_poll_records", "max_poll_records must be at least 1")
-        if self.delivery_guarantee is DeliveryGuarantee.EXACTLY_ONCE and not self.transactional_id:
-            raise AppError.invalid_input(
-                "transactional_id", "Kafka exactly-once delivery requires a transactional_id"
-            )
-        if (
-            self.delivery_guarantee is DeliveryGuarantee.EXACTLY_ONCE
-            and self.commit_strategy is CommitStrategy.AUTO
-        ):
-            raise AppError.invalid_input(
-                "commit_strategy", "Kafka exactly-once delivery requires post-handler or manual commits"
-            )
+        reject_exactly_once(self, "kafka")
 
 
 def _has_url_credentials(value: str) -> bool:

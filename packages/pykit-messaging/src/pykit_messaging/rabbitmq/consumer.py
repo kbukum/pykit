@@ -82,7 +82,7 @@ class RabbitMqConsumer:
     def __init__(self, config: RabbitMqConfig) -> None:
         config.validate()
         self._config = config
-        self._topics = list(config.topics)
+        self._topics = list(config.topics or config.subscriptions)
         self._aio_pika: _AioPikaModule | None = None
         self._connection: _Connection | None = None
         self._channel: _Channel | None = None
@@ -118,13 +118,13 @@ class RabbitMqConsumer:
         channel = _require_channel(self._channel)
         exchange = _require_exchange(self._exchange)
 
-        async def _callback(raw_message: object) -> None:
+        async def _handle(raw_message: object, logical_topic: str) -> None:
             message = cast("_RabbitRawMessage", raw_message)
             if self._config.auto_ack:
-                await handler(_to_message(message))
+                await handler(_to_message(message, logical_topic))
                 return
             async with message.process():
-                await handler(_to_message(message))
+                await handler(_to_message(message, logical_topic))
 
         for topic in self._topics:
             queue = await channel.declare_queue(
@@ -135,6 +135,10 @@ class RabbitMqConsumer:
             )
             if self._config.exchange_name:
                 await queue.bind(exchange, routing_key=self._config.routing_key(topic))
+
+            async def _callback(raw_message: object, logical_topic: str = topic) -> None:
+                await _handle(raw_message, logical_topic)
+
             self._consumer_tags.append((queue, await queue.consume(_callback, no_ack=self._config.auto_ack)))
         await self._closed.wait()
 
@@ -180,12 +184,12 @@ def _require_exchange(exchange: _Exchange | None) -> _Exchange:
     return exchange
 
 
-def _to_message(raw_message: _RabbitRawMessage) -> Message:
+def _to_message(raw_message: _RabbitRawMessage, logical_topic: str) -> Message:
     headers = _headers_to_dict(raw_message.headers)
     return Message(
         key=raw_message.correlation_id,
         value=raw_message.body,
-        topic=raw_message.routing_key,
+        topic=logical_topic,
         partition=0,
         offset=0,
         timestamp=datetime.now(UTC),

@@ -35,7 +35,7 @@ class NatsConsumer:
     def __init__(self, config: NatsConfig) -> None:
         config.validate()
         self._config = config
-        self._topics = list(config.topics)
+        self._topics = list(config.topics or config.subscriptions)
         self._client: _NatsClient | None = None
         self._subscriptions: list[object] = []
         self._closed = asyncio.Event()

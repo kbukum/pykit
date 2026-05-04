@@ -76,7 +76,7 @@ class RabbitMqProducer:
         headers: dict[str, str] | None = None,
     ) -> None:
         """Publish bytes using *topic* as the routing key."""
-        routing_key = self._config.routing_key(topic)
+        routing_key = self._publish_routing_key(topic)
         await self.start()
         aio_pika = _require_module(self._aio_pika)
         exchange = _require_exchange(self._exchange)
@@ -113,6 +113,11 @@ class RabbitMqProducer:
             await self._connection.close()
             self._connection = None
         self._exchange = None
+
+    def _publish_routing_key(self, topic: str) -> str:
+        if not self._config.exchange_name:
+            return self._config.queue_for(topic)
+        return self._config.routing_key(topic)
 
 
 def _import_aio_pika() -> _AioPikaModule:

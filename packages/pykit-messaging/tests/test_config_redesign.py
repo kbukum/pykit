@@ -80,11 +80,11 @@ def test_kafka_config_validation_and_secret_redaction() -> None:
     assert cfg.brokers == ["localhost:9092"]
 
 
-def test_kafka_exactly_once_requires_transactional_id() -> None:
+def test_kafka_exactly_once_is_rejected_until_transactions_are_supported() -> None:
     with pytest.raises(AppError) as exc_info:
         KafkaConfig(delivery_guarantee=DeliveryGuarantee.EXACTLY_ONCE)
 
-    assert exc_info.value.details["field"] == "transactional_id"
+    assert exc_info.value.details["field"] == "delivery_guarantee"
 
 
 def test_nats_config_validation_defaults_and_secret_redaction() -> None:
