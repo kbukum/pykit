@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+import pykit_storage.s3 as s3
 from pykit_errors import InvalidInputError, NotFoundError
 from pykit_storage import FileInfo, LocalStorage, StorageConfig
 from pykit_storage.s3 import S3Storage, validate_key
@@ -71,6 +72,25 @@ class TestS3ConfigValidation:
         assert _FakeS3Client.last_bucket == "bucket"
         assert _FakeS3Client.last_key == "tenant/a.bin"
 
+    async def test_s3_exists_handles_botocore_client_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(s3, "_client_error_type", lambda: _FakeClientError)
+        storage = S3Storage.__new__(S3Storage)
+        storage._bucket = "bucket"
+        storage._client = _MissingS3ClientContext  # type: ignore[method-assign]
+
+        assert await storage.exists("tenant/missing.bin") is False
+
+    async def test_s3_download_maps_botocore_client_error_to_not_found(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(s3, "_client_error_type", lambda: _FakeClientError)
+        storage = S3Storage.__new__(S3Storage)
+        storage._bucket = "bucket"
+        storage._client = _MissingS3ClientContext  # type: ignore[method-assign]
+
+        with pytest.raises(NotFoundError):
+            await storage.download("tenant/missing.bin")
+
 
 class _UnreadableStream(BytesIO):
     def read(self, *_args: object, **_kwargs: object) -> bytes:
@@ -91,6 +111,35 @@ class _FakeS3Client:
 class _FakeS3ClientContext:
     async def __aenter__(self) -> _FakeS3Client:
         return _FakeS3Client()
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+
+class _FakeClientError(Exception):
+    def __init__(self) -> None:
+        super().__init__("missing")
+        self.response = {"Error": {"Code": "404"}}
+
+
+class _ModeledExceptions:
+    class NoSuchKey(Exception):
+        pass
+
+
+class _MissingS3Client:
+    exceptions = _ModeledExceptions
+
+    async def head_object(self, **_kwargs: object) -> None:
+        raise _FakeClientError()
+
+    async def get_object(self, **_kwargs: object) -> object:
+        raise _FakeClientError()
+
+
+class _MissingS3ClientContext:
+    async def __aenter__(self) -> _MissingS3Client:
+        return _MissingS3Client()
 
     async def __aexit__(self, *_exc: object) -> None:
         return None

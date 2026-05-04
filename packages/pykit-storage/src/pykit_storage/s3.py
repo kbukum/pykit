@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 from datetime import UTC, datetime, timedelta
 from inspect import isawaitable
-from typing import TYPE_CHECKING, Any, BinaryIO
+from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from pykit_errors import AppError, InvalidInputError, NotFoundError
 from pykit_errors.codes import ErrorCode
@@ -53,13 +53,13 @@ class S3Storage:
         """Download an object from S3."""
         key = validate_key(path)
         async with self._client() as client:
+            client_error = _client_error_type()
             try:
                 response = await client.get_object(Bucket=self._bucket, Key=key)
             except client.exceptions.NoSuchKey as exc:
                 raise NotFoundError("file", key) from exc
-            except client.exceptions.ClientError as exc:
-                error = exc.response.get("Error", {})
-                if error.get("Code") in {"404", "NoSuchKey", "NotFound"}:
+            except client_error as exc:
+                if _client_error_code(exc) in {"404", "NoSuchKey", "NotFound"}:
                     raise NotFoundError("file", key) from exc
                 raise AppError(ErrorCode.EXTERNAL_SERVICE, "S3 get_object failed").with_cause(exc) from exc
             body = response["Body"]
@@ -75,13 +75,13 @@ class S3Storage:
         """Return whether an object exists."""
         key = validate_key(path)
         async with self._client() as client:
+            client_error = _client_error_type()
             try:
                 await client.head_object(Bucket=self._bucket, Key=key)
             except client.exceptions.NoSuchKey:
                 return False
-            except client.exceptions.ClientError as exc:
-                error = exc.response.get("Error", {})
-                if error.get("Code") in {"404", "NoSuchKey", "NotFound"}:
+            except client_error as exc:
+                if _client_error_code(exc) in {"404", "NoSuchKey", "NotFound"}:
                     return False
                 raise AppError(ErrorCode.EXTERNAL_SERVICE, "S3 head_object failed").with_cause(exc) from exc
             return True
@@ -137,6 +137,21 @@ def validate_key(path: str) -> str:
     if path.startswith("/") or any(part in {"", ".", ".."} for part in path.split("/")):
         raise InvalidInputError("storage key must be a normalized relative path", field="path")
     return path
+
+
+def _client_error_type() -> type[Exception]:
+    return cast("type[Exception]", importlib.import_module("botocore.exceptions").ClientError)
+
+
+def _client_error_code(exc: BaseException) -> str | None:
+    response = getattr(exc, "response", None)
+    if not isinstance(response, dict):
+        return None
+    error = response.get("Error")
+    if not isinstance(error, dict):
+        return None
+    code = error.get("Code")
+    return str(code) if code is not None else None
 
 
 def register(registry: StorageRegistry) -> None:
