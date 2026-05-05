@@ -61,15 +61,29 @@ class TestDeadLetterProducer:
         envelope = json.loads(mock_producer.send.call_args[1]["value"])
         assert envelope["retry_count"] == 3
 
-    async def test_preserves_original_headers(self) -> None:
+    async def test_preserves_safe_headers_and_redacts_sensitive_headers(self) -> None:
         mock_producer = AsyncMock()
         dlq = DeadLetterProducer(mock_producer)
 
-        msg = _make_msg(headers={"x-retry-count": "1", "trace-id": "abc"})
+        msg = _make_msg(headers={"x-retry-count": "1", "trace-id": "abc", "authorization": "Bearer secret"})
         await dlq.send(msg, RuntimeError("err"))
 
         envelope = json.loads(mock_producer.send.call_args[1]["value"])
         assert envelope["headers"]["trace-id"] == "abc"
+        assert envelope["headers"]["authorization"] == "<redacted>"
+        assert "secret" not in mock_producer.send.call_args[1]["value"].decode()
+
+    async def test_redacts_sensitive_error_and_truncates_payload(self) -> None:
+        mock_producer = AsyncMock()
+        dlq = DeadLetterProducer(mock_producer)
+
+        msg = _make_msg(value=b"x" * 5000)
+        await dlq.send(msg, RuntimeError("password=secret"))
+
+        envelope = json.loads(mock_producer.send.call_args[1]["value"])
+        assert envelope["error"] == "<redacted>"
+        assert len(envelope["payload"]) == 4097
+        assert envelope["payload"].endswith("…")
 
     async def test_default_key_when_none(self) -> None:
         mock_producer = AsyncMock()

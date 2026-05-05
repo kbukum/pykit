@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from pykit_messaging.handler import FuncHandler
@@ -81,7 +83,7 @@ async def test_retry_succeeds_after_failures() -> None:
 
 @pytest.mark.asyncio
 async def test_retry_exhausted_calls_callback() -> None:
-    """Test that exhaustion callback is called when retries are exhausted."""
+    """Test that exhaustion callback is called and error is re-raised."""
     exhausted_msgs: list[Message] = []
 
     async def on_exhausted(msg: Message, err: Exception) -> None:
@@ -145,6 +147,11 @@ async def test_dead_letter_sends_to_dlq() -> None:
 
     assert len(producer.sent) == 1
     assert producer.sent[0][0] == "orders.dlq"
+    envelope = json.loads(producer.sent[0][1])
+    assert envelope["original_topic"] == "orders"
+    assert envelope["error"] == "bad"
+    assert envelope["retry_count"] == 0
+    assert envelope["payload"] == "v"
 
 
 @pytest.mark.asyncio
@@ -212,3 +219,45 @@ async def test_stack_builder_fluent_api() -> None:
     # Should be able to chain all methods
     assert result1 is builder
     assert result2 is builder
+
+
+@pytest.mark.asyncio
+async def test_dead_letter_redacts_retry_count_and_sensitive_values() -> None:
+    """Test that DLQ envelopes record retry count and redact secrets."""
+    producer = MockProducer()
+    dlq = DeadLetterProducer(producer)
+    msg = Message(
+        key=None,
+        value=b"password=secret",
+        topic="orders",
+        partition=0,
+        offset=0,
+        headers={"x-retry-count": "2", "authorization": "Bearer secret", "trace-id": "abc"},
+    )
+
+    await dlq.send(msg, RuntimeError("token leaked"))
+
+    envelope = json.loads(producer.sent[0][1])
+    assert envelope["retry_count"] == 2
+    assert envelope["error"] == "<redacted>"
+    assert envelope["payload"] == "<redacted>"
+    assert envelope["headers"]["authorization"] == "<redacted>"
+    assert envelope["headers"]["trace-id"] == "abc"
+    assert b"Bearer secret" not in producer.sent[0][1]
+
+
+@pytest.mark.asyncio
+async def test_retry_exhausted_callback_failure_propagates() -> None:
+    """Test DLQ publish failures propagate from retry exhaustion."""
+
+    async def on_exhausted(msg: Message, err: Exception) -> None:
+        raise RuntimeError("dlq failed")
+
+    async def always_fail(msg: Message) -> None:
+        raise RuntimeError("boom")
+
+    cfg = RetryConfig(max_attempts=1, initial_backoff=0.001, on_exhausted=on_exhausted)
+    wrapped = RetryHandler(FuncHandler(always_fail), cfg)
+
+    with pytest.raises(RuntimeError, match="dlq failed"):
+        await wrapped.handle(_make_msg())

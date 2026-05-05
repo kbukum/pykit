@@ -7,7 +7,7 @@ import time
 
 from pykit_messaging.metrics import MetricsCollector, NoopMetrics
 from pykit_messaging.protocols import MessageProducer
-from pykit_messaging.types import Event, Message
+from pykit_messaging.types import Event, JsonValue, Message
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ class ManagedProducer:
             duration_ms = (time.monotonic() - start) * 1000
             self._metrics.record_publish(topic, duration_ms, success=success)
 
-    async def send_json(self, topic: str, data: object, key: str | None = None) -> None:
+    async def send_json(self, topic: str, data: JsonValue, key: str | None = None) -> None:
         """Send JSON data, recording metrics.
 
         Args:

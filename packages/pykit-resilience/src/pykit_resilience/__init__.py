@@ -22,6 +22,7 @@ from pykit_resilience.retry import (
     LinearBackoff,
     RetryConfig,
     RetryExhaustedError,
+    calculate_backoff,
     retry,
 )
 
@@ -46,5 +47,6 @@ __all__ = [
     "ServiceHealth",
     "ServiceStatus",
     "State",
+    "calculate_backoff",
     "retry",
 ]

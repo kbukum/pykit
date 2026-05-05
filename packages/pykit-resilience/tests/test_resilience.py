@@ -21,6 +21,7 @@ from pykit_resilience import (
     RetryConfig,
     RetryExhaustedError,
     State,
+    calculate_backoff,
     retry,
 )
 
@@ -356,6 +357,10 @@ class TestRetry:
         assert cfg.max_backoff == 10.0
         assert cfg.backoff_factor == 2.0
         assert cfg.jitter == 0.1
+
+    def test_calculate_backoff_is_public(self) -> None:
+        cfg = RetryConfig(initial_backoff=0.1, max_backoff=0.25, backoff_factor=2.0, jitter=0.0)
+        assert calculate_backoff(3, cfg) == 0.25
 
 
 # ---------------------------------------------------------------------------

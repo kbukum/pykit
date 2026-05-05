@@ -7,7 +7,7 @@ from pykit_messaging.middleware.circuit_breaker import (
     CircuitBreakerHandler,
     circuit_breaker,
 )
-from pykit_messaging.middleware.dead_letter import DeadLetterConfig, DeadLetterProducer
+from pykit_messaging.middleware.dead_letter import DeadLetterConfig, DeadLetterEnvelope, DeadLetterProducer
 from pykit_messaging.middleware.dedup import DedupConfig, DedupHandler, dedup
 from pykit_messaging.middleware.metrics import MetricsHandler, instrument
 from pykit_messaging.middleware.retry import RetryConfig, RetryHandler, retry
@@ -17,6 +17,7 @@ __all__ = [
     "CircuitBreakerConfig",
     "CircuitBreakerHandler",
     "DeadLetterConfig",
+    "DeadLetterEnvelope",
     "DeadLetterProducer",
     "DedupConfig",
     "DedupHandler",

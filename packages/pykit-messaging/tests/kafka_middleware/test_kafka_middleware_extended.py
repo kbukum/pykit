@@ -19,7 +19,6 @@ from pykit_messaging.kafka.middleware.metrics import InstrumentHandler
 from pykit_messaging.kafka.middleware.retry import (
     RetryHandler,
     RetryMiddlewareConfig,
-    _calculate_backoff,
 )
 from pykit_messaging.kafka.middleware.tracing import (
     TracingHandler,
@@ -27,6 +26,7 @@ from pykit_messaging.kafka.middleware.tracing import (
     inject_trace_context,
 )
 from pykit_messaging.types import Message
+from pykit_resilience import calculate_backoff
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -67,35 +67,35 @@ def _get_sample_value(name: str, labels: dict[str, str]) -> float | None:
 class TestCalculateBackoff:
     def test_first_attempt_equals_initial_backoff(self) -> None:
         cfg = RetryMiddlewareConfig(initial_backoff=0.5, jitter=0.0, backoff_factor=2.0)
-        result = _calculate_backoff(1, cfg)
+        result = calculate_backoff(1, cfg)
         assert abs(result - 0.5) < 1e-9
 
     def test_exponential_growth(self) -> None:
         cfg = RetryMiddlewareConfig(initial_backoff=0.1, jitter=0.0, backoff_factor=2.0)
-        assert abs(_calculate_backoff(1, cfg) - 0.1) < 1e-9
-        assert abs(_calculate_backoff(2, cfg) - 0.2) < 1e-9
-        assert abs(_calculate_backoff(3, cfg) - 0.4) < 1e-9
+        assert abs(calculate_backoff(1, cfg) - 0.1) < 1e-9
+        assert abs(calculate_backoff(2, cfg) - 0.2) < 1e-9
+        assert abs(calculate_backoff(3, cfg) - 0.4) < 1e-9
 
     def test_max_backoff_cap(self) -> None:
         cfg = RetryMiddlewareConfig(initial_backoff=1.0, max_backoff=2.0, jitter=0.0, backoff_factor=10.0)
-        result = _calculate_backoff(5, cfg)
+        result = calculate_backoff(5, cfg)
         assert result <= 2.0
 
     def test_jitter_adds_variance(self) -> None:
         cfg = RetryMiddlewareConfig(initial_backoff=1.0, jitter=0.5, backoff_factor=1.0)
-        results = {_calculate_backoff(1, cfg) for _ in range(50)}
+        results = {calculate_backoff(1, cfg) for _ in range(50)}
         # With jitter, we should get various values
         assert len(results) > 1
 
     def test_backoff_never_negative(self) -> None:
         cfg = RetryMiddlewareConfig(initial_backoff=0.001, jitter=1.0, backoff_factor=1.0)
         for _ in range(100):
-            assert _calculate_backoff(1, cfg) >= 0.0
+            assert calculate_backoff(1, cfg) >= 0.0
 
     @pytest.mark.parametrize("factor", [1.0, 1.5, 2.0, 3.0])
     def test_various_backoff_factors(self, factor: float) -> None:
         cfg = RetryMiddlewareConfig(initial_backoff=0.1, jitter=0.0, backoff_factor=factor, max_backoff=100.0)
-        result = _calculate_backoff(3, cfg)
+        result = calculate_backoff(3, cfg)
         expected = 0.1 * math.pow(factor, 2)
         assert abs(result - expected) < 1e-9
 

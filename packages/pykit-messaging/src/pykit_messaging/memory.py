@@ -4,24 +4,70 @@ from __future__ import annotations
 
 import asyncio
 import threading
-from collections import defaultdict
+from collections import OrderedDict, defaultdict, deque
+from collections.abc import MutableMapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-from pykit_messaging.types import Event, Message, MessageHandler
+from pykit_errors import AppError
+from pykit_messaging.config import BrokerConfig, DeliveryGuarantee, reject_exactly_once
+from pykit_messaging.types import Event, JsonValue, Message, MessageHandler
 from pykit_util import JsonCodec
+
+if TYPE_CHECKING:
+    from pykit_messaging.registry import MessagingRegistry
+
+_ADAPTER_NAME = "memory"
+_DEFAULT_CAPACITY = 256
+_DEFAULT_HISTORY_LIMIT = 1024
+_DEFAULT_MAX_BROKERS = 32
+
+
+@dataclass
+class MemoryConfig(BrokerConfig):
+    """Configuration for the in-memory messaging adapter."""
+
+    adapter: str = _ADAPTER_NAME
+    name: str = _ADAPTER_NAME
+    capacity: int = _DEFAULT_CAPACITY
+    history_limit: int = _DEFAULT_HISTORY_LIMIT
+    max_brokers: int = _DEFAULT_MAX_BROKERS
+    topics: list[str] = field(default_factory=list)
+
+    def validate(self) -> None:
+        """Validate in-memory adapter settings."""
+        super().validate()
+        reject_exactly_once(self, _ADAPTER_NAME)
+        if self.capacity < 1:
+            raise AppError.invalid_input("capacity", "capacity must be at least 1")
+        if self.history_limit < 1:
+            raise AppError.invalid_input("history_limit", "history_limit must be at least 1")
+        if self.max_brokers < 1:
+            raise AppError.invalid_input("max_brokers", "max_brokers must be at least 1")
+        if self.delivery_guarantee is DeliveryGuarantee.AT_MOST_ONCE and self.max_in_flight != 1:
+            raise AppError.invalid_input(
+                "max_in_flight", "in-memory at-most-once delivery supports max_in_flight=1 only"
+            )
 
 
 class InMemoryBroker:
     """Channel-based message broker for testing.
 
-    Every message published through the broker is recorded in an internal
-    history list so that test assertion helpers can inspect what was sent.
+    Published messages are recorded in a bounded internal history so that test
+    assertion helpers can inspect recent messages without unbounded growth.
     """
 
-    def __init__(self, capacity: int = 256) -> None:
+    def __init__(
+        self, capacity: int = _DEFAULT_CAPACITY, history_limit: int = _DEFAULT_HISTORY_LIMIT
+    ) -> None:
+        if capacity < 1:
+            raise ValueError("capacity must be at least 1")
+        if history_limit < 1:
+            raise ValueError("history_limit must be at least 1")
         self._queues: dict[str, asyncio.Queue[Message]] = defaultdict(lambda: asyncio.Queue(maxsize=capacity))
         self._capacity = capacity
-        self._history: list[Message] = []
+        self._history: deque[Message] = deque(maxlen=history_limit)
         self._topics: set[str] = set()
         self._lock = threading.Lock()
         self._event = asyncio.Event()
@@ -83,12 +129,59 @@ class InMemoryBroker:
         self._event.clear()
 
 
+def register(registry: MessagingRegistry) -> None:
+    """Register config-free in-memory producer and consumer factories."""
+    brokers: OrderedDict[str, InMemoryBroker] = OrderedDict()
+
+    def broker_for(config: BrokerConfig) -> InMemoryBroker:
+        if isinstance(config, MemoryConfig):
+            config.validate()
+        else:
+            config.validate()
+            reject_exactly_once(config, _ADAPTER_NAME)
+        key = config.name or config.adapter
+        broker = brokers.get(key)
+        if broker is not None:
+            brokers.move_to_end(key)
+            return broker
+
+        max_brokers = getattr(config, "max_brokers", _DEFAULT_MAX_BROKERS)
+        if max_brokers < 1:
+            raise AppError.invalid_input("max_brokers", "max_brokers must be at least 1")
+        while len(brokers) >= max_brokers:
+            brokers.popitem(last=False)
+
+        broker = InMemoryBroker(
+            capacity=getattr(config, "capacity", _DEFAULT_CAPACITY),
+            history_limit=getattr(config, "history_limit", _DEFAULT_HISTORY_LIMIT),
+        )
+        brokers[key] = broker
+        return broker
+
+    def producer(config: BrokerConfig) -> InMemoryProducer:
+        return broker_for(config).producer()
+
+    def consumer(config: BrokerConfig) -> InMemoryConsumer:
+        return broker_for(config).consumer(
+            getattr(config, "subscriptions", []) or getattr(config, "topics", [])
+        )
+
+    registry.register_producer(_ADAPTER_NAME, producer)
+    registry.register_consumer(_ADAPTER_NAME, consumer)
+    registry.register_adapter_state_cleanup(_ADAPTER_NAME, brokers.clear)
+
+
+def clear_memory_brokers(registry: MessagingRegistry) -> None:
+    """Clear in-memory broker instances owned by *registry*."""
+    registry.clear_adapter_state(_ADAPTER_NAME)
+
+
 class InMemoryProducer:
     """Implements MessageProducer protocol using in-memory queues."""
 
     def __init__(
         self,
-        queues: dict[str, asyncio.Queue[Message]],
+        queues: MutableMapping[str, asyncio.Queue[Message]],
         broker: InMemoryBroker,
     ) -> None:
         self._queues = queues
@@ -118,9 +211,9 @@ class InMemoryProducer:
         """Send a structured event to *topic*."""
         await self.send(topic, event.to_json(), key=event.subject or None)
 
-    async def send_json(self, topic: str, data: object, key: str | None = None) -> None:
+    async def send_json(self, topic: str, data: JsonValue, key: str | None = None) -> None:
         """Send a JSON-serialised payload to *topic*."""
-        value = JsonCodec[object]().encode(data)
+        value = JsonCodec[JsonValue]().encode(data)
         await self.send(topic, value, key=key)
 
     async def send_batch(self, messages: list[Message]) -> None:

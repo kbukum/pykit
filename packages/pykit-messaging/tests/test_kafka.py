@@ -33,7 +33,7 @@ class TestKafkaConfig:
         assert cfg.group_id == ""
         assert cfg.topics == []
         assert cfg.enabled is True
-        assert cfg.security_protocol == "PLAINTEXT"
+        assert cfg.security_protocol == "SSL"
         assert cfg.sasl_mechanism == ""
         assert cfg.compression_type == "snappy"
         assert cfg.auto_offset_reset == "earliest"
@@ -53,6 +53,14 @@ class TestKafkaConfig:
         assert len(cfg.brokers) == 2
         assert cfg.group_id == "test-group"
         assert cfg.sasl_mechanism == "PLAIN"
+
+    def test_repr_redacts_sasl_credentials(self) -> None:
+        cfg = KafkaConfig(sasl_username="user-secret", sasl_password="password-secret")
+        rendered = repr(cfg)
+        assert "user-secret" not in rendered
+        assert "password-secret" not in rendered
+        assert "sasl_username" not in rendered
+        assert "sasl_password" not in rendered
 
 
 # ---------------------------------------------------------------------------
