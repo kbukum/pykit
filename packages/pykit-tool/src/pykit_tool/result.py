@@ -42,7 +42,11 @@ class Result:
         if self.output is not None and isinstance(
             self.output, (dict, list, str, int, float, bool, type(None))
         ):
-            return ToolResultBlock(id=id, content=[self.output], is_error=self.is_error)
+            try:
+                json.dumps(self.output)
+                return ToolResultBlock(id=id, content=[self.output], is_error=self.is_error)
+            except (TypeError, ValueError):
+                pass
         return ToolResultBlock(id=id, content=[self.text()], is_error=self.is_error)
 
 

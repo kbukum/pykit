@@ -59,7 +59,7 @@ class Tool[In, Out]:
             if isinstance(raw, Result):
                 return raw
             if isinstance(raw, BaseModel):
-                return Result(output=raw.model_dump(), content=raw.model_dump_json())
+                return Result(output=raw.model_dump(mode="json"), content=raw.model_dump_json())
             if isinstance(raw, (dict, list)):
                 return Result(output=raw, content=json.dumps(raw))
             if isinstance(raw, str):
