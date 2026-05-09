@@ -105,5 +105,13 @@ class _CallableWrapper:
         return self._tool.validate(input_data)
 
     async def call(self, ctx: Context, input_data: dict[str, Any]) -> Result:
-        """Deserialize input dict, call handler, return Result."""
-        return await self._tool.call(ctx, input_data)
+        """Deserialize input dict via the tool's input type, then call handler."""
+        typed_input: Any = input_data
+        if self._tool._input_type is not None:
+            input_cls = self._tool._input_type
+            if hasattr(input_cls, "model_validate"):
+                typed_input = input_cls.model_validate(input_data)
+            elif hasattr(input_cls, "__dataclass_fields__"):
+                typed_input = input_cls(**input_data)
+            # For plain types (str, int, dict, etc.), pass the dict through as-is.
+        return await self._tool.call(ctx, typed_input)

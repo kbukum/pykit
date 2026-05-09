@@ -121,6 +121,7 @@ class Annotations(BaseModel):
     category: str = ""
     tags: list[str] = Field(default_factory=list)
     idempotent_hint: bool | None = None
+    open_world_hint: bool | None = None
     execution_hint: ExecutionHint = ExecutionHint.BACKEND
 
 

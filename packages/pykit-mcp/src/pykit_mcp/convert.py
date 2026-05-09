@@ -31,6 +31,9 @@ def _to_mcp_annotations(defn: Definition) -> mcp_types.ToolAnnotations:
     read_only = safety == Safety.READ_ONLY
     destructive = safety == Safety.DESTRUCTIVE
     open_world = bool(defn.envelope.network.rules or defn.envelope.filesystem or defn.envelope.subprocess)
+    # Preserve open_world_hint from annotations if set (e.g. from MCP round-trip).
+    if defn.annotations.open_world_hint is not None:
+        open_world = defn.annotations.open_world_hint
     return mcp_types.ToolAnnotations(
         title=defn.annotations.title or None,
         readOnlyHint=read_only,
@@ -58,11 +61,21 @@ def mcp_tool_to_definition(tool: mcp_types.Tool, prefix: str = "") -> Definition
         input_schema = dict(tool.inputSchema)
 
     safety = Safety.READ_ONLY
+    open_world_hint: bool | None = None
     if tool.annotations is not None:
         if tool.annotations.readOnlyHint:
             safety = Safety.READ_ONLY
-        if tool.annotations.destructiveHint:
+        elif tool.annotations.destructiveHint:
             safety = Safety.DESTRUCTIVE
+        else:
+            safety = Safety.MUTATING
+        open_world_hint = tool.annotations.openWorldHint
+        if tool.annotations.openWorldHint is not None:
+            annotations = Annotations(
+                title=annotations.title,
+                idempotent_hint=annotations.idempotent_hint,
+                open_world_hint=open_world_hint,
+            )
 
     return Definition(
         name=name,
