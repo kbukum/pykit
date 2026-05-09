@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import enum
-from typing import Any
 
 from pykit_errors import AppError
 from pykit_errors.codes import ErrorCode as BaseErrorCode
@@ -35,7 +34,7 @@ _HTTP_CODE_TO_BASE: dict[ErrorCode, BaseErrorCode] = {
 class HttpError(AppError):
     """Structured HTTP client error with classification."""
 
-    code: Any
+    _http_code: ErrorCode
 
     def __init__(
         self,
@@ -49,9 +48,14 @@ class HttpError(AppError):
         base_code = _HTTP_CODE_TO_BASE.get(code, BaseErrorCode.INTERNAL)
         super().__init__(base_code, message)
         self.status_code = status_code
-        self.code = code
+        self._http_code = code
         self.retryable = retryable
         self.body = body
+
+    @property
+    def code(self) -> ErrorCode:  # type: ignore[override]
+        """HTTP-specific error classification (narrows base ErrorCode)."""
+        return self._http_code
 
     def __str__(self) -> str:
         if self.status_code > 0:

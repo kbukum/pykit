@@ -104,9 +104,11 @@ class ErrorHandlingInterceptor(aio.ServerInterceptor):  # type: ignore[misc]  # 
                 if inspect.iscoroutine(metadata_result):
                     await metadata_result
                 await context.abort(exc.to_grpc_status(), exc.message)
+                return None
             except Exception as exc:
                 self.logger.exception("Unhandled error in gRPC handler", error=str(exc))
                 await context.abort(grpc.StatusCode.INTERNAL, "Internal server error")
+                return None
 
         return grpc.unary_unary_rpc_method_handler(
             wrapped,

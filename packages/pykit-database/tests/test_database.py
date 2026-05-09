@@ -144,10 +144,12 @@ class TestDatabase:
         database = Database(config)
         await database.run_migrations(Base.metadata)
 
-        with pytest.raises(RuntimeError, match="forced"):
+        try:
             async with database.session() as sess:
                 sess.add(User(name="Ghost", email="ghost@x.com"))
                 raise RuntimeError("forced")
+        except RuntimeError as exc:
+            assert str(exc) == "forced"
 
         # The insert should have been rolled back
         from sqlalchemy import select
@@ -193,14 +195,14 @@ class TestDatabase:
 
         from unittest.mock import patch as _patch
 
-        with (
-            _patch("pykit_database.database.asyncio.shield", side_effect=shield_spy),
-            pytest.raises(RuntimeError, match="forced rollback"),
-        ):
-            async with database.session() as sess:
-                sess.add(User(name="Shielded", email="shielded@x.com"))
-                await sess.flush()
-                raise RuntimeError("forced rollback")
+        with _patch("pykit_database.database.asyncio.shield", side_effect=shield_spy):
+            try:
+                async with database.session() as sess:
+                    sess.add(User(name="Shielded", email="shielded@x.com"))
+                    await sess.flush()
+                    raise RuntimeError("forced rollback")
+            except RuntimeError as exc:
+                assert str(exc) == "forced rollback"
 
         assert shielded is True
         await database.close()

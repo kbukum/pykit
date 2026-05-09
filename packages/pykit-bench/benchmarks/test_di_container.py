@@ -13,7 +13,8 @@ T = TypeVar("T")
 
 
 class Benchmark(Protocol):
-    def __call__(self, target: Callable[[], T], *args: object, **kwargs: object) -> T: ...
+    def __call__(self, target: Callable[[], T], *args: object, **kwargs: object) -> T:
+        pass
 
 
 def test_container_resolve_simple(benchmark: Benchmark) -> None:

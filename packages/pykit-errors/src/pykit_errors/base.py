@@ -27,9 +27,9 @@ class AppError(Exception):
 
     def __init__(self, code: ErrorCode, message: str) -> None:
         super().__init__(message)
-        self.code = code
+        self._base_code = code
         self.message = message
-        self.retryable = code.is_retryable
+        self._retryable = code.is_retryable
         self.http_status = code.http_status
         self.details: dict[str, Any] = {}
         self.cause: Exception | None = None
@@ -58,6 +58,25 @@ class AppError(Exception):
         self.retryable = retryable
         return self
 
+    @property
+    def code(self) -> ErrorCode:
+        """Machine-readable base error code."""
+        return self._base_code
+
+    @property
+    def base_code(self) -> ErrorCode:
+        """Underlying base error code used for protocol/status mappings."""
+        return self._base_code
+
+    @property
+    def retryable(self) -> bool:
+        """Whether this error is retryable."""
+        return self._retryable
+
+    @retryable.setter
+    def retryable(self, retryable: bool) -> None:
+        self._retryable = retryable
+
     # Query helpers
 
     @property
@@ -68,17 +87,17 @@ class AppError(Exception):
     @property
     def is_not_found(self) -> bool:
         """Whether this is a not-found error."""
-        return self.code == ErrorCode.NOT_FOUND
+        return self.base_code == ErrorCode.NOT_FOUND
 
     @property
     def is_unauthorized(self) -> bool:
         """Whether this is an authentication error."""
-        return self.code in {ErrorCode.UNAUTHORIZED, ErrorCode.TOKEN_EXPIRED, ErrorCode.INVALID_TOKEN}
+        return self.base_code in {ErrorCode.UNAUTHORIZED, ErrorCode.TOKEN_EXPIRED, ErrorCode.INVALID_TOKEN}
 
     @property
     def is_forbidden(self) -> bool:
         """Whether this is a permission error."""
-        return self.code == ErrorCode.FORBIDDEN
+        return self.base_code == ErrorCode.FORBIDDEN
 
     @property
     def is_wrapped(self) -> bool:
@@ -104,7 +123,7 @@ class AppError(Exception):
 
     def to_grpc_status(self) -> grpc.StatusCode:
         """Convert to the corresponding gRPC status code."""
-        return _GRPC_STATUS_BY_CODE[self.code.grpc_code]
+        return _GRPC_STATUS_BY_CODE[self.base_code.grpc_code]
 
     def __str__(self) -> str:
         s = f"{self.code}: {self.message}"

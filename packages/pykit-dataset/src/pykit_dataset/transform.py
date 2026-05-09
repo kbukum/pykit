@@ -19,11 +19,9 @@ class Transform(Protocol):
     @property
     def name(self) -> str:
         """Human-readable transform name."""
-        ...
 
     def apply(self, item: DataItem) -> DataItem | None:
         """Transform an item. Return ``None`` to discard."""
-        ...
 
 
 class ResizeTransform:

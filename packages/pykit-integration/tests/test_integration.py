@@ -167,7 +167,8 @@ class TestProviderPipeline:
     """Provider feeds pipeline, pipeline transforms and collects results."""
 
     async def test_provider_output_flows_through_pipeline(self) -> None:
-        _provider = RequestResponseFunc("doubler", lambda x: asyncio.coroutine(lambda: x * 2)())
+        provider = RequestResponseFunc("doubler", lambda x: asyncio.coroutine(lambda: x * 2)())
+        assert provider.name == "doubler"
 
         data = [1, 2, 3, 4, 5]
         p = Pipeline.from_list(data)
@@ -583,7 +584,8 @@ class TestFullStack:
         provider = RequestResponseFunc("multiplier", self._async_multiply)
         container.register_instance("multiplier", provider)
 
-        _resolved = container.resolve("multiplier")
+        resolved = container.resolve("multiplier")
+        assert resolved is provider
 
         p = Pipeline.from_list([1, 2, 3, 4, 5])
         processed = p.map(lambda x: x * 3)

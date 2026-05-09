@@ -20,17 +20,22 @@ class _NatsClient(Protocol):
         payload: bytes = b"",
         *,
         headers: dict[str, str] | None = None,
-    ) -> None: ...
+    ) -> None:
+        """Publish a payload to the given subject."""
 
-    async def flush(self, timeout: float | None = None) -> None: ...
+    async def flush(self, timeout: float | None = None) -> None:
+        """Flush buffered publishes within the given timeout."""
 
-    def close(self) -> Awaitable[None] | None: ...
+    def close(self) -> Awaitable[None] | None:
+        """Close the client connection."""
 
-    async def drain(self) -> object: ...
+    async def drain(self) -> object:
+        """Drain pending work before closing the client."""
 
 
 class _NatsModule(Protocol):
-    def connect(self, **kwargs: object) -> Awaitable[_NatsClient]: ...
+    def connect(self, **kwargs: object) -> Awaitable[_NatsClient]:
+        """Connect to NATS and return a client."""
 
 
 class NatsProducer:

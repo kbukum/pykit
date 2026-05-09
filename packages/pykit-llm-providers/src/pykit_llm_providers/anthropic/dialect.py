@@ -177,7 +177,7 @@ def _encode_message(msg: Message) -> dict[str, Any]:
                 tool_msg_part["is_error"] = True
             return {"role": "user", "content": [tool_msg_part]}
         case _:
-            return {"role": "user", "content": ""}
+            raise ValueError(f"Unsupported Anthropic message type: {type(msg).__name__}")
 
 
 def _parse_response(data: dict[str, Any]) -> CompletionResponse:

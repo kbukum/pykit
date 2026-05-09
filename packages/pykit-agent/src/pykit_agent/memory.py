@@ -12,10 +12,17 @@ from pykit_llm.types import Message
 class Memory(Protocol):
     """Protocol for conversation memory backends."""
 
-    async def load(self, session_id: str) -> list[Message]: ...
-    async def save(self, session_id: str, messages: list[Message]) -> None: ...
-    async def append(self, session_id: str, messages: list[Message]) -> None: ...
-    async def clear(self, session_id: str) -> None: ...
+    async def load(self, session_id: str) -> list[Message]:
+        """Load all stored messages for ``session_id``."""
+
+    async def save(self, session_id: str, messages: list[Message]) -> None:
+        """Replace stored messages for ``session_id``."""
+
+    async def append(self, session_id: str, messages: list[Message]) -> None:
+        """Append messages to the history for ``session_id``."""
+
+    async def clear(self, session_id: str) -> None:
+        """Delete all stored messages for ``session_id``."""
 
 
 class InMemoryStore:

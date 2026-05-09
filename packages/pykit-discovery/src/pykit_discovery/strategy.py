@@ -13,7 +13,8 @@ from pykit_discovery.types import ServiceInstance
 class LoadBalancer(Protocol):
     """Protocol for selecting a service instance from a list."""
 
-    def select(self, instances: list[ServiceInstance]) -> ServiceInstance: ...
+    def select(self, instances: list[ServiceInstance]) -> ServiceInstance:
+        """Select one instance from the available candidates."""
 
 
 class RoundRobinStrategy:

@@ -226,6 +226,6 @@ class BenchRunner[L]:
                     if opts.fail_on_regression and diff.has_regression():
                         raise RuntimeError(f"Regression detected:\n{diff.summary()}")
             except FileNotFoundError:
-                pass
+                return bench_result
 
         return bench_result

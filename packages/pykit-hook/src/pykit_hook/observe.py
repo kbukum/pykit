@@ -9,4 +9,5 @@ from typing import Protocol, runtime_checkable
 class Observer[EventT](Protocol):
     """Async observe-only hook; mutation is not part of the contract."""
 
-    async def observe(self, event: EventT) -> None: ...
+    async def observe(self, event: EventT) -> None:
+        """Observe an event without mutating it."""

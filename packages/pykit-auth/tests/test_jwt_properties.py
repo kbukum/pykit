@@ -68,4 +68,5 @@ if HYPOTHESIS_AVAILABLE:
         try:
             service.decode_unverified(garbage.decode("latin-1", errors="ignore"))
         except Exception:
-            pass
+            # Invalid arbitrary input is allowed here; the property under test is that decoding never crashes.
+            return

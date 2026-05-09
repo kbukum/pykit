@@ -37,7 +37,6 @@ class TranscriptionBackend(Protocol):
             List of transcript segments with timestamps relative to the
             chunk start (0.0).
         """
-        ...
 
     async def is_available(self) -> bool:
         """Check if the transcription backend is ready.
@@ -45,4 +44,3 @@ class TranscriptionBackend(Protocol):
         Returns:
             True if the backend can accept transcription requests.
         """
-        ...

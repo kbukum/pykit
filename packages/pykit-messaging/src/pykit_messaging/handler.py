@@ -18,7 +18,6 @@ class MessageHandlerProtocol(Protocol):
         Args:
             msg: The message to handle.
         """
-        ...
 
 
 HandlerMiddleware = Callable[[MessageHandlerProtocol], MessageHandlerProtocol]

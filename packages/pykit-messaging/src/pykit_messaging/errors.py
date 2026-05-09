@@ -28,9 +28,11 @@ GENERIC_RETRYABLE_PATTERNS: tuple[str, ...] = (
 class ErrorClassifier(Protocol):
     """Classifies errors for retry/circuit-breaker decisions."""
 
-    def is_connection_error(self, error: Exception) -> bool: ...
+    def is_connection_error(self, error: Exception) -> bool:
+        """Return ``True`` when the error represents a connection failure."""
 
-    def is_retryable_error(self, error: Exception) -> bool: ...
+    def is_retryable_error(self, error: Exception) -> bool:
+        """Return ``True`` when the error should be retried."""
 
 
 def is_connection_error(

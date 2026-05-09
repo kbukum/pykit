@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
+from urllib.parse import urlparse
 
 import pytest
 
@@ -204,7 +205,7 @@ class TestKaggleTarget:
         assert isinstance(result, PublishResult)
         assert result.target_name == "kaggle:user/test-dataset"
         assert result.files_published == 2
-        assert "kaggle.com" in result.location
+        assert urlparse(result.location).hostname == "www.kaggle.com"
         mock_kagglehub.dataset_upload.assert_called_once_with(
             handle="user/test-dataset",
             local_dataset_dir=str(tmp_path),

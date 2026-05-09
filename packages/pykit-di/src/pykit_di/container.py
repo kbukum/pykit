@@ -117,10 +117,12 @@ class Container:
         self.register(name, factory, RegistrationMode.TRANSIENT)
 
     @overload
-    def resolve(self, name: str, type_hint: type[T]) -> T: ...
+    def resolve(self, name: str, type_hint: type[T]) -> T:
+        """Resolve a component by name with an expected type."""
 
     @overload
-    def resolve(self, name: str, type_hint: None = ...) -> object: ...
+    def resolve(self, name: str, type_hint: None = ...) -> object:
+        """Resolve a component by name without type narrowing."""
 
     def resolve(self, name: str, type_hint: type[T] | None = None) -> T | object:
         """Resolve a component by *name*."""
@@ -157,10 +159,12 @@ class Container:
         return self._check_type(name, instance, type_hint)
 
     @overload
-    def resolve_all(self, type_hint: type[T]) -> list[T]: ...
+    def resolve_all(self, type_hint: type[T]) -> list[T]:
+        """Resolve all registered components matching the expected type."""
 
     @overload
-    def resolve_all(self, type_hint: None = ...) -> list[object]: ...
+    def resolve_all(self, type_hint: None = ...) -> list[object]:
+        """Resolve all registered components without type narrowing."""
 
     def resolve_all(self, type_hint: type[T] | None = None) -> list[T] | list[object]:
         """Resolve all registered components, optionally filtered by type."""

@@ -14,10 +14,12 @@ class EnvelopeLike(Protocol):
     """Structural view of a tool envelope without importing pykit-tool."""
 
     @property
-    def scopes(self) -> tuple[str, ...]: ...
+    def scopes(self) -> tuple[str, ...]:
+        """Return the scopes declared for the tool."""
 
     @property
-    def safety(self) -> Safety | str: ...
+    def safety(self) -> Safety | str:
+        """Return the declared safety level for the tool."""
 
 
 @dataclass(frozen=True, slots=True)

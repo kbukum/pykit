@@ -729,9 +729,10 @@ class TestAppErrorStr:
         assert isinstance(err, Exception)
 
     def test_can_be_raised_and_caught(self) -> None:
-        with pytest.raises(AppError) as exc_info:
+        try:
             raise AppError.not_found("Foo", "1")
-        assert exc_info.value.code == ErrorCode.NOT_FOUND
+        except AppError as err:
+            assert err.code == ErrorCode.NOT_FOUND
 
 
 # ---------------------------------------------------------------------------

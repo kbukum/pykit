@@ -29,21 +29,29 @@ class Provider(Protocol):
     """
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the provider's stable name."""
 
-    async def is_available(self) -> bool: ...
+    async def is_available(self) -> bool:
+        """Report whether the provider can currently serve requests."""
 
-    async def start(self) -> None: ...
+    async def start(self) -> None:
+        """Initialize provider resources before handling requests."""
 
-    async def stop(self) -> None: ...
+    async def stop(self) -> None:
+        """Release provider resources and stop serving requests."""
 
-    async def health(self) -> Health: ...
+    async def health(self) -> Health:
+        """Return the provider's current health status."""
 
-    async def embed(self, req: EmbedRequest) -> EmbedResponse: ...
+    async def embed(self, req: EmbedRequest) -> EmbedResponse:
+        """Create embeddings for the request inputs."""
 
-    async def embed_batch(self, reqs: list[EmbedRequest]) -> list[EmbedResponse]: ...
+    async def embed_batch(self, reqs: list[EmbedRequest]) -> list[EmbedResponse]:
+        """Create embeddings for each request in the batch."""
 
-    async def execute(self, input: EmbedRequest) -> EmbedResponse: ...
+    async def execute(self, input: EmbedRequest) -> EmbedResponse:
+        """Execute a single embedding request and return its response."""
 
 
 class ProviderBase:
@@ -110,6 +118,8 @@ def _input_bytes(input_: Text | Image | Audio | Video) -> bytes:
             return text.encode("utf-8")
         case Image(data=data, url=url) | Audio(data=data, url=url) | Video(data=data, url=url):
             return data if data is not None else (url or "").encode("utf-8")
+        case _:
+            raise ValueError(f"Unsupported embedding input type: {type(input_).__name__}")
 
 
 def _vector_for_input(input_: Text | Image | Audio | Video, dimensions: int) -> list[float]:

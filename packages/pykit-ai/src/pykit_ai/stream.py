@@ -86,11 +86,9 @@ class StreamEvent(Protocol):
     @property
     def type(self) -> str:
         """Discriminator field identifying the event variant."""
-        ...
 
     def _stream_event_marker(self) -> None:
         """Mark this object as a structural stream event."""
-        ...
 
 
 class TextDelta(BaseModel):

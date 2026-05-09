@@ -88,7 +88,7 @@ def _decode_as[T](v: Any, cls: type[T]) -> T | None:
         if isinstance(data, dict):
             return cls(**data)
     except (TypeError, json.JSONDecodeError, KeyError):
-        pass
+        return None
     return None
 
 
@@ -137,13 +137,13 @@ def _extract_distributions(r: BenchRunResult) -> list[ScoreDistribution]:
     if raw is not None:
         try:
             items = json.loads(json.dumps(raw)) if not isinstance(raw, list) else raw
-            if isinstance(items, list):
-                dists = [_decode_as(item, ScoreDistribution) for item in items]
-                valid = [d for d in dists if d is not None]
-                if valid:
-                    return valid
         except (TypeError, json.JSONDecodeError):
-            pass
+            items = []
+        if isinstance(items, list):
+            dists = [_decode_as(item, ScoreDistribution) for item in items]
+            valid = [d for d in dists if d is not None]
+            if valid:
+                return valid
     # Build from samples
     if r.samples:
         return _build_distributions(r.samples)

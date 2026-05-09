@@ -26,15 +26,20 @@ class _KafkaConsumerRecord(Protocol):
 
 
 class _KafkaConsumerClient(Protocol):
-    async def start(self) -> None: ...
+    async def start(self) -> None:
+        """Start the consumer client."""
 
-    async def stop(self) -> None: ...
+    async def stop(self) -> None:
+        """Stop the consumer client."""
 
-    def subscribe(self, topics: list[str]) -> object: ...
+    def subscribe(self, topics: list[str]) -> object:
+        """Subscribe the client to the given topics."""
 
-    async def commit(self) -> object: ...
+    async def commit(self) -> object:
+        """Commit the current consumer offsets."""
 
-    def __aiter__(self) -> AsyncIterator[_KafkaConsumerRecord]: ...
+    def __aiter__(self) -> AsyncIterator[_KafkaConsumerRecord]:
+        """Return an async iterator over consumer records."""
 
 
 class _KafkaErrorFallback(Exception):

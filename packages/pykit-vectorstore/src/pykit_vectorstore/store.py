@@ -85,7 +85,6 @@ class VectorStore(Protocol):
         self, collection: str, dimensions: int, metric: VectorMetric | None = None
     ) -> None:
         """Ensure a collection exists, creating it if necessary."""
-        ...
 
     async def upsert(
         self,
@@ -95,7 +94,6 @@ class VectorStore(Protocol):
         payload: PointPayload,
     ) -> None:
         """Insert or update a vector point."""
-        ...
 
     async def search(
         self,
@@ -105,11 +103,9 @@ class VectorStore(Protocol):
         filter: SearchFilter | None = None,
     ) -> list[SearchResult]:
         """Search for similar vectors."""
-        ...
 
     async def delete(self, collection: str, id: str) -> None:
         """Delete a point by ID."""
-        ...
 
 
 VectorStoreFactory = Callable[[VectorStoreConfig], VectorStore]

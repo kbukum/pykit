@@ -123,7 +123,8 @@ class TestCacheClient:
         assert await client.get("k1") is None
 
     async def test_delete_missing(self, client: CacheClient) -> None:
-        assert await client.delete("nope") == 0
+        result = await client.delete("nope")
+        assert result == 0
 
     async def test_exists(self, client: CacheClient) -> None:
         await client.set("k1", "v1")

@@ -19,38 +19,47 @@ class _RabbitRawMessage(Protocol):
     correlation_id: str | None
     headers: object | None
 
-    def process(self) -> _RabbitMessageProcess: ...
+    def process(self) -> _RabbitMessageProcess:
+        """Return a context manager that handles message acknowledgements."""
 
 
 class _RabbitMessageProcess(Protocol):
-    async def __aenter__(self) -> object: ...
+    async def __aenter__(self) -> object:
+        """Enter message processing context."""
 
     async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         traceback: TracebackType | None,
-    ) -> object: ...
+    ) -> object:
+        """Exit message processing context and finalize acknowledgement state."""
 
 
 class _Exchange(Protocol):
-    async def publish(self, message: object, *, routing_key: str) -> object: ...
+    async def publish(self, message: object, *, routing_key: str) -> object:
+        """Publish a message to the exchange."""
 
 
 class _Queue(Protocol):
-    async def bind(self, exchange: _Exchange, *, routing_key: str) -> object: ...
+    async def bind(self, exchange: _Exchange, *, routing_key: str) -> object:
+        """Bind the queue to the exchange using the routing key."""
 
-    async def consume(self, callback: object, *, no_ack: bool = False) -> str: ...
+    async def consume(self, callback: object, *, no_ack: bool = False) -> str:
+        """Start consuming messages and return the broker consumer tag."""
 
-    async def cancel(self, consumer_tag: str) -> object: ...
+    async def cancel(self, consumer_tag: str) -> object:
+        """Cancel the consumer identified by the given tag."""
 
 
 class _Channel(Protocol):
     default_exchange: _Exchange
 
-    async def set_qos(self, *, prefetch_count: int) -> object: ...
+    async def set_qos(self, *, prefetch_count: int) -> object:
+        """Configure channel quality-of-service limits."""
 
-    async def declare_exchange(self, name: str, exchange_type: object, *, durable: bool) -> _Exchange: ...
+    async def declare_exchange(self, name: str, exchange_type: object, *, durable: bool) -> _Exchange:
+        """Declare and return an exchange."""
 
     async def declare_queue(
         self,
@@ -59,21 +68,26 @@ class _Channel(Protocol):
         durable: bool,
         auto_delete: bool = False,
         exclusive: bool = False,
-    ) -> _Queue: ...
+    ) -> _Queue:
+        """Declare and return a queue."""
 
-    async def close(self) -> object: ...
+    async def close(self) -> object:
+        """Close the channel."""
 
 
 class _Connection(Protocol):
-    async def channel(self, *, publisher_confirms: bool = True) -> _Channel: ...
+    async def channel(self, *, publisher_confirms: bool = True) -> _Channel:
+        """Open and return a channel."""
 
-    async def close(self) -> object: ...
+    async def close(self) -> object:
+        """Close the connection."""
 
 
 class _AioPikaModule(Protocol):
     ExchangeType: object
 
-    def connect_robust(self, url: str, **kwargs: object) -> Awaitable[_Connection]: ...
+    def connect_robust(self, url: str, **kwargs: object) -> Awaitable[_Connection]:
+        """Create a robust connection to RabbitMQ."""
 
 
 class RabbitMqConsumer:

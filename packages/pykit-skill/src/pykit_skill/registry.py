@@ -11,20 +11,25 @@ from pykit_skill.loader import SkillPack
 class Provider(Protocol):
     """Source of skill packs; registered explicitly at composition time."""
 
-    def list(self) -> list[SkillPack]: ...
+    def list(self) -> list[SkillPack]:
+        """Return the skill packs exposed by this provider."""
 
 
 @runtime_checkable
 class Registry(Protocol):
     """Skill registry protocol."""
 
-    def register(self, provider: Provider) -> None: ...
+    def register(self, provider: Provider) -> None:
+        """Register every pack exposed by the provider."""
 
-    def add(self, pack: SkillPack) -> None: ...
+    def add(self, pack: SkillPack) -> None:
+        """Add a single skill pack to the registry."""
 
-    def get(self, name: str) -> SkillPack | None: ...
+    def get(self, name: str) -> SkillPack | None:
+        """Return the pack registered for the given name, if any."""
 
-    def list(self) -> list[SkillPack]: ...
+    def list(self) -> list[SkillPack]:
+        """Return all registered skill packs."""
 
 
 class InMemoryRegistry:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from typing import Any, cast
+from dataclasses import dataclass
 
 from opentelemetry import metrics
 from opentelemetry.sdk.metrics import MeterProvider
@@ -12,28 +12,33 @@ from opentelemetry.sdk.resources import Resource
 from pykit_observability.config import MeterConfig
 
 _setup_lock = threading.Lock()
-_meter_provider: Any = None
+
+
+@dataclass(slots=True)
+class _MetricsState:
+    meter_provider: MeterProvider | None = None
+
+
+_metrics_state = _MetricsState()
 
 
 def setup_metrics(config: MeterConfig) -> MeterProvider:
     """Configure and set the global OTel meter provider. Idempotent — safe to call multiple times."""
-    global _meter_provider
     with _setup_lock:
-        if _meter_provider is not None:
-            return cast("MeterProvider", _meter_provider)
+        if _metrics_state.meter_provider is not None:
+            return _metrics_state.meter_provider
         resource = Resource.create({"service.name": config.service_name})
         provider = MeterProvider(resource=resource)
         metrics.set_meter_provider(provider)
-        _meter_provider = provider
+        _metrics_state.meter_provider = provider
         return provider
 
 
 def reset_metrics() -> None:
     """Reset to NoOp provider. Intended for test teardown only."""
-    global _meter_provider
     with _setup_lock:
         metrics.set_meter_provider(metrics.ProxyMeterProvider())  # type: ignore[attr-defined]  # ProxyMeterProvider exists at runtime but is not in type stubs
-        _meter_provider = None
+        _metrics_state.meter_provider = None
 
 
 def get_meter(name: str) -> metrics.Meter:

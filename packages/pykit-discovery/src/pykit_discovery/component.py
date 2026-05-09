@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from pykit_component import Health, HealthStatus
-from pykit_discovery.factory import ProviderPair, create_provider, init_builtin
+from pykit_discovery.factory import create_provider, init_builtin
 from pykit_discovery.protocols import Discovery, Registry
 from pykit_resilience import RetryConfig, RetryExhaustedError, retry
 

@@ -102,10 +102,12 @@ def _add_usage(total: Usage, delta: Usage) -> Usage:
 @runtime_checkable
 class _MCPBackedTool(Protocol):
     @property
-    def mcp_server(self) -> str: ...
+    def mcp_server(self) -> str:
+        """Return the MCP server name used by this tool."""
 
     @property
-    def mcp_method(self) -> str: ...
+    def mcp_method(self) -> str:
+        """Return the MCP method exposed by this tool."""
 
 
 @dataclass

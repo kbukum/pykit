@@ -26,7 +26,6 @@ class Source(Protocol):
     @property
     def name(self) -> str:
         """Unique identifier for this source."""
-        ...
 
     def fetch(self) -> AsyncIterator[DataItem]:
         """Yield data items from the source.
@@ -34,4 +33,3 @@ class Source(Protocol):
         This is an async generator. Items are yielded one at a time
         to keep memory usage constant regardless of dataset size.
         """
-        ...

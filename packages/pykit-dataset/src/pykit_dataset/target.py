@@ -28,7 +28,6 @@ class Target(Protocol):
     @property
     def name(self) -> str:
         """Unique identifier for this target."""
-        ...
 
     async def publish(self, directory: Path, metadata: dict[str, str] | None = None) -> PublishResult:
         """Publish the contents of ``directory`` to the target.
@@ -40,4 +39,3 @@ class Target(Protocol):
 
         Returns a ``PublishResult`` with location and stats.
         """
-        ...

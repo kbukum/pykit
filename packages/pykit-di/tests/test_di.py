@@ -108,8 +108,9 @@ class TestSingletonRegistration:
         assert call_count == 0
         assert c.resolve("svc") == "singleton"
         assert call_count == 1
+        previous_call_count = call_count
         c.resolve("svc")
-        assert call_count == 1
+        assert call_count == previous_call_count
 
     def test_register_with_mode_singleton(self) -> None:
         c = Container()

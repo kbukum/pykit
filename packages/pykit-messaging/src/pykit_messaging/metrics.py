@@ -17,7 +17,6 @@ class MetricsCollector(Protocol):
             duration_ms: Duration of the publish in milliseconds.
             success: Whether the publish succeeded.
         """
-        ...
 
     def record_consume(self, topic: str, duration_ms: float, *, success: bool) -> None:
         """Record a consume operation metric.
@@ -27,7 +26,6 @@ class MetricsCollector(Protocol):
             duration_ms: Duration of the consume handler in milliseconds.
             success: Whether the consume handler succeeded.
         """
-        ...
 
 
 class NoopMetrics:

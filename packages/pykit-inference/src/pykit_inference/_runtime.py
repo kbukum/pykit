@@ -29,7 +29,8 @@ from pykit_observability import SpanKind, start_span
 class ExecutePolicy(Protocol):
     """Subset of pykit_resilience.Policy consumed by adapters."""
 
-    async def execute[T](self, fn: Callable[[], Awaitable[T]]) -> T: ...
+    async def execute[T](self, fn: Callable[[], Awaitable[T]]) -> T:
+        """Execute an async callable within the configured policy."""
 
 
 async def authorize_prediction(

@@ -348,25 +348,25 @@ class TestShutdownLogging:
     def test_shutdown_with_no_bridge(self) -> None:
         from pykit_logging import setup as setup_mod
 
-        setup_mod._otlp_bridge = None
+        setup_mod._logging_state.otlp_bridge = None
         setup_mod.shutdown_logging()  # should not raise
 
     def test_shutdown_calls_bridge_shutdown(self) -> None:
         from pykit_logging import setup as setup_mod
 
         mock_bridge = MagicMock(spec=OTLPLogBridge)
-        setup_mod._otlp_bridge = mock_bridge
+        setup_mod._logging_state.otlp_bridge = mock_bridge
         setup_mod.shutdown_logging()
         mock_bridge.shutdown.assert_called_once()
-        assert setup_mod._otlp_bridge is None
+        assert setup_mod._logging_state.otlp_bridge is None
 
     def test_shutdown_clears_bridge(self) -> None:
         from pykit_logging import setup as setup_mod
 
         mock_bridge = MagicMock(spec=OTLPLogBridge)
-        setup_mod._otlp_bridge = mock_bridge
+        setup_mod._logging_state.otlp_bridge = mock_bridge
         setup_mod.shutdown_logging()
-        assert setup_mod._otlp_bridge is None
+        assert setup_mod._logging_state.otlp_bridge is None
 
 
 # =====================================================================
@@ -386,9 +386,9 @@ class TestSetupLoggingOTLPIntegration:
         from pykit_logging import setup as setup_mod
         from pykit_logging.setup import setup_logging
 
-        setup_mod._otlp_bridge = None
+        setup_mod._logging_state.otlp_bridge = None
         setup_logging(level="DEBUG", service_name="test", otlp=OTLPConfig(enabled=False))
-        assert setup_mod._otlp_bridge is None
+        assert setup_mod._logging_state.otlp_bridge is None
 
     def test_setup_with_enabled_otlp_creates_bridge(self, otel_mocks: dict[str, MagicMock]) -> None:
         from pykit_logging import setup as setup_mod
@@ -401,6 +401,6 @@ class TestSetupLoggingOTLPIntegration:
                 service_name="test-svc",
                 otlp=OTLPConfig(enabled=True),
             )
-        assert setup_mod._otlp_bridge is not None
+        assert setup_mod._logging_state.otlp_bridge is not None
         # Cleanup
-        setup_mod._otlp_bridge = None
+        setup_mod._logging_state.otlp_bridge = None

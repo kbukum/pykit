@@ -11,8 +11,6 @@ class Encryptor(Protocol):
 
     def encrypt(self, plaintext: str) -> str:
         """Encrypt *plaintext* and return a base64-encoded ciphertext string."""
-        ...
 
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt a base64-encoded *ciphertext* string and return the original plaintext."""
-        ...

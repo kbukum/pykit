@@ -26,15 +26,12 @@ class Evaluator(Protocol[L]):
     @property
     def name(self) -> str:
         """Return the evaluator's unique name."""
-        ...
 
     async def is_available(self) -> bool:
         """Check if the evaluator is ready."""
-        ...
 
     async def evaluate(self, input: bytes) -> Prediction[L]:
         """Execute the evaluator on raw input and return a prediction."""
-        ...
 
 
 class EvaluatorFunc[L]:

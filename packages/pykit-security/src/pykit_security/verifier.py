@@ -20,4 +20,5 @@ class VerificationResult:
 class Verifier(Protocol):
     """Verifier Protocol for signed artifacts such as skill packs."""
 
-    def verify(self, path: Path, signature: str | None) -> VerificationResult: ...
+    def verify(self, path: Path, signature: str | None) -> VerificationResult:
+        """Verify the artifact at ``path`` against the supplied signature."""

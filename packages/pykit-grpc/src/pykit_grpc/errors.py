@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 
 import grpc
 
@@ -14,11 +15,14 @@ from pykit_errors.codes import ErrorCode
 # gRPC status → AppError
 # ---------------------------------------------------------------------------
 
-_GRPC_TO_APP: dict[grpc.StatusCode, type[AppError]] = {
-    grpc.StatusCode.NOT_FOUND: NotFoundError,
-    grpc.StatusCode.INVALID_ARGUMENT: InvalidInputError,
-    grpc.StatusCode.UNAVAILABLE: ServiceUnavailableError,
-    grpc.StatusCode.DEADLINE_EXCEEDED: AppTimeoutError,
+_GRPC_TO_APP: dict[grpc.StatusCode, Callable[[str], AppError]] = {
+    grpc.StatusCode.NOT_FOUND: lambda details: NotFoundError(resource=details or "resource"),
+    grpc.StatusCode.INVALID_ARGUMENT: lambda details: InvalidInputError(details or "invalid argument"),
+    grpc.StatusCode.UNAVAILABLE: lambda details: ServiceUnavailableError(service=details or "service"),
+    grpc.StatusCode.DEADLINE_EXCEEDED: lambda details: AppTimeoutError(
+        operation=details or "rpc",
+        timeout_seconds=0,
+    ),
 }
 
 
@@ -30,18 +34,9 @@ def grpc_error_to_app_error(rpc_error: grpc.RpcError) -> AppError:
     """
     code: grpc.StatusCode = rpc_error.code()
     details: str = rpc_error.details()
-
-    if code == grpc.StatusCode.NOT_FOUND:
-        return NotFoundError(resource=details or "resource")
-
-    if code == grpc.StatusCode.INVALID_ARGUMENT:
-        return InvalidInputError(details or "invalid argument")
-
-    if code == grpc.StatusCode.UNAVAILABLE:
-        return ServiceUnavailableError(service=details or "service")
-
-    if code == grpc.StatusCode.DEADLINE_EXCEEDED:
-        return AppTimeoutError(operation=details or "rpc", timeout_seconds=0)
+    factory = _GRPC_TO_APP.get(code)
+    if factory is not None:
+        return factory(details)
 
     return AppError(ErrorCode.INTERNAL, details or f"gRPC error: {code.name}")
 
@@ -73,7 +68,7 @@ def app_error_to_grpc_status(app_error: AppError) -> tuple[grpc.StatusCode, str]
         if grpc_status != grpc.StatusCode.INTERNAL:
             return grpc_status, str(app_error)
     except (AttributeError, KeyError):
-        pass
+        return grpc.StatusCode.INTERNAL, str(app_error)
 
     return grpc.StatusCode.INTERNAL, str(app_error)
 

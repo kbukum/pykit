@@ -5,9 +5,6 @@ from pykit_media.types import MediaInfo, MediaType
 # ftyp brands that are image formats (handled by image detector)
 _IMAGE_FTYP_BRANDS = frozenset({b"avif", b"avis", b"heic", b"heix", b"heif"})
 
-# ftyp brands mapping to MP4
-_MP4_BRANDS = frozenset({b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"dash"})
-
 
 def detect_video(data: bytes) -> tuple[MediaInfo, bool]:
     """Detect video format from raw bytes.

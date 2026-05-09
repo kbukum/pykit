@@ -14,6 +14,8 @@ class Reporter(Protocol):
     """Protocol for generating reports from benchmark results."""
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the reporter name."""
 
-    def generate(self, writer: io.StringIO, result: BenchRunResult) -> None: ...
+    def generate(self, writer: io.StringIO, result: BenchRunResult) -> None:
+        """Write a report for the given benchmark result."""

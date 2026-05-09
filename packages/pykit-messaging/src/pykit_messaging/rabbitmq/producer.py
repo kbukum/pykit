@@ -12,21 +12,26 @@ from pykit_util import JsonCodec
 
 
 class _Exchange(Protocol):
-    async def publish(self, message: object, *, routing_key: str) -> object: ...
+    async def publish(self, message: object, *, routing_key: str) -> object:
+        """Publish a message to the exchange."""
 
 
 class _Channel(Protocol):
     default_exchange: _Exchange
 
-    async def declare_exchange(self, name: str, exchange_type: object, *, durable: bool) -> _Exchange: ...
+    async def declare_exchange(self, name: str, exchange_type: object, *, durable: bool) -> _Exchange:
+        """Declare and return an exchange."""
 
-    async def close(self) -> object: ...
+    async def close(self) -> object:
+        """Close the channel."""
 
 
 class _Connection(Protocol):
-    async def channel(self, *, publisher_confirms: bool = True) -> _Channel: ...
+    async def channel(self, *, publisher_confirms: bool = True) -> _Channel:
+        """Open and return a channel."""
 
-    async def close(self) -> object: ...
+    async def close(self) -> object:
+        """Close the connection."""
 
 
 class _DeliveryMode(Protocol):
@@ -38,7 +43,8 @@ class _AioPikaModule(Protocol):
     DeliveryMode: _DeliveryMode
     ExchangeType: object
 
-    def connect_robust(self, url: str, **kwargs: object) -> Awaitable[_Connection]: ...
+    def connect_robust(self, url: str, **kwargs: object) -> Awaitable[_Connection]:
+        """Create a robust connection to RabbitMQ."""
 
 
 class RabbitMqProducer:

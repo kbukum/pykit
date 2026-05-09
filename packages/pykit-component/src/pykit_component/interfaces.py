@@ -46,13 +46,17 @@ class Component(Protocol):
     """Lifecycle-managed infrastructure component."""
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the component name."""
 
-    async def start(self) -> None: ...
+    async def start(self) -> None:
+        """Start the component."""
 
-    async def stop(self) -> None: ...
+    async def stop(self) -> None:
+        """Stop the component."""
 
-    async def health(self) -> Health: ...
+    async def health(self) -> Health:
+        """Return the current health information."""
 
 
 @dataclass(frozen=True)
@@ -68,4 +72,5 @@ class Description:
 class Describable(Protocol):
     """Optionally implemented by components to provide startup summary info."""
 
-    def describe(self) -> Description: ...
+    def describe(self) -> Description:
+        """Return startup summary information."""

@@ -18,4 +18,5 @@ try:
 
     __all__ += ["ConsumerStream", "ProducerSink"]
 except ImportError:
-    pass
+    # Optional bridge dependencies are not installed in the base package.
+    __all__.clear()
