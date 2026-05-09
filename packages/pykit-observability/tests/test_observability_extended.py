@@ -384,9 +384,13 @@ class TestMultipleOperationContexts:
         trace.set_tracer_provider(provider)
 
         ctx = OperationContext("error.op")
-        with pytest.raises(RuntimeError, match="test error"):
+        try:
             async with ctx():
                 raise RuntimeError("test error")
+        except RuntimeError as exc:
+            assert str(exc) == "test error"
+        else:
+            pytest.fail("Expected RuntimeError")
 
         spans = exporter.get_finished_spans()
         assert len(spans) == 1

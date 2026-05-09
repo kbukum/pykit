@@ -40,7 +40,7 @@ def _run_git(*args: str) -> str:
         if result.returncode == 0:
             return result.stdout.strip()
     except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
-        pass
+        return ""
     return ""
 
 

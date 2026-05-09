@@ -6,7 +6,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from pykit_testutil import FakeAsyncKeyValue, MockGrpcServer, grpc_channel_fixture, grpc_server_fixture
+import pykit_testutil
+
+FakeAsyncKeyValue = pykit_testutil.FakeAsyncKeyValue
+MockGrpcServer = pykit_testutil.MockGrpcServer
+grpc_channel_fixture = pykit_testutil.grpc_channel_fixture
+grpc_server_fixture = pykit_testutil.grpc_server_fixture
 
 # ---------------------------------------------------------------------------
 # MockGrpcServer — init and properties
@@ -153,8 +158,6 @@ class TestGrpcChannelFixture:
 
 class TestPublicAPI:
     def test_all_public_symbols_accessible(self) -> None:
-        import pykit_testutil
-
         for name in pykit_testutil.__all__:
             assert hasattr(pykit_testutil, name), f"{name} not accessible on pykit_testutil"
 

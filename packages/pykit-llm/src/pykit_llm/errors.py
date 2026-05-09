@@ -35,7 +35,7 @@ _LLM_CODE_TO_BASE: dict[LLMErrorCode, BaseErrorCode] = {
 class LLMError(AppError, GenAIError):
     """Structured LLM client error with GenAI-compatible classification."""
 
-    code: LLMErrorCode  # type: ignore[assignment]
+    _llm_code: LLMErrorCode
 
     def __init__(
         self,
@@ -48,8 +48,12 @@ class LLMError(AppError, GenAIError):
         base_code = _LLM_CODE_TO_BASE.get(code, BaseErrorCode.INTERNAL)
         super().__init__(base_code, message)
         self.status_code = status_code
-        self.code = code
-        self.retryable = retryable
+        self._llm_code = code
+        self._retryable = retryable
+
+    @property
+    def code(self) -> LLMErrorCode:
+        return self._llm_code
 
     def __str__(self) -> str:
         if self.status_code > 0:

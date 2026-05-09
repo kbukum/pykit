@@ -51,7 +51,6 @@ class MediaServiceClient(Protocol):
         Returns:
             The operation result.
         """
-        ...
 
     async def execute_pipeline(self, operations: list[MediaOperationRequest]) -> list[MediaOperationResult]:
         """Execute a sequence of media operations as a pipeline.
@@ -62,7 +61,6 @@ class MediaServiceClient(Protocol):
         Returns:
             Results for each operation in the same order.
         """
-        ...
 
 
 @dataclass

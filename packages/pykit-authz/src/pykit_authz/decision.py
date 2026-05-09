@@ -39,4 +39,5 @@ class Decision:
 class Decider(Protocol):
     """Async authorization decider Protocol consumed by agent/MCP/skill."""
 
-    async def decide(self, request: DecisionRequest) -> Decision: ...
+    async def decide(self, request: DecisionRequest) -> Decision:
+        """Return an authorization decision for the supplied request."""

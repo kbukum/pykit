@@ -18,9 +18,11 @@ logger = logging.getLogger(__name__)
 
 
 class _KafkaProducerClient(Protocol):
-    async def start(self) -> None: ...
+    async def start(self) -> None:
+        """Start the producer client."""
 
-    async def stop(self) -> None: ...
+    async def stop(self) -> None:
+        """Stop the producer client."""
 
     async def send_and_wait(
         self,
@@ -29,9 +31,11 @@ class _KafkaProducerClient(Protocol):
         value: bytes,
         key: bytes | None = None,
         headers: list[tuple[str, bytes]] | None = None,
-    ) -> object: ...
+    ) -> object:
+        """Send a message and wait for broker acknowledgement."""
 
-    async def flush(self) -> None: ...
+    async def flush(self) -> None:
+        """Flush any buffered messages."""
 
 
 class _KafkaErrorFallback(Exception):

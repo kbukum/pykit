@@ -225,7 +225,8 @@ class TestABCTypeChecking:
     def test_abc_subclass_passes_type_check(self) -> None:
         class Animal(ABC):
             @abstractmethod
-            def speak(self) -> str: ...
+            def speak(self) -> str:
+                pass
 
         class Dog(Animal):
             def speak(self) -> str:
@@ -239,7 +240,8 @@ class TestABCTypeChecking:
     def test_abc_mismatch_raises_type_error(self) -> None:
         class Vehicle(ABC):
             @abstractmethod
-            def drive(self) -> None: ...
+            def drive(self) -> None:
+                pass
 
         c = Container()
         c.register_instance("not_vehicle", "just a string")
@@ -441,6 +443,7 @@ class TestConcurrentLazyInit:
         # Pre-resolve so it's initialized
         assert c.resolve("svc") == "singleton-val"
         assert call_count == 1
+        initial_call_count = call_count
 
         results: list[Any] = [None] * 20
 
@@ -455,7 +458,7 @@ class TestConcurrentLazyInit:
 
         for r in results:
             assert r == "singleton-val"
-        assert call_count == 1  # not called again
+        assert call_count == initial_call_count  # not called again
 
 
 # ---------------------------------------------------------------------------

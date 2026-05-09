@@ -45,14 +45,16 @@ class ToolCall:
 class SensitivityEvaluator(Protocol):
     """Adjudicates whether a tool call is sensitive enough to escalate."""
 
-    async def evaluate(self, call: ToolCall, predicate: SensitivePredicate) -> Decision: ...
+    async def evaluate(self, call: ToolCall, predicate: SensitivePredicate) -> Decision:
+        """Return the decision for a tool call and sensitivity predicate."""
 
 
 @runtime_checkable
 class HumanApproval(Protocol):
     """Adjudicates a ``REQUIRE_APPROVAL`` decision via a human-in-the-loop."""
 
-    async def approve(self, call: ToolCall) -> bool: ...
+    async def approve(self, call: ToolCall) -> bool:
+        """Return whether the human reviewer approves the tool call."""
 
 
 class DenyOnSensitiveEvaluator:
@@ -121,6 +123,8 @@ def _predicate_matches(predicate: SensitivePredicate, arguments: JsonObject) -> 
             return _compare_numeric(value, predicate.value, lambda a, b: a > b)
         case SensitiveMatcher.LT:
             return _compare_numeric(value, predicate.value, lambda a, b: a < b)
+        case _:
+            return False
 
 
 def _resolve_path(payload: JsonObject, path: str) -> JsonValue | None:

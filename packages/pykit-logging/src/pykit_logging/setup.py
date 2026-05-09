@@ -6,6 +6,7 @@ import logging
 import sys
 import uuid
 from contextvars import ContextVar
+from dataclasses import dataclass
 from typing import Any
 
 import structlog
@@ -63,7 +64,13 @@ def schema_normalizer(service_name: str, environment: str = "development") -> st
 
 
 # Module-level OTLP bridge for graceful shutdown
-_otlp_bridge: OTLPLogBridge | None = None
+
+@dataclass(slots=True)
+class _LoggingState:
+    otlp_bridge: OTLPLogBridge | None = None
+
+
+_logging_state = _LoggingState()
 
 
 def setup_logging(
@@ -90,7 +97,6 @@ def setup_logging(
         environment: Deployment environment label added to every log entry.
         otlp: OTLP export configuration. ``None`` disables OTLP export.
     """
-    global _otlp_bridge
     if log_format == "auto":
         log_format = "console" if sys.stderr.isatty() else "json"
 
@@ -134,7 +140,7 @@ def setup_logging(
         try:
             bridge = OTLPLogBridge(config=otlp, service_name=service_name, environment=environment)
             shared_processors.append(otlp_processor(bridge))
-            _otlp_bridge = bridge
+            _logging_state.otlp_bridge = bridge
         except ImportError:
             import logging as _stdlib_logging
 
@@ -164,10 +170,9 @@ def setup_logging(
 
 def shutdown_logging() -> None:
     """Shutdown OTLP bridge gracefully. Call before process exit."""
-    global _otlp_bridge
-    if _otlp_bridge is not None:
-        _otlp_bridge.shutdown()
-        _otlp_bridge = None
+    if _logging_state.otlp_bridge is not None:
+        _logging_state.otlp_bridge.shutdown()
+        _logging_state.otlp_bridge = None
 
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:

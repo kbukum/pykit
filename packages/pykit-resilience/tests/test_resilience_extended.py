@@ -244,7 +244,7 @@ class TestCircuitBreakerEdgeCases:
             try:
                 await cb.execute(flaky)
             except (RuntimeError, CircuitOpenError):
-                pass
+                await asyncio.sleep(0)
             if cb.state == State.OPEN:
                 await asyncio.sleep(0.02)
 

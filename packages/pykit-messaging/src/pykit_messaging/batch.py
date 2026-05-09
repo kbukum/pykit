@@ -70,7 +70,7 @@ class BatchProducer:
                     if self._buffer:
                         await self._do_flush()
         except asyncio.CancelledError:
-            pass
+            return
 
     async def send(self, msg: Message) -> None:
         """Buffer a message. Auto-flushes when configured limits are reached.

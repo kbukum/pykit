@@ -32,9 +32,11 @@ __all__ = [
 class LLMProvider(Protocol):
     """Any backend that can produce chat completions."""
 
-    async def complete(self, request: CompletionRequest) -> CompletionResponse: ...
+    async def complete(self, request: CompletionRequest) -> CompletionResponse:
+        """Return a completion for the supplied request."""
 
-    async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]: ...
+    async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
+        """Yield streamed completion chunks for the supplied request."""
 
 
 @runtime_checkable
@@ -48,27 +50,38 @@ class Provider(Protocol):
     """
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the provider's stable name."""
 
-    async def is_available(self) -> bool: ...
+    async def is_available(self) -> bool:
+        """Report whether the provider can currently serve requests."""
 
-    async def start(self) -> None: ...
+    async def start(self) -> None:
+        """Initialize provider resources before handling requests."""
 
-    async def stop(self) -> None: ...
+    async def stop(self) -> None:
+        """Release provider resources and stop serving requests."""
 
-    async def health(self) -> Health: ...
+    async def health(self) -> Health:
+        """Return the provider's current health status."""
 
-    async def complete(self, request: CompletionRequest) -> CompletionResponse: ...
+    async def complete(self, request: CompletionRequest) -> CompletionResponse:
+        """Return a completion for the supplied request."""
 
-    async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamEvent]: ...
+    async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamEvent]:
+        """Yield streamed events for the supplied request."""
 
-    async def execute(self, input: CompletionRequest) -> CompletionResponse: ...
+    async def execute(self, input: CompletionRequest) -> CompletionResponse:
+        """Execute a single completion request and return its response."""
 
-    async def execute_stream(self, input: CompletionRequest) -> AsyncIterator[StreamEvent]: ...
+    async def execute_stream(self, input: CompletionRequest) -> AsyncIterator[StreamEvent]:
+        """Execute a completion request and yield streaming events."""
 
-    def capabilities(self) -> Capabilities: ...
+    def capabilities(self) -> Capabilities:
+        """Describe the features supported by this provider."""
 
-    def count_tokens(self, messages: list[Message]) -> int: ...
+    def count_tokens(self, messages: list[Message]) -> int:
+        """Estimate the token count for the provided messages."""
 
 
 class ProviderBase:

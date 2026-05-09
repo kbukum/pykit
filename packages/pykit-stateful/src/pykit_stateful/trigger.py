@@ -11,7 +11,8 @@ from typing import Protocol, runtime_checkable
 class FlushTrigger[V](Protocol):
     """Determines whether an accumulator should flush."""
 
-    def should_flush(self, items: list[V]) -> bool: ...
+    def should_flush(self, items: list[V]) -> bool:
+        """Return whether the buffered items should be flushed."""
 
 
 class SizeTrigger[V]:

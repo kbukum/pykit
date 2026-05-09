@@ -32,9 +32,12 @@ class Node(Protocol):
     """A processing unit in a DAG."""
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the node name."""
 
     @property
-    def dependencies(self) -> list[str]: ...
+    def dependencies(self) -> list[str]:
+        """Return the names of prerequisite nodes."""
 
-    async def execute(self, inputs: dict[str, Any]) -> Any: ...
+    async def execute(self, inputs: dict[str, Any]) -> Any:
+        """Execute the node with results from dependency inputs."""

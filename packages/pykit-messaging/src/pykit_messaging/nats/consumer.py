@@ -20,13 +20,16 @@ class _NatsRawMessage(Protocol):
 
 
 class _NatsClient(Protocol):
-    def close(self) -> Awaitable[None] | None: ...
+    def close(self) -> Awaitable[None] | None:
+        """Close the client connection."""
 
-    async def subscribe(self, subject: str, *, cb: object, queue: str = "") -> object: ...
+    async def subscribe(self, subject: str, *, cb: object, queue: str = "") -> object:
+        """Subscribe to a subject and invoke the callback for each message."""
 
 
 class _NatsModule(Protocol):
-    def connect(self, **kwargs: object) -> Awaitable[_NatsClient]: ...
+    def connect(self, **kwargs: object) -> Awaitable[_NatsClient]:
+        """Connect to NATS and return a client."""
 
 
 class NatsConsumer:

@@ -164,7 +164,7 @@ def _encode_message(msg: Message) -> dict[str, Any]:
                 ],
             }
         case _:
-            return {"role": "user", "parts": [{"text": ""}]}
+            raise ValueError(f"Unsupported Gemini message type: {type(msg).__name__}")
 
 
 def _parse_response(data: dict[str, Any]) -> CompletionResponse:

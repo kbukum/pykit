@@ -145,7 +145,7 @@ def _encode_message(msg: Message) -> dict[str, Any]:
         case ToolResultMessage(tool_use_id=tool_use_id, content=content):
             return {"role": "tool", "content": content, "tool_call_id": tool_use_id}
         case _:
-            return {"role": "user", "content": ""}
+            raise ValueError(f"Unsupported OpenAI message type: {type(msg).__name__}")
 
 
 def _parse_response(data: dict[str, Any]) -> CompletionResponse:

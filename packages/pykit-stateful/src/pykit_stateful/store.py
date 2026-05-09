@@ -9,10 +9,17 @@ from typing import Protocol, runtime_checkable
 class Store[V](Protocol):
     """Backend storage for accumulator items."""
 
-    async def get(self, key: str) -> V | None: ...
-    async def set(self, key: str, value: V) -> None: ...
-    async def delete(self, key: str) -> None: ...
-    async def keys(self) -> list[str]: ...
+    async def get(self, key: str) -> V | None:
+        """Return the stored value for the key, if present."""
+
+    async def set(self, key: str, value: V) -> None:
+        """Store the value under the given key."""
+
+    async def delete(self, key: str) -> None:
+        """Delete the value stored for the key."""
+
+    async def keys(self) -> list[str]:
+        """Return all stored keys."""
 
 
 class MemoryStore[V]:

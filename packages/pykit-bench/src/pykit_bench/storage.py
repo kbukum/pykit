@@ -25,10 +25,17 @@ class ListOptions:
 class BenchRunStorage(Protocol):
     """Abstraction for storing/retrieving benchmark results."""
 
-    def save(self, result: BenchRunResult) -> str: ...
-    def load(self, run_id: str) -> BenchRunResult: ...
-    def latest(self) -> BenchRunResult: ...
-    def list_runs(self, opts: ListOptions | None = None) -> list[BenchRunSummary]: ...
+    def save(self, result: BenchRunResult) -> str:
+        """Persist a benchmark result and return its run ID."""
+
+    def load(self, run_id: str) -> BenchRunResult:
+        """Load a benchmark result by run ID."""
+
+    def latest(self) -> BenchRunResult:
+        """Load the most recent benchmark result."""
+
+    def list_runs(self, opts: ListOptions | None = None) -> list[BenchRunSummary]:
+        """List stored benchmark runs that match the given options."""
 
 
 class FileRunStorage:

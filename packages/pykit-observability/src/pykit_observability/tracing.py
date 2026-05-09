@@ -5,7 +5,8 @@ from __future__ import annotations
 import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, cast
+from dataclasses import dataclass
+from typing import Any
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
@@ -20,7 +21,14 @@ from opentelemetry.sdk.trace.sampling import (
 from pykit_observability.config import TracerConfig
 
 _setup_lock = threading.Lock()
-_tracer_provider: Any = None
+
+
+@dataclass(slots=True)
+class _TracingState:
+    tracer_provider: TracerProvider | None = None
+
+
+_tracing_state = _TracingState()
 
 
 def _build_provider(config: TracerConfig) -> TracerProvider:
@@ -46,10 +54,9 @@ def _build_provider(config: TracerConfig) -> TracerProvider:
 
 def setup_tracing(config: TracerConfig) -> TracerProvider:
     """Configure and set the global OTel tracer provider. Idempotent — safe to call multiple times."""
-    global _tracer_provider
     with _setup_lock:
-        if _tracer_provider is not None:
-            return cast("TracerProvider", _tracer_provider)
+        if _tracing_state.tracer_provider is not None:
+            return _tracing_state.tracer_provider
         provider = _build_provider(config)
         trace.set_tracer_provider(provider)
 
@@ -73,16 +80,15 @@ def setup_tracing(config: TracerConfig) -> TracerProvider:
 
             set_global_textmap(TraceContextTextMapPropagator())
 
-        _tracer_provider = provider
+        _tracing_state.tracer_provider = provider
         return provider
 
 
 def reset_tracing() -> None:
     """Reset to NoOp provider. Intended for test teardown only."""
-    global _tracer_provider
     with _setup_lock:
         trace.set_tracer_provider(trace.ProxyTracerProvider())
-        _tracer_provider = None
+        _tracing_state.tracer_provider = None
 
 
 def get_tracer(name: str) -> trace.Tracer:

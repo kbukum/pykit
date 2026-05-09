@@ -22,7 +22,6 @@ class Masker(Protocol):
         Returns:
             The original value if no masking needed, or a masked version.
         """
-        ...
 
 
 _DEFAULT_FIELD_NAMES: frozenset[str] = frozenset(

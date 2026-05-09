@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, TypeVar
+from typing import Protocol, TypeVar
 
-if TYPE_CHECKING:
-    from pykit_bench.result import MetricResult
-    from pykit_bench.types import ScoredSample
+from pykit_bench.result import MetricResult
+from pykit_bench.types import ScoredSample
 
 L = TypeVar("L")
 
@@ -20,11 +19,9 @@ class Metric(Protocol[L]):
     @property
     def name(self) -> str:
         """Return the metric's unique name."""
-        ...
 
     def compute(self, scored: list[ScoredSample[L]]) -> MetricResult:
         """Compute the metric over scored samples."""
-        ...
 
 
 class MetricSuite[L]:

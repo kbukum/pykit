@@ -29,7 +29,6 @@ class MessageTranslator(Protocol[T, D]):
         Returns:
             The serialized wire-format representation.
         """
-        ...
 
     def deserialize(self, raw: T) -> D:
         """Deserialize wire-format data to a domain object.
@@ -40,7 +39,6 @@ class MessageTranslator(Protocol[T, D]):
         Returns:
             The deserialized domain object.
         """
-        ...
 
 
 class JsonTranslator:

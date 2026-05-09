@@ -135,16 +135,19 @@ class ChunkEvent(BaseModel):
 class Inference(Protocol):
     """Async model-serving inference adapter."""
 
-    def descriptor(self) -> InferenceDescriptor: ...
+    def descriptor(self) -> InferenceDescriptor:
+        """Return metadata describing the inference backend."""
 
-    async def predict(self, request: PredictRequest) -> PredictResponse: ...
+    async def predict(self, request: PredictRequest) -> PredictResponse:
+        """Run inference for a single prediction request."""
 
 
 @runtime_checkable
 class StreamingInference(Inference, Protocol):
     """Inference adapter that can stream prediction events."""
 
-    def predict_stream(self, request: PredictRequest) -> AsyncIterator[StreamEvent | AnyStreamEvent]: ...
+    def predict_stream(self, request: PredictRequest) -> AsyncIterator[StreamEvent | AnyStreamEvent]:
+        """Stream inference events for a single prediction request."""
 
 
 __all__ = [

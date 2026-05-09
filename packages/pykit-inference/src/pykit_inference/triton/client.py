@@ -190,6 +190,8 @@ def _encode_input(name: str, value: Value) -> dict[str, object]:
                 "data": [json.dumps(value.json_, separators=(",", ":"))],
                 "parameters": {"content_type": "application/json"},
             }
+        case _:
+            raise ValueError(f"unsupported Triton input kind for {name!r}: {value.kind!r}")
 
 
 def _encode_tensor(name: str, tensor: Tensor) -> dict[str, object]:

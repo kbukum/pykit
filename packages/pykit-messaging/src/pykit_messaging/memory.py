@@ -251,7 +251,7 @@ class InMemoryConsumer:
                         msg = self._queues[topic].get_nowait()
                         await handler(msg)
                     except asyncio.QueueEmpty:
-                        pass
+                        continue
             await asyncio.sleep(0.01)
 
     async def close(self) -> None:

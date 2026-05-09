@@ -67,7 +67,8 @@ class ContextExceededError(Exception):
 class ContextStrategy(Protocol):
     """Strategy for compacting messages when context is exceeded."""
 
-    def compact(self, messages: list[Message], max_tokens: int) -> list[Message]: ...
+    def compact(self, messages: list[Message], max_tokens: int) -> list[Message]:
+        """Return a compacted message list that fits within ``max_tokens``."""
 
 
 class FailStrategy:

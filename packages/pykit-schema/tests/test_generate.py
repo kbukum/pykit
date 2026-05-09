@@ -116,7 +116,8 @@ class TestFromType:
 
 class TestFromFunction:
     def test_simple_function(self):
-        def greet(name: str, excited: bool = False) -> str: ...
+        def greet(name: str, excited: bool = False) -> str:
+            pass
 
         schema = from_function(greet)
         assert schema["type"] == "object"
@@ -126,7 +127,8 @@ class TestFromFunction:
         assert "excited" not in schema.get("required", [])
 
     def test_skips_self_and_ctx(self):
-        def handler(self, ctx, query: str) -> str: ...
+        def handler(self, ctx, query: str) -> str:
+            pass
 
         schema = from_function(handler)
         assert "self" not in schema.get("properties", {})
@@ -148,20 +150,23 @@ class TestFromFunction:
         assert schema["description"] == "Custom description"
 
     def test_title(self):
-        def process(data: str) -> None: ...
+        def process(data: str) -> None:
+            pass
 
         schema = from_function(process, title="DataProcessor")
         assert schema["title"] == "DataProcessor"
 
     def test_no_params(self):
-        def noop() -> None: ...
+        def noop() -> None:
+            pass
 
         schema = from_function(noop)
         assert schema["type"] == "object"
         assert schema.get("properties", {}) == {}
 
     def test_complex_types(self):
-        def handler(items: list[str], meta: dict[str, int]) -> None: ...
+        def handler(items: list[str], meta: dict[str, int]) -> None:
+            pass
 
         schema = from_function(handler)
         assert "items" in schema["properties"]

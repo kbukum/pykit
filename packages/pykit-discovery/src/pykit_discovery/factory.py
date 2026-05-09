@@ -44,7 +44,8 @@ class ProviderPair:
 class ProviderFactory(Protocol):
     """Callable that creates a ``ProviderPair`` from a ``DiscoveryConfig``."""
 
-    def __call__(self, config: DiscoveryConfig) -> ProviderPair: ...
+    def __call__(self, config: DiscoveryConfig) -> ProviderPair:
+        """Create a provider pair for the given discovery config."""
 
 
 # Global factory registry backed by the typed GenericRegistry

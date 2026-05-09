@@ -155,11 +155,15 @@ class TestTransactionIsolation:
             assert user.name == "Committed"
 
     async def test_rollback_hides_changes(self, db: Database):
-        with pytest.raises(ValueError, match="abort"):
+        try:
             async with db.session() as sess:
                 sess.add(User(name="Ghost", email="ghost@x.com"))
                 await sess.flush()
                 raise ValueError("abort")
+        except ValueError as exc:
+            assert str(exc) == "abort"
+        else:
+            pytest.fail("Expected ValueError")
 
         async with db.session() as sess:
             result = await sess.execute(select(User).where(User.email == "ghost@x.com"))

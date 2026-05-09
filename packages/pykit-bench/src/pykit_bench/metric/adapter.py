@@ -15,9 +15,11 @@ class RunMetric(Protocol[L]):
     """Protocol matching what BenchRunner expects from a metric."""
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the metric name."""
 
-    def compute(self, scored: list[ScoredSample[L]]) -> MetricResult: ...
+    def compute(self, scored: list[ScoredSample[L]]) -> MetricResult:
+        """Compute a metric result from scored samples."""
 
 
 def as_run_metric(metric: object) -> RunMetric:  # type: ignore[type-arg]

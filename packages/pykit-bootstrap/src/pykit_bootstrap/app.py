@@ -17,9 +17,11 @@ from pykit_logging import get_logger, setup_logging
 class LoggerLike(Protocol):
     """Logger contract used by bootstrap."""
 
-    def info(self, event: str, /, **kwargs: object) -> None: ...
+    def info(self, event: str, /, **kwargs: object) -> None:
+        """Record an informational lifecycle event."""
 
-    def error(self, event: str, /, **kwargs: object) -> None: ...
+    def error(self, event: str, /, **kwargs: object) -> None:
+        """Record an error lifecycle event."""
 
 
 class App:

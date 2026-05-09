@@ -12,16 +12,19 @@ from pykit_discovery.types import ServiceInstance
 class Discovery(Protocol):
     """Protocol for discovering service instances by name."""
 
-    async def discover(self, service_name: str) -> list[ServiceInstance]: ...
+    async def discover(self, service_name: str) -> list[ServiceInstance]:
+        """Return the instances registered for the given service."""
 
 
 @runtime_checkable
 class Registry(Protocol):
     """Protocol for registering and deregistering service instances."""
 
-    async def register(self, instance: ServiceInstance) -> None: ...
+    async def register(self, instance: ServiceInstance) -> None:
+        """Register a service instance."""
 
-    async def deregister(self, instance_id: str) -> None: ...
+    async def deregister(self, instance_id: str) -> None:
+        """Remove a service instance from the registry."""
 
 
 @runtime_checkable
@@ -32,4 +35,5 @@ class Watcher(Protocol):
     membership changes, enabling live reconnection without polling.
     """
 
-    def watch(self, service_name: str) -> AsyncIterator[list[ServiceInstance]]: ...
+    def watch(self, service_name: str) -> AsyncIterator[list[ServiceInstance]]:
+        """Yield updated instance lists for the given service."""

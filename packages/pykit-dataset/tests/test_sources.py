@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from unittest.mock import AsyncMock, MagicMock, patch
+from urllib.parse import urlparse
 
 import pytest
 
@@ -37,6 +38,16 @@ def _make_pil_image(width: int = 4, height: int = 4):
     from PIL import Image
 
     return Image.new("RGB", (width, height), color=(0, 255, 0))
+
+
+def _is_duckduckgo_search_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.hostname == "duckduckgo.com" and parsed.path != "/i.js"
+
+
+def _is_duckduckgo_api_url(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.hostname == "duckduckgo.com" and parsed.path == "/i.js"
 
 
 # ===========================================================================
@@ -435,9 +446,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_img_resp
@@ -476,9 +487,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_non_image_resp
@@ -514,9 +525,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_img_resp
@@ -550,9 +561,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_fail_resp
@@ -591,9 +602,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_img_resp
@@ -728,9 +739,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_img_resp
@@ -775,9 +786,9 @@ class TestWebSource:
         mock_client = AsyncMock()
 
         async def mock_get(url, **kwargs):
-            if "duckduckgo.com" in url and "i.js" not in url:
+            if _is_duckduckgo_search_url(url):
                 return mock_search_resp
-            elif "i.js" in url:
+            elif _is_duckduckgo_api_url(url):
                 return mock_api_resp
             else:
                 return mock_img_resp

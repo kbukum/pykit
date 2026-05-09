@@ -760,7 +760,7 @@ class TestReduceExtended:
         assert result == [{"a": 1, "bb": 2, "ccc": 3}]
 
     async def test_reduce_max(self) -> None:
-        p = reduce(Pipeline.from_list([3, 1, 4, 1, 5]), float("-inf"), lambda a, x: max(a, x))
+        p = reduce(Pipeline.from_list([3, 1, 4, 1, 5]), float("-inf"), max)
         result = await collect(p)
         assert result == [5]
 
@@ -807,7 +807,7 @@ class TestTypeDiversity:
         assert result == [True, False, True]
 
     async def test_nested_list_pipeline(self) -> None:
-        p = Pipeline.from_list([[1, 2], [3, 4]]).map(lambda x: sum(x))
+        p = Pipeline.from_list([[1, 2], [3, 4]]).map(sum)
         assert await collect(p) == [3, 7]
 
     @pytest.mark.parametrize(

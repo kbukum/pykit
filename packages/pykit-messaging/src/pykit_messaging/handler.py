@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Protocol, runtime_checkable
+from typing import Protocol, cast, runtime_checkable
 
 from pykit_messaging.types import Message
 
@@ -18,7 +18,6 @@ class MessageHandlerProtocol(Protocol):
         Args:
             msg: The message to handle.
         """
-        ...
 
 
 HandlerMiddleware = Callable[[MessageHandlerProtocol], MessageHandlerProtocol]
@@ -44,7 +43,8 @@ def chain_handlers(
     """
     result = base
     for mw in middlewares:
-        result = mw(result)
+        middleware = cast("Callable[[MessageHandlerProtocol], MessageHandlerProtocol]", mw)
+        result = middleware(result)
     return result
 
 

@@ -40,12 +40,10 @@ class AppConfig(Protocol):
 
     def apply_defaults(self) -> None:
         """Apply default values for any unset fields."""
-        ...
 
     @property
     def service_config(self) -> ServiceConfig:
         """Return the base service configuration."""
-        ...
 
 
 @dataclass

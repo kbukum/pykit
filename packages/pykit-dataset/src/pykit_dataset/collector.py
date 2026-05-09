@@ -68,25 +68,32 @@ class ProgressCallback(Protocol):
 
     def on_source_start(
         self, source_name: str, source_index: int, total_sources: int, max_items: int | None
-    ) -> None: ...
+    ) -> None:
+        """Report that a source has started collecting items."""
 
-    def on_item_saved(self, source_name: str, label: Label, source_count: int, total_count: int) -> None: ...
+    def on_item_saved(self, source_name: str, label: Label, source_count: int, total_count: int) -> None:
+        """Report that an item has been saved."""
 
-    def on_item_skipped(self, source_name: str, reason: str) -> None: ...
+    def on_item_skipped(self, source_name: str, reason: str) -> None:
+        """Report that an item was skipped and why."""
 
-    def on_source_done(self, source_name: str, stats: dict[str, int]) -> None: ...
+    def on_source_done(self, source_name: str, stats: dict[str, int]) -> None:
+        """Report that a source finished with the given stats."""
 
     def on_source_cached(self, source_name: str, stats: dict[str, int]) -> None:
         """Called when a source is skipped because it was already cached."""
-        ...
 
-    def on_source_error(self, source_name: str, error: Exception) -> None: ...
+    def on_source_error(self, source_name: str, error: Exception) -> None:
+        """Report that a source failed with an error."""
 
-    def on_publish_start(self, target_name: str) -> None: ...
+    def on_publish_start(self, target_name: str) -> None:
+        """Report that publishing to a target has started."""
 
-    def on_publish_done(self, target_name: str, result: PublishResult) -> None: ...
+    def on_publish_done(self, target_name: str, result: PublishResult) -> None:
+        """Report that publishing to a target completed successfully."""
 
-    def on_publish_error(self, target_name: str, error: Exception) -> None: ...
+    def on_publish_error(self, target_name: str, error: Exception) -> None:
+        """Report that publishing to a target failed."""
 
 
 class _NullProgress:

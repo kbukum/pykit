@@ -185,9 +185,13 @@ class TestOperationContext:
 
     async def test_record_error(self) -> None:
         ctx = OperationContext("fail.op")
-        with pytest.raises(ValueError, match="boom"):
+        try:
             async with ctx():
                 raise ValueError("boom")
+        except ValueError as exc:
+            assert str(exc) == "boom"
+        else:
+            pytest.fail("Expected ValueError")
 
         spans = self.exporter.get_finished_spans()
         assert len(spans) == 1

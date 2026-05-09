@@ -18,12 +18,10 @@ class Operation(Protocol):
     @property
     def id(self) -> str:
         """Unique identifier for this operation."""
-        ...
 
     @property
     def name(self) -> str:
         """Human-readable name (may equal id)."""
-        ...
 
     async def execute(self, input: Any, progress: ProgressFn) -> Any:
         """Execute the operation.
@@ -36,7 +34,6 @@ class Operation(Protocol):
         Returns:
             Output value for the next step.
         """
-        ...
 
     async def cleanup(self, output: Any) -> None:
         """Called when the chain fails after this operation completed.
@@ -44,4 +41,3 @@ class Operation(Protocol):
         Used to delete intermediate files, release resources, etc.
         The default implementation is a no-op.
         """
-        ...

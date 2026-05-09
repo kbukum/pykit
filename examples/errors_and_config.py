@@ -13,10 +13,10 @@ import os
 
 def demo_errors() -> None:
     """Show how to raise and catch domain-specific errors."""
-    from pykit_errors import AppError, InvalidInputError, NotFoundError
+    from pykit_errors import AppError, ErrorCode, InvalidInputError, NotFoundError
 
     # Basic AppError with optional details dict
-    err = AppError("something went wrong", details={"request_id": "abc-123"})
+    err = AppError(ErrorCode.INTERNAL, "something went wrong").with_details({"request_id": "abc-123"})
     print(f"AppError : {err} | details={err.details}")
 
     # Specialized errors carry semantic meaning

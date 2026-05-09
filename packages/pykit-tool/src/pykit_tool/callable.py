@@ -25,12 +25,9 @@ class Callable(Protocol):
     @property
     def definition(self) -> Definition:
         """Return the tool's metadata."""
-        ...
 
     def validate(self, input_data: dict[str, Any]) -> ValidationResult:
         """Validate input against the tool's input schema."""
-        ...
 
     async def call(self, ctx: Context, input_data: dict[str, Any]) -> Result:
         """Execute the tool with dict input and return the result."""
-        ...
