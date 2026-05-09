@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 
@@ -127,13 +126,12 @@ class TestPipeline:
         p = loader.pipeline()
         assert isinstance(p, Pipeline)
 
-    def test_pipeline_iterates_all(self, loader: GenericDatasetLoader[str]):
+    async def test_pipeline_iterates_all(self, loader: GenericDatasetLoader[str]):
         p = loader.pipeline()
         it = p.iter()
-        loop = asyncio.get_event_loop()
         results = []
         while True:
-            val = loop.run_until_complete(it.next())
+            val = await it.next()
             if val is None:
                 break
             results.append(val)
@@ -146,22 +144,20 @@ class TestPipeline:
 
 
 class TestDatasetIterator:
-    def test_iterator_returns_all_then_none(self, loader: GenericDatasetLoader[str]):
+    async def test_iterator_returns_all_then_none(self, loader: GenericDatasetLoader[str]):
         it = _DatasetIterator(loader)
-        loop = asyncio.get_event_loop()
         results = []
         while True:
-            val = loop.run_until_complete(it.next())
+            val = await it.next()
             if val is None:
                 break
             results.append(val)
         assert len(results) == 2
 
-    def test_iterator_lazy_loading(self, loader: GenericDatasetLoader[str]):
+    async def test_iterator_lazy_loading(self, loader: GenericDatasetLoader[str]):
         it = _DatasetIterator(loader)
         assert it._samples is None
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(it.next())
+        await it.next()
         assert it._samples is not None
 
 

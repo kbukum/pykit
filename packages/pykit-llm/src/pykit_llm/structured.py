@@ -8,7 +8,8 @@ from typing import TypeVar
 
 from pydantic import TypeAdapter, ValidationError
 
-from pykit_llm.types import CompletionResponse, TextBlock
+from pykit_ai import TextBlock
+from pykit_llm.types import CompletionResponse
 
 T = TypeVar("T")
 

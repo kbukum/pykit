@@ -1,33 +1,38 @@
 # pykit-tool
 
-Tool definition, auto-wiring, registry, and middleware for agentic systems.
+Tool definition, executable permission envelope, result conversion, and explicit registries for agentic systems.
 
-## Installation
+## Key points
 
-```bash
-pip install pykit-tool
+- `Definition.envelope` is the executable authority source (scopes, network, filesystem, subprocess, safety, sensitive invocations, data classification).
+- `Annotations` carries only non-executable metadata; MCP safety hints are synthesized from the envelope at the wire boundary.
+- Local logging/timeout/retry/metrics/validation middleware was removed. Compose std `logging`/`structlog`, `asyncio.wait_for`, `pykit-resilience`, `pykit-schema`, `pykit-security`, and `pykit-observability` at orchestration boundaries.
+- `Registry.call_batch(..., BatchOptions(concurrency, fail_fast))` is caller-policy driven.
+
+## Architecture
+
+```mermaid
+flowchart TD
+  TOOLMOD[pykit-tool]
+  DEF[definition + envelope]
+  REG[registry]
+  CALL[callable + decorator]
+  RES[result + context]
+  AI[imports pykit-ai]
+  SCH[imports pykit-schema]
+  PROV[imports pykit-provider]
+  AG[pykit-agent]
+  MCP[pykit-mcp]
+  APP[application tools]
+
+  TOOLMOD --> DEF
+  TOOLMOD --> REG
+  TOOLMOD --> CALL
+  TOOLMOD --> RES
+  TOOLMOD --> AI
+  TOOLMOD --> SCH
+  TOOLMOD --> PROV
+  AG --> TOOLMOD
+  MCP --> TOOLMOD
+  APP --> TOOLMOD
 ```
-
-## Quick start
-
-```python
-from pykit_tool import tool, ToolRegistry
-
-registry = ToolRegistry()
-
-@tool(registry=registry, description="Search the web for a query")
-async def web_search(query: str) -> str:
-    ...  # your implementation
-    return "results"
-
-# Execute tool by name (used by agents)
-result = await registry.execute("web_search", {"query": "Python 3.13 features"})
-```
-
-## Features
-
-- `@tool` decorator for type-safe tool definition with auto-generated JSON Schema
-- Central `ToolRegistry` with name-based lookup and middleware support
-- Auto-wires dependencies via `pykit-provider`
-- Schema generation via `pykit-schema`
-- Compatible with `pykit-agent` and `pykit-mcp`

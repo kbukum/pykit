@@ -7,8 +7,10 @@ license = { text = "MIT" }
 keywords = ["tools", "agent", "registry", "ai"]
 requires-python = ">=3.13"
 dependencies = [
+    "pykit-ai",
     "pykit-schema",
     "pykit-provider",
+    "pykit-resilience",
 ]
 
 [build-system]

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from pykit_bench.comparator import BenchRunComparator
 from pykit_bench.report_gen.markdown import MarkdownReporter
-from pykit_bench.run_comparator import BenchRunComparator
-from pykit_bench.run_storage import FileRunStorage, ListOptions
+from pykit_bench.storage import FileRunStorage, ListOptions
 
 if TYPE_CHECKING:
     import io

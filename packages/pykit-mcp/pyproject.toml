@@ -9,6 +9,8 @@ requires-python = ">=3.13"
 dependencies = [
     "pykit-tool",
     "pykit-schema",
+    "pykit-authz",
+    "pykit-security",
     "mcp>=1.0",
 ]
 

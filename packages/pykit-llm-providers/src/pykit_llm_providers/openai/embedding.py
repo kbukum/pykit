@@ -4,18 +4,16 @@ from __future__ import annotations
 
 from typing import Any
 
-from pykit_embedding.provider import EmbeddingError
+from pykit_ai import Model, Provider, Usage
+from pykit_embedding import Embedding, EmbeddingError, EmbedRequest, EmbedResponse, ProviderBase, Text
 from pykit_httpclient import AuthConfig, HttpClient, HttpConfig, HttpError
 from pykit_llm_providers.openai.config import OpenAIConfig
 
 
-class OpenAIEmbeddingProvider:
-    """OpenAI-compatible embedding provider using pykit-httpclient.
+class OpenAIEmbeddingProvider(ProviderBase):
+    """OpenAI-compatible canonical embedding provider."""
 
-    Implements the :class:`~pykit_embedding.provider.EmbeddingProvider` protocol.
-    Works with OpenAI, Azure OpenAI, local llama.cpp, vLLM, or any server
-    that exposes the ``/v1/embeddings`` endpoint.
-    """
+    _name = "openai-embedding"
 
     def __init__(
         self,
@@ -23,6 +21,7 @@ class OpenAIEmbeddingProvider:
         *,
         client: HttpClient | None = None,
     ) -> None:
+        super().__init__()
         self._config = config
         if client is not None:
             self._client = client
@@ -37,40 +36,52 @@ class OpenAIEmbeddingProvider:
             self._client = HttpClient(http_config)
             self._owns_client = True
 
-    async def embed(self, texts: list[str]) -> list[list[float]]:
-        """Generate embedding vectors for the given texts."""
+    async def embed(self, req: EmbedRequest) -> EmbedResponse:
+        """Generate embeddings for a canonical embedding request."""
+        self._touch()
+        texts: list[str] = []
+        for input_ in req.inputs:
+            if not isinstance(input_, Text):
+                raise EmbeddingError("OpenAI embedding adapter supports text inputs only", retryable=False)
+            texts.append(input_.text)
         if not texts:
-            return []
+            return EmbedResponse(embeddings=[], model=req.model, usage=Usage())
 
         payload: dict[str, Any] = {
-            "model": self._config.embedding_model,
+            "model": req.model.name or self._config.embedding_model,
             "input": texts,
         }
+        payload.update(req.options)
 
         try:
             resp = await self._client.post("/embeddings", body=payload)
         except HttpError as exc:
-            retryable = exc.retryable
-            raise EmbeddingError(
-                f"embedding request failed: {exc}",
-                retryable=retryable,
-            ) from exc
-        except Exception as exc:
-            raise EmbeddingError(
-                f"embedding request failed: {exc}",
-                retryable=True,
-            ) from exc
+            raise EmbeddingError(f"embedding request failed: {exc}", retryable=exc.retryable) from exc
 
         data = resp.json()
-        results: list[list[float]] = []
-        for item in sorted(data.get("data", []), key=lambda x: x.get("index", 0)):
-            results.append(item["embedding"])
+        embeddings = [
+            Embedding(
+                vector=[float(value) for value in item["embedding"]],
+                dimensions=len(item["embedding"]),
+                index=int(item.get("index", index)),
+            )
+            for index, item in enumerate(sorted(data.get("data", []), key=lambda x: x.get("index", 0)))
+        ]
+        usage_raw = data.get("usage", {})
+        prompt_tokens = usage_raw.get("prompt_tokens", 0) if isinstance(usage_raw, dict) else 0
+        model_name = data.get("model") if isinstance(data.get("model"), str) else req.model.name
+        return EmbedResponse(
+            embeddings=embeddings,
+            model=Model(name=model_name, provider=Provider.OPENAI, version=req.model.version),
+            usage=Usage(input_tokens=int(prompt_tokens)),
+        )
 
-        return results
+    async def embed_batch(self, reqs: list[EmbedRequest]) -> list[EmbedResponse]:
+        """Generate embeddings for multiple canonical requests."""
+        return [await self.embed(req) for req in reqs]
 
-    def dimensions(self) -> int:
-        """Return the configured embedding dimensions."""
-        return self._config.embedding_dimensions
+    async def execute(self, input: EmbedRequest) -> EmbedResponse:
+        return await self.embed(input)
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""

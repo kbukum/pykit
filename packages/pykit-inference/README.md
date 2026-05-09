@@ -1,56 +1,97 @@
 # pykit-inference
 
-Triton Inference Server client wrapper with async inference, health checking, and automatic dtype conversion.
+`pykit-inference` is the model-serving runtime adapter layer. It is for Triton, vLLM raw, TGI, KServe v2, BentoML, ONNX Runtime Server, TFServing, and custom REST/gRPC prediction endpoints. Chat completions and chat provider adapters live in `pykit-llm`.
+
+## Adapter status
+
+| Adapter | Protocol | Status |
+|---|---|---|
+| `echo` | In-memory echo | Implemented lean default |
+| `triton` | KServe v2 HTTP `/v2/models/{name}/infer` | Implemented |
+| `vllm` | vLLM raw serving | Implemented (OpenAI-compatible) |
+| `tgi` | Hugging Face Text Generation Inference | Implemented (OpenAI-compatible) |
+| `bentoml` | BentoML serving | Extra reserved |
+| `kserve` | KServe v2 generic | Extra reserved |
+| `tfserving` | TensorFlow Serving | Extra reserved |
+| `onnx-rs` | ONNX Runtime Server | Extra reserved |
+
+## Consumer wiring
+
+```python
+import httpx
+from pykit_inference import Echo, PredictRequest, Tensor, Value, ValueKind
+from pykit_inference.registry import Registry
+from pykit_inference.triton import register as register_triton
+from pykit_inference.triton.client import TritonConfig, TritonInference
+
+registry = Registry()
+register_triton(registry)
+
+async with httpx.AsyncClient(base_url="http://triton:8000") as http:
+    adapter = TritonInference(TritonConfig(base_url="http://triton:8000"), client=http)
+    response = await adapter.predict(
+        PredictRequest(
+            model_name="classifier",
+            inputs={
+                "input": Value(
+                    kind=ValueKind.TENSOR,
+                    tensor=Tensor(dtype="FP32", shape=[1, 2], data=[0.25, 0.75]),
+                )
+            },
+        )
+    )
+```
+
+
+## Echo adapter
+
+```python
+from pykit_inference import Echo, PredictRequest, Value, ValueKind
+
+adapter = Echo()
+response = await adapter.predict(
+    PredictRequest(model_name="echo", inputs={"text": Value(kind=ValueKind.TEXT, text="hello")})
+)
+assert response.outputs["text"].text == "hello"
+```
+
+Backends register explicitly with a caller-owned `Registry`; there is no module-level global registry and no import-time auto-registration. HTTP clients, resilience policies, observability, and authz deciders are injected at construction.
 
 ## Installation
 
 ```bash
-pip install pykit-inference
-# or
 uv add pykit-inference
-
-# With gRPC client support (required for actual inference)
-pip install pykit-inference[grpc]
 ```
 
-## Quick Start
+Adapter sub-modules (`triton`, `vllm`, `tgi`) are included in the base package.
+Use `pykit-llm` for chat completion, tool-calling, and chat streaming providers.
 
-```python
-import numpy as np
-from pykit_inference import TritonClient
+## Architecture
 
-client = TritonClient(url="localhost:8001", verbose=False)
-client.connect()
+```mermaid
+flowchart TD
+  INF[pykit-inference]
+  TYP[types]
+  REG[registry]
+  ECHO[echo adapter]
+  TRI[triton adapter]
+  VLLM[vllm adapter]
+  TGI[tgi adapter]
+  AI[imports pykit-ai]
+  TOOL[imports pykit-tool]
+  AUTHZ[imports pykit-authz]
+  OBS[imports pykit-observability]
+  RES[imports pykit-resilience]
 
-# Check server and model readiness
-print(client.is_connected)                          # True
-print(client.is_model_ready("text-classifier"))     # True
-
-# Run inference
-inputs = {"input_text": np.array([b"hello world"], dtype=np.object_)}
-outputs = await client.infer(
-    model_name="text-classifier",
-    inputs=inputs,
-    output_names=["label", "confidence"],
-)
-print(outputs["label"])       # np.array(["positive"])
-print(outputs["confidence"])  # np.array([0.95])
-
-# Health check
-healthy = await client.health_check()  # True
+  INF --> TYP
+  INF --> REG
+  INF --> ECHO
+  INF --> TRI
+  INF --> VLLM
+  INF --> TGI
+  INF --> AI
+  INF --> TOOL
+  INF --> AUTHZ
+  INF --> OBS
+  INF --> RES
 ```
-
-## Key Components
-
-- **TritonClient** — Wrapper around Triton gRPC client with `connect()`, `is_connected`, `is_model_ready()`, `infer()`, and `health_check()` methods
-- Automatic numpy-to-Triton dtype conversion (float32→FP32, int64→INT64, bool→BOOL, etc.)
-- Lazy dependency loading — `tritonclient[grpc]` is imported on `connect()`, not at import time
-
-## Dependencies
-
-- Optional: `tritonclient[grpc]` (grpc extra)
-
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples

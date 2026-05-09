@@ -1,15 +1,4 @@
-"""Google Gemini LLM provider backed by httpx.
-
-The Gemini API uses a structurally different format from OpenAI/Anthropic:
-- Endpoint: /v1beta/models/{model}:generateContent
-- Content uses "parts" (text, functionCall, functionResponse)
-- System prompt → systemInstruction
-- Config → generationConfig (temperature, maxOutputTokens, topP, stopSequences)
-- Tools → functionDeclarations
-- API key auth via query parameter ?key=API_KEY
-- Response: candidates[].content.parts[], usageMetadata
-- Stop reasons: STOP, MAX_TOKENS, SAFETY, TOOL_USE
-"""
+"""Google Gemini LLM provider backed by httpx."""
 
 from __future__ import annotations
 
@@ -19,41 +8,36 @@ from typing import Any
 
 import httpx
 
+from pykit_ai import ContentBlock, FinishReason, TextBlock, ToolUseBlock, Usage
 from pykit_llm.errors import LLMError, LLMErrorCode
+from pykit_llm.provider import ProviderBase
 from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
-    ContentBlock,
-    FunctionCall,
     Message,
     StreamChunk,
     SystemMessage,
-    TextBlock,
-    ToolCall,
     ToolResultMessage,
-    ToolUseBlock,
-    Usage,
     UserMessage,
+    _StreamToolCall,
     text_of,
 )
 from pykit_llm_providers.gemini.config import GeminiConfig
 
-_STOP_REASON_MAP: dict[str, str] = {
-    "STOP": "end_turn",
-    "MAX_TOKENS": "max_tokens",
-    "SAFETY": "content_filter",
-    "RECITATION": "content_filter",
-    "TOOL_USE": "tool_use",
+_STOP_REASON_MAP: dict[str, FinishReason] = {
+    "STOP": FinishReason.STOP,
+    "MAX_TOKENS": FinishReason.LENGTH,
+    "SAFETY": FinishReason.CONTENT_FILTER,
+    "RECITATION": FinishReason.CONTENT_FILTER,
+    "TOOL_USE": FinishReason.TOOL_USE,
 }
 
 
-class GeminiProvider:
-    """Google Gemini chat completion provider.
+class GeminiProvider(ProviderBase):
+    """Google Gemini chat completion provider."""
 
-    Implements the :class:`~pykit_llm.provider.LLMProvider` protocol using
-    the Generative Language API.
-    """
+    _name = "gemini"
 
     def __init__(
         self,
@@ -61,30 +45,27 @@ class GeminiProvider:
         *,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        super().__init__()
         self._config = config
+        headers: dict[str, str] = {"content-type": "application/json"}
+        if config.api_key:
+            headers["x-goog-api-key"] = config.api_key
         kwargs: dict[str, Any] = {
             "base_url": config.base_url,
             "timeout": config.timeout,
-            "headers": {"content-type": "application/json"},
+            "headers": headers,
         }
         if transport is not None:
             kwargs["transport"] = transport
         self._client = httpx.AsyncClient(**kwargs)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         """Send a generateContent request and return a single response."""
+        self._touch()
         model = request.model or self._config.model
         payload = _build_payload(request, self._config)
         path = f"/v1beta/models/{model}:generateContent"
-        resp = await self._client.post(
-            path,
-            json=payload,
-            params={"key": self._config.api_key},
-        )
+        resp = await self._client.post(path, json=payload)
         err = _classify_status(resp.status_code)
         if err is not None:
             raise err
@@ -92,6 +73,7 @@ class GeminiProvider:
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         """Stream generateContent via SSE."""
+        self._touch()
         model = request.model or self._config.model
         payload = _build_payload(request, self._config)
         path = f"/v1beta/models/{model}:streamGenerateContent"
@@ -100,7 +82,7 @@ class GeminiProvider:
                 "POST",
                 path,
                 json=payload,
-                params={"key": self._config.api_key, "alt": "sse"},
+                params={"alt": "sse"},
             ) as resp:
                 err = _classify_status(resp.status_code)
                 if err is not None:
@@ -116,87 +98,71 @@ class GeminiProvider:
         """Close the underlying HTTP client."""
         await self._client.aclose()
 
-    # ------------------------------------------------------------------
-    # Internals
-    # ------------------------------------------------------------------
-
 
 def _build_payload(request: CompletionRequest, config: GeminiConfig) -> dict[str, Any]:
     """Map a universal CompletionRequest to the Gemini JSON body."""
     system_text = ""
     contents: list[dict[str, Any]] = []
-
-    for msg in request.messages:
-        match msg:
+    for message in request.messages:
+        match message:
             case SystemMessage(content=content):
                 system_text = content
             case _:
-                contents.append(_encode_message(msg))
-
+                contents.append(_encode_message(message))
     payload: dict[str, Any] = {"contents": contents}
-
     if system_text:
-        payload["systemInstruction"] = {
-            "parts": [{"text": system_text}],
-        }
-
-    gen_config: dict[str, Any] = {}
-    gen_config["temperature"] = request.temperature
-    max_tokens = request.max_tokens or config.max_output_tokens
-    gen_config["maxOutputTokens"] = max_tokens
+        payload["systemInstruction"] = {"parts": [{"text": system_text}]}
+    generation_config: dict[str, Any] = {
+        "temperature": request.temperature,
+        "maxOutputTokens": request.max_tokens or config.max_output_tokens,
+    }
     if request.stop:
-        gen_config["stopSequences"] = request.stop
-    payload["generationConfig"] = gen_config
-
+        generation_config["stopSequences"] = request.stop
+    payload["generationConfig"] = generation_config
     if request.tools:
-        func_declarations = []
-        for tool in request.tools:
-            decl: dict[str, Any] = {"name": tool.name, "description": tool.description}
-            if tool.input_schema:
-                decl["parameters"] = tool.input_schema
-            func_declarations.append(decl)
-        payload["tools"] = [{"functionDeclarations": func_declarations}]
-
+        payload["tools"] = [
+            {
+                "functionDeclarations": [
+                    {
+                        "name": tool.name,
+                        "description": tool.description,
+                        **({"parameters": tool.input_schema} if tool.input_schema else {}),
+                    }
+                    for tool in request.tools
+                ]
+            }
+        ]
     if request.extra:
         payload.update(request.extra)
-
     return payload
 
 
 def _encode_message(msg: Message) -> dict[str, Any]:
-    """Encode a discriminated union Message to the Gemini wire format."""
+    """Encode a canonical Message to the Gemini wire format."""
     match msg:
         case UserMessage(content=blocks):
+            return {"role": "user", "parts": [{"text": text_of([block])} for block in blocks]}
+        case AssistantMessage(content=blocks, tool_calls=tool_calls):
             parts: list[dict[str, Any]] = []
             for block in blocks:
-                parts.append({"text": text_of([block])})
-            return {"role": "user", "parts": parts}
-
-        case AssistantMessage(content=blocks):
-            parts_a: list[dict[str, Any]] = []
-            for block in blocks:
-                match block:
-                    case ToolUseBlock(name=name, input=inp):
-                        parts_a.append({"functionCall": {"name": name, "args": inp}})
-                    case _:
-                        t = text_of([block])
-                        if t:
-                            parts_a.append({"text": t})
-            return {"role": "model", "parts": parts_a}
-
-        case ToolResultMessage(tool_use_id=_tid, content=content):
+                text = text_of([block])
+                if text:
+                    parts.append({"text": text})
+            for tool_call in tool_calls:
+                parts.append({"functionCall": {"name": tool_call.name, "args": tool_call.input}})
+            return {"role": "model", "parts": parts}
+        case ToolResultMessage(tool_use_id=tool_use_id, content=content):
             return {
                 "role": "user",
                 "parts": [
                     {
                         "functionResponse": {
-                            "name": _tid,
+                            "name": tool_use_id,
                             "response": {"result": content},
                         }
                     }
                 ],
             }
-
         case _:
             return {"role": "user", "parts": [{"text": ""}]}
 
@@ -205,43 +171,30 @@ def _parse_response(data: dict[str, Any]) -> CompletionResponse:
     """Parse a Gemini generateContent response."""
     candidates = data.get("candidates", [])
     if not candidates:
-        return CompletionResponse(
-            message=AssistantMessage(content=[]),
-            model="",
-            usage=Usage(),
-            stop_reason="",
-        )
-
+        return CompletionResponse(message=AssistantMessage(content=[]), model="", usage=Usage())
     candidate = candidates[0]
-    content_data = candidate.get("content", {})
-    parts = content_data.get("parts", [])
-
+    parts = candidate.get("content", {}).get("parts", [])
     content_blocks: list[ContentBlock] = []
+    tool_calls: list[ToolUseBlock] = []
     for part in parts:
         if "text" in part:
             content_blocks.append(TextBlock(text=part["text"]))
         elif "functionCall" in part:
-            fc = part["functionCall"]
-            content_blocks.append(
+            function_call = part["functionCall"]
+            tool_calls.append(
                 ToolUseBlock(
-                    id=fc.get("name", ""),
-                    name=fc.get("name", ""),
-                    input=fc.get("args", {}),
+                    id=function_call.get("name", ""),
+                    name=function_call.get("name", ""),
+                    input=function_call.get("args", {}),
                 )
             )
-
     usage_meta = data.get("usageMetadata", {})
     usage = Usage(
-        prompt_tokens=usage_meta.get("promptTokenCount", 0),
-        completion_tokens=usage_meta.get("candidatesTokenCount", 0),
-        total_tokens=usage_meta.get("totalTokenCount", 0),
+        input_tokens=usage_meta.get("promptTokenCount", 0),
+        output_tokens=usage_meta.get("candidatesTokenCount", 0),
     )
-
-    finish_reason = candidate.get("finishReason", "STOP")
-    stop_reason = _STOP_REASON_MAP.get(finish_reason, finish_reason)
-
-    message = AssistantMessage(content=content_blocks)
-
+    stop_reason = _STOP_REASON_MAP.get(candidate.get("finishReason", "STOP"), FinishReason.STOP)
+    message = AssistantMessage(content=content_blocks, tool_calls=tool_calls, usage=usage)
     return CompletionResponse(
         message=message,
         model=data.get("modelVersion", ""),
@@ -255,30 +208,14 @@ def _classify_status(status_code: int) -> LLMError | None:
     if 200 <= status_code < 300:
         return None
     if status_code in (401, 403):
-        return LLMError(
-            f"HTTP {status_code}",
-            status_code=status_code,
-            code=LLMErrorCode.AUTH,
-        )
+        return LLMError(f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.AUTH)
     if status_code == 429:
-        return LLMError(
-            "HTTP 429",
-            status_code=429,
-            code=LLMErrorCode.RATE_LIMIT,
-            retryable=True,
-        )
+        return LLMError("HTTP 429", status_code=429, code=LLMErrorCode.RATE_LIMIT, retryable=True)
     if 400 <= status_code < 500:
-        return LLMError(
-            f"HTTP {status_code}",
-            status_code=status_code,
-            code=LLMErrorCode.INVALID_REQUEST,
-        )
+        return LLMError(f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.INVALID_REQUEST)
     if status_code >= 500:
         return LLMError(
-            f"HTTP {status_code}",
-            status_code=status_code,
-            code=LLMErrorCode.SERVER,
-            retryable=True,
+            f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.SERVER, retryable=True
         )
     return LLMError(f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.SERVER)
 
@@ -292,54 +229,38 @@ async def _iter_sse(resp: httpx.Response) -> AsyncIterator[StreamChunk]:
         if not line.startswith("data: "):
             continue
         payload = line[len("data: ") :]
-
         try:
             data = json.loads(payload)
         except json.JSONDecodeError:
             continue
-
         candidates = data.get("candidates", [])
         if not candidates:
             continue
-
         candidate = candidates[0]
-        content_data = candidate.get("content", {})
-        parts = content_data.get("parts", [])
-
+        parts = candidate.get("content", {}).get("parts", [])
         text_content = ""
-        tool_calls: list[ToolCall] = []
+        tool_calls: list[_StreamToolCall] = []
         for part in parts:
             if "text" in part:
                 text_content += part["text"]
             elif "functionCall" in part:
-                fc = part["functionCall"]
+                function_call = part["functionCall"]
                 tool_calls.append(
-                    ToolCall(
-                        id=fc.get("name", ""),
-                        function=FunctionCall(
-                            name=fc.get("name", ""),
-                            arguments=json.dumps(fc.get("args", {})),
-                        ),
+                    _StreamToolCall(
+                        id=function_call.get("name", ""),
+                        name=function_call.get("name", ""),
+                        input_delta=json.dumps(function_call.get("args", {})),
                     )
                 )
-
         usage_meta = data.get("usageMetadata")
         usage = (
             Usage(
-                prompt_tokens=usage_meta.get("promptTokenCount", 0),
-                completion_tokens=usage_meta.get("candidatesTokenCount", 0),
-                total_tokens=usage_meta.get("totalTokenCount", 0),
+                input_tokens=usage_meta.get("promptTokenCount", 0),
+                output_tokens=usage_meta.get("candidatesTokenCount", 0),
             )
             if usage_meta
             else None
         )
-
         finish_reason = candidate.get("finishReason")
-        done = finish_reason is not None and finish_reason != ""
-
-        yield StreamChunk(
-            content=text_content,
-            usage=usage,
-            done=done,
-            tool_calls=tool_calls or None,
-        )
+        done = bool(finish_reason)
+        yield StreamChunk(content=text_content, usage=usage, done=done, tool_calls=tool_calls or None)

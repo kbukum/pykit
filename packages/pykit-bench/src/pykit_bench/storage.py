@@ -1,74 +1,108 @@
-"""Persistent storage for bench run results."""
+"""Storage protocol and file-based implementation for bench results."""
 
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
+
+from pykit_bench.result import BenchRunResult, BenchRunSummary
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from pykit_bench.runner import RunResult, RunSummary
+
+@dataclass
+class ListOptions:
+    """Options for listing stored results."""
+
+    limit: int = 100
+    tag: str | None = None
+    dataset: str | None = None
 
 
-class RunStorage:
-    """Persist and retrieve bench run results."""
+class BenchRunStorage(Protocol):
+    """Abstraction for storing/retrieving benchmark results."""
+
+    def save(self, result: BenchRunResult) -> str: ...
+    def load(self, run_id: str) -> BenchRunResult: ...
+    def latest(self) -> BenchRunResult: ...
+    def list_runs(self, opts: ListOptions | None = None) -> list[BenchRunSummary]: ...
+
+
+class FileRunStorage:
+    """File-based storage for bench results."""
 
     def __init__(self, results_dir: Path) -> None:
         self._dir = results_dir
         self._dir.mkdir(parents=True, exist_ok=True)
 
-    def save(self, run_result: RunResult) -> str:
-        """Save run to results/<run-id>.json, return run_id."""
-        path = self._dir / f"{run_result.run_id}.json"
-        path.write_text(run_result.model_dump_json(indent=2), encoding="utf-8")
-        return run_result.run_id
+    def save(self, result: BenchRunResult) -> str:
+        path = self._dir / f"{result.id}.json"
+        path.write_text(result.model_dump_json(indent=2, by_alias=True), encoding="utf-8")
+        return result.id
 
-    def load(self, run_id: str) -> RunResult:
-        """Load a run by its ID."""
-        from pykit_bench.runner import RunResult
-
+    def load(self, run_id: str) -> BenchRunResult:
         path = self._dir / f"{run_id}.json"
         if not path.exists():
             msg = f"Run not found: {run_id}"
             raise FileNotFoundError(msg)
         data = json.loads(path.read_text(encoding="utf-8"))
-        return RunResult.model_validate(data)
+        return BenchRunResult.model_validate(data)
 
-    def latest(self) -> RunResult:
-        """Load the most recent run."""
-        runs = sorted(self._dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-        if not runs:
-            msg = f"No runs found in {self._dir}"
+    def latest(self) -> BenchRunResult:
+        summaries = self.list_runs(ListOptions(limit=1))
+        if not summaries:
+            msg = "No runs found"
             raise FileNotFoundError(msg)
-        return self.load(runs[0].stem)
+        return self.load(summaries[0].id)
 
-    def list_runs(self, media_type: str | None = None) -> list[RunSummary]:
-        """List all saved runs, optionally filtered by media type."""
-        from pykit_bench.runner import RunSummary
+    def list_runs(self, opts: ListOptions | None = None) -> list[BenchRunSummary]:
+        if opts is None:
+            opts = ListOptions()
+        if not self._dir.exists():
+            return []
 
-        summaries: list[RunSummary] = []
-        for path in sorted(self._dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
-            data = json.loads(path.read_text(encoding="utf-8"))
-            run_id = data.get("run_id", path.stem)
-            dataset = data.get("dataset_name", "")
-            if media_type and media_type not in dataset and media_type not in run_id:
+        summaries: list[BenchRunSummary] = []
+        for path in self._dir.glob("*.json"):
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+                result = BenchRunResult.model_validate(data)
+            except Exception:
                 continue
+
+            if opts.tag and result.tag != opts.tag:
+                continue
+            if opts.dataset and result.dataset.name != opts.dataset:
+                continue
+
+            f1 = 0.0
+            for m in result.metrics:
+                if "f1" in m.values:
+                    f1 = m.values["f1"]
+                    break
+                if m.name in ("classification", "multi_class_classification"):
+                    f1 = m.value
+                    break
+
             summaries.append(
-                RunSummary(
-                    run_id=run_id,
-                    timestamp=datetime.fromisoformat(data["timestamp"]),
-                    tag=data.get("tag", ""),
-                    dataset_name=dataset,
-                    f1=data.get("metrics", {}).get("f1", 0.0),
-                    accuracy=data.get("metrics", {}).get("accuracy", 0.0),
-                    sample_count=len(data.get("sample_results", [])),
+                BenchRunSummary(
+                    id=result.id,
+                    timestamp=result.timestamp,
+                    tag=result.tag,
+                    dataset=result.dataset.name,
+                    f1=f1,
                 )
             )
+
+        summaries.sort(key=lambda s: s.timestamp, reverse=True)
+        if opts.limit > 0:
+            summaries = summaries[: opts.limit]
         return summaries
 
-    def generate_run_id(self, name: str) -> str:
+    @staticmethod
+    def generate_run_id(name: str) -> str:
         """Generate a timestamped run ID."""
-        ts = datetime.now(tz=UTC).strftime("%Y%m%d-%H%M%S")
-        return f"{name}-{ts}"
+        now = datetime.now(tz=UTC).strftime("%Y%m%d-%H%M%S")
+        return f"{name}-{now}"

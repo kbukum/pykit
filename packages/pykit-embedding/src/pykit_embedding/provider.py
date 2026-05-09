@@ -1,8 +1,14 @@
-"""Embedding provider protocol."""
+"""Embedding provider protocol and deterministic in-memory adapter."""
 
 from __future__ import annotations
 
+import hashlib
+import time
 from typing import Protocol, runtime_checkable
+
+from pykit_ai import Usage
+from pykit_component import Health, HealthStatus
+from pykit_embedding.types import Audio, Embedding, EmbedRequest, EmbedResponse, Image, Text, Video
 
 
 class EmbeddingError(Exception):
@@ -14,13 +20,108 @@ class EmbeddingError(Exception):
 
 
 @runtime_checkable
-class EmbeddingProvider(Protocol):
-    """Protocol for generating vector embeddings from text."""
+class Provider(Protocol):
+    """Canonical embedding provider.
 
-    async def embed(self, texts: list[str]) -> list[list[float]]:
-        """Generate embedding vectors for a batch of text inputs."""
-        ...
+    Natively satisfies pykit-provider ``RequestResponse[EmbedRequest,
+    EmbedResponse]`` (via ``execute``) and pykit-component ``Component``
+    lifecycle.
+    """
 
-    def dimensions(self) -> int:
-        """Return the dimensionality of the embedding vectors."""
-        ...
+    @property
+    def name(self) -> str: ...
+
+    async def is_available(self) -> bool: ...
+
+    async def start(self) -> None: ...
+
+    async def stop(self) -> None: ...
+
+    async def health(self) -> Health: ...
+
+    async def embed(self, req: EmbedRequest) -> EmbedResponse: ...
+
+    async def embed_batch(self, reqs: list[EmbedRequest]) -> list[EmbedResponse]: ...
+
+    async def execute(self, input: EmbedRequest) -> EmbedResponse: ...
+
+
+class ProviderBase:
+    """Shared lifecycle/touch wiring for embedding providers."""
+
+    _name: str = "embedding"
+
+    def __init__(self) -> None:
+        self._last_call_at: float = 0.0
+        self._started: bool = False
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    async def is_available(self) -> bool:
+        return True
+
+    async def start(self) -> None:
+        self._started = True
+
+    async def stop(self) -> None:
+        self._started = False
+
+    async def health(self) -> Health:
+        status = HealthStatus.HEALTHY if self._started else HealthStatus.UNHEALTHY
+        return Health(name=self._name, status=status, message=f"last_call_at={self._last_call_at:.3f}")
+
+    def _touch(self) -> None:
+        self._last_call_at = time.monotonic()
+
+
+class InMemoryProvider(ProviderBase):
+    """Deterministic in-memory embedding adapter for tests."""
+
+    _name = "in-memory"
+
+    def __init__(self, *, dimensions: int = 8) -> None:
+        super().__init__()
+        if dimensions <= 0:
+            raise ValueError("dimensions must be positive")
+        self._dimensions = dimensions
+
+    async def embed(self, req: EmbedRequest) -> EmbedResponse:
+        self._touch()
+        embeddings = [
+            Embedding(
+                vector=_vector_for_input(input_, self._dimensions), dimensions=self._dimensions, index=index
+            )
+            for index, input_ in enumerate(req.inputs)
+        ]
+        return EmbedResponse(embeddings=embeddings, model=req.model, usage=Usage())
+
+    async def embed_batch(self, reqs: list[EmbedRequest]) -> list[EmbedResponse]:
+        return [await self.embed(req) for req in reqs]
+
+    async def execute(self, input: EmbedRequest) -> EmbedResponse:
+        return await self.embed(input)
+
+
+def _input_bytes(input_: Text | Image | Audio | Video) -> bytes:
+    match input_:
+        case Text(text=text):
+            return text.encode("utf-8")
+        case Image(data=data, url=url) | Audio(data=data, url=url) | Video(data=data, url=url):
+            return data if data is not None else (url or "").encode("utf-8")
+
+
+def _vector_for_input(input_: Text | Image | Audio | Video, dimensions: int) -> list[float]:
+    digest = hashlib.sha256(_input_bytes(input_)).digest()
+    values: list[float] = []
+    while len(values) < dimensions:
+        for byte in digest:
+            values.append((byte / 127.5) - 1.0)
+            if len(values) == dimensions:
+                break
+        digest = hashlib.sha256(digest).digest()
+    return values
+
+
+EmbeddingProvider = Provider

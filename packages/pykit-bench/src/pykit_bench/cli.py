@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import argparse
+import io
 import sys
 from pathlib import Path
 
-from pykit_bench.compare import RunComparator
-from pykit_bench.storage import RunStorage
+from pykit_bench.comparator import BenchRunComparator
+from pykit_bench.report_gen.markdown import MarkdownReporter
+from pykit_bench.storage import FileRunStorage, ListOptions
 
 
 def cmd_compare(args: argparse.Namespace) -> None:
     """Compare two bench runs."""
-    storage = RunStorage(Path(args.results_dir))
+    storage = FileRunStorage(Path(args.results_dir))
     try:
         run_a = storage.load(args.run_a)
         run_b = storage.load(args.run_b)
@@ -20,36 +22,38 @@ def cmd_compare(args: argparse.Namespace) -> None:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    result = RunComparator().compare(run_a, run_b)
+    result = BenchRunComparator().compare(run_a, run_b)
     print(result.summary())
 
 
 def cmd_history(args: argparse.Namespace) -> None:
     """List saved runs."""
-    storage = RunStorage(Path(args.results_dir))
-    runs = storage.list_runs(media_type=args.type)
+    storage = FileRunStorage(Path(args.results_dir))
+    runs = storage.list_runs(ListOptions())
+    if args.type:
+        runs = [run for run in runs if args.type in run.dataset or args.type in run.id]
     if not runs:
         print("No runs found.")
         return
 
-    print(f"{'Run ID':<40s} {'Tag':<15s} {'F1':>6s} {'Acc':>6s} {'Samples':>8s}")
-    print("─" * 80)
-    for r in runs:
-        print(f"{r.run_id:<40s} {r.tag:<15s} {r.f1:>6.3f} {r.accuracy:>6.3f} {r.sample_count:>8d}")
+    print(f"{'Run ID':<40s} {'Tag':<15s} {'F1':>6s} {'Dataset':<20s}")
+    print("─" * 90)
+    for run in runs:
+        print(f"{run.id:<40s} {run.tag:<15s} {run.f1:>6.3f} {run.dataset:<20.20s}")
 
 
 def cmd_latest(args: argparse.Namespace) -> None:
     """Show the latest run report."""
-    from pykit_bench.report import MarkdownReporter
-
-    storage = RunStorage(Path(args.results_dir))
+    storage = FileRunStorage(Path(args.results_dir))
     try:
         result = storage.latest()
     except FileNotFoundError:
         print("No runs found.")
         sys.exit(1)
 
-    print(MarkdownReporter().generate(result))
+    writer = io.StringIO()
+    MarkdownReporter().generate(writer, result)
+    print(writer.getvalue())
 
 
 def main() -> None:
@@ -57,16 +61,13 @@ def main() -> None:
     parser.add_argument("--results-dir", default="bench/results", help="Path to results directory")
     sub = parser.add_subparsers(dest="command")
 
-    # compare
     p_cmp = sub.add_parser("compare", help="Compare two runs")
     p_cmp.add_argument("run_a", help="First run ID (baseline)")
     p_cmp.add_argument("run_b", help="Second run ID (new)")
 
-    # history
     p_hist = sub.add_parser("history", help="List saved runs")
-    p_hist.add_argument("--type", default=None, help="Filter by media type")
+    p_hist.add_argument("--type", default=None, help="Filter by dataset or run ID substring")
 
-    # latest
     sub.add_parser("latest", help="Show latest run report")
 
     args = parser.parse_args()

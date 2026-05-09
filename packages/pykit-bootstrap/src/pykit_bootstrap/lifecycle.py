@@ -22,7 +22,7 @@ class LifecycleEvent:
     app_name: str
 
 
-type Hook = (
+Hook = (
     Callable[[], Awaitable[None]]
     | Callable[[LifecycleEvent], Awaitable[None]]
     | Callable[[HookContext | None, LifecycleEvent], Awaitable[None]]

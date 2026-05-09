@@ -1,181 +1,231 @@
-"""Bench runner — orchestrate branches against a dataset and compute metrics."""
+"""Bench runner — orchestrates the complete benchmark lifecycle."""
 
 from __future__ import annotations
 
+import asyncio
+import io
 import time
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
-from pydantic import BaseModel, Field
-
-from pykit_bench.metrics import ThresholdMetrics, compute_metrics, per_branch_metrics
-from pykit_bench.report import MarkdownReporter
+from pykit_bench.result import (
+    BenchRunResult,
+    BenchSampleResult,
+    BranchResult,
+    DatasetInfo,
+    MetricResult,
+)
+from pykit_bench.schema import SCHEMA_VERSION
+from pykit_bench.types import BenchSample, Prediction, ScoredSample
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from pykit_bench.comparator import BenchRunComparator
+    from pykit_bench.dataset_loader import GenericDatasetLoader
+    from pykit_bench.evaluator import Evaluator
+    from pykit_bench.metric.base import MetricSuite
+    from pykit_bench.report_gen.base import Reporter
+    from pykit_bench.storage import BenchRunStorage
 
-    from pykit_bench.dataset import DatasetLoader
-    from pykit_bench.storage import RunStorage
+L = TypeVar("L")
 
 
 @dataclass
-class BranchSpec:
-    """Registration for a bench-able analysis branch."""
+class RunOptions:
+    """Options for configuring a benchmark run."""
+
+    concurrency: int = 4
+    timeout_secs: float = 30.0
+    tag: str = "default"
+    fail_on_regression: bool = False
+    targets: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class BranchConfig[L]:
+    """A registered evaluation branch."""
 
     name: str
-    func: Callable[[bytes, dict[str, object] | None], Awaitable[float]]
-    tier: int = 1
+    evaluator: Evaluator[L]
+    tier: int = 0
 
 
-@dataclass
-class SampleResult:
-    """Result of running all branches on a single sample."""
+class BenchRunner[L]:
+    """Enhanced bench runner orchestrating evaluation, metrics, storage, reporting."""
 
-    sample_id: str
-    label: str
-    is_positive: bool
-    overall_score: float
-    branch_scores: dict[str, float] = field(default_factory=dict)
-    processing_ms: int = 0
+    def __init__(self) -> None:
+        self._branches: list[BranchConfig[L]] = []
+        self._metrics: MetricSuite[L] | None = None
+        self._storage: BenchRunStorage | None = None
+        self._reporters: list[Reporter] = []
+        self._comparator: BenchRunComparator | None = None
 
+    def register(self, name: str, evaluator: Evaluator[L], tier: int = 0) -> BenchRunner[L]:
+        self._branches.append(BranchConfig(name=name, evaluator=evaluator, tier=tier))
+        return self
 
-class RunSummary(BaseModel):
-    """Lightweight summary of a saved run."""
+    def with_metrics(self, suite: MetricSuite[L]) -> BenchRunner[L]:
+        self._metrics = suite
+        return self
 
-    run_id: str
-    timestamp: datetime
-    tag: str = ""
-    dataset_name: str = ""
-    f1: float = 0.0
-    accuracy: float = 0.0
-    sample_count: int = 0
-
-
-class RunResult(BaseModel):
-    """Complete result of a bench run."""
-
-    model_config = {"arbitrary_types_allowed": True}
-
-    run_id: str
-    timestamp: datetime
-    tag: str = ""
-    config: dict[str, object] = Field(default_factory=dict)
-    dataset_name: str = ""
-    sample_results: list[SampleResult] = Field(default_factory=list)
-    metrics: ThresholdMetrics = Field(
-        default_factory=lambda: ThresholdMetrics(
-            threshold=0.5, precision=0.0, recall=0.0, f1=0.0, accuracy=0.0, fpr=0.0
-        )
-    )
-    per_branch: dict[str, ThresholdMetrics] = Field(default_factory=dict)
-
-
-class BenchRunner:
-    """Run analysis branches against a dataset and compute metrics."""
-
-    def __init__(
-        self,
-        dataset_loader: DatasetLoader,
-        positive_label: str,
-        branches: list[BranchSpec] | None = None,
-        storage: RunStorage | None = None,
-    ) -> None:
-        self._loader = dataset_loader
-        self._positive_label = positive_label
-        self._branches: list[BranchSpec] = list(branches) if branches else []
+    def with_storage(self, storage: BenchRunStorage) -> BenchRunner[L]:
         self._storage = storage
+        return self
 
-    def register_branch(self, name: str, func: Callable[..., Awaitable[float]], tier: int = 1) -> None:
-        """Register an analysis branch for benchmarking."""
-        self._branches.append(BranchSpec(name=name, func=func, tier=tier))
+    def with_reporter(self, reporter: Reporter) -> BenchRunner[L]:
+        self._reporters.append(reporter)
+        return self
 
-    async def run(self, tag: str = "", threshold: float = 0.5) -> RunResult:
-        """Run all branches on all samples, compute metrics, save results."""
-        manifest = self._loader.load()
-        run_name = manifest.name if manifest.name else "bench"
+    def with_comparator(self, comparator: BenchRunComparator) -> BenchRunner[L]:
+        self._comparator = comparator
+        return self
 
-        run_id = (
-            self._storage.generate_run_id(run_name)
-            if self._storage
-            else f"{run_name}-{datetime.now(tz=UTC).strftime('%Y%m%d-%H%M%S')}"
+    async def run(
+        self,
+        loader: GenericDatasetLoader[L],
+        opts: RunOptions | None = None,
+    ) -> BenchRunResult:
+        if opts is None:
+            opts = RunOptions()
+
+        start = time.monotonic()
+
+        # 1. Load dataset
+        samples = loader.all()
+        label_dist = Counter(str(s.label) for s in samples)
+        dataset_info = DatasetInfo(
+            name=opts.tag,
+            sample_count=len(samples),
+            label_distribution=dict(label_dist),
         )
 
-        sample_results: list[SampleResult] = []
-        all_scores: list[float] = []
-        all_labels: list[bool] = []
-        branch_scores_map: dict[str, list[float]] = {b.name: [] for b in self._branches}
+        # 2. Evaluate each branch
+        semaphore = asyncio.Semaphore(opts.concurrency)
+        branch_results: dict[str, BranchResult] = {}
+        all_scored: list[ScoredSample[L]] = []
+        sample_results: list[BenchSampleResult] = []
 
-        for sample in manifest.samples:
-            content = self._loader.get_content(sample)
-            is_positive = sample.label == self._positive_label
+        for branch in self._branches:
+            correct_count = 0
+            total = 0
+            error_count = 0
+            pos_scores: list[float] = []
+            neg_scores: list[float] = []
+            branch_start = time.monotonic()
 
-            start = time.monotonic()
-            branch_scores: dict[str, float] = {}
+            async def _eval_sample(
+                sample: BenchSample[L],
+                _branch: BranchConfig[L] = branch,
+            ) -> tuple[Prediction[L] | None, bool]:
+                async with semaphore:
+                    try:
+                        pred = await asyncio.wait_for(
+                            _branch.evaluator.evaluate(sample.input),
+                            timeout=opts.timeout_secs,
+                        )
+                        is_correct = str(pred.label) == str(sample.label)
+                        return pred, is_correct
+                    except TimeoutError:
+                        return None, False
+                    except Exception:
+                        return None, False
 
-            for branch in self._branches:
-                try:
-                    score = await branch.func(content, None)
-                    branch_scores[branch.name] = score
-                    branch_scores_map[branch.name].append(score)
-                except Exception:
-                    branch_scores[branch.name] = 0.0
-                    branch_scores_map[branch.name].append(0.0)
+            tasks = [_eval_sample(s) for s in samples]
+            results = await asyncio.gather(*tasks)
 
-            elapsed_ms = int((time.monotonic() - start) * 1000)
+            for sample, (pred, is_correct) in zip(samples, results, strict=False):
+                total += 1
+                if pred is not None:
+                    if is_correct:
+                        correct_count += 1
+                        pos_scores.append(pred.score)
+                    else:
+                        neg_scores.append(pred.score)
+                    sample_results.append(
+                        BenchSampleResult(
+                            id=sample.id,
+                            label=str(sample.label),
+                            predicted=str(pred.label),
+                            correct=is_correct,
+                            score=pred.score,
+                            branch_scores={branch.name: pred.score},
+                        )
+                    )
+                    all_scored.append(ScoredSample(sample=sample, prediction=pred))
+                else:
+                    error_count += 1
+                    sample_results.append(
+                        BenchSampleResult(
+                            id=sample.id,
+                            label=str(sample.label),
+                            predicted="",
+                            correct=False,
+                            score=0.0,
+                            branch_scores={},
+                            error="evaluation failed",
+                        )
+                    )
 
-            # Overall score = weighted average, giving more weight to branches
-            # that show stronger signal (further from 0.5 = more decisive)
-            weighted_sum = 0.0
-            weight_total = 0.0
-            for _bname, bscore in branch_scores.items():
-                # Weight by decisiveness: how far the score is from 0.5
-                decisiveness = abs(bscore - 0.5) + 0.1  # minimum weight 0.1
-                weighted_sum += bscore * decisiveness
-                weight_total += decisiveness
-            overall = weighted_sum / weight_total if weight_total > 0 else 0.0
+            branch_elapsed_ms = int((time.monotonic() - branch_start) * 1000)
+            accuracy = correct_count / total if total > 0 else 0.0
+            avg_pos = sum(pos_scores) / len(pos_scores) if pos_scores else 0.0
+            avg_neg = sum(neg_scores) / len(neg_scores) if neg_scores else 0.0
 
-            all_scores.append(overall)
-            all_labels.append(is_positive)
-
-            sample_results.append(
-                SampleResult(
-                    sample_id=sample.id,
-                    label=sample.label,
-                    is_positive=is_positive,
-                    overall_score=round(overall, 4),
-                    branch_scores={k: round(v, 4) for k, v in branch_scores.items()},
-                    processing_ms=elapsed_ms,
-                )
+            branch_results[branch.name] = BranchResult(
+                name=branch.name,
+                tier=branch.tier,
+                metrics={"accuracy": accuracy},
+                avg_score_positive=avg_pos,
+                avg_score_negative=avg_neg,
+                duration_ms=branch_elapsed_ms,
+                errors=error_count,
             )
 
-        # Compute metrics
-        metrics = compute_metrics(all_scores, all_labels, threshold)
-        branch_metrics = per_branch_metrics(branch_scores_map, all_labels, threshold)
+        # 3. Compute metrics
+        metric_results: list[MetricResult] = []
+        if self._metrics is not None:
+            metric_results = self._metrics.compute(all_scored)
 
-        result = RunResult(
-            run_id=run_id,
-            timestamp=datetime.now(tz=UTC),
-            tag=tag,
-            config={"threshold": threshold, "branches": [b.name for b in self._branches]},
-            dataset_name=manifest.name,
-            sample_results=sample_results,
-            metrics=metrics,
-            per_branch=branch_metrics,
+        # 4. Build result
+        elapsed_ms = int((time.monotonic() - start) * 1000)
+        now = datetime.now(tz=UTC)
+        run_id = f"{opts.tag}_{now.strftime('%Y%m%d_%H%M%S')}"
+
+        bench_result = BenchRunResult(
+            id=run_id,
+            version=SCHEMA_VERSION,
+            timestamp=now,
+            tag=opts.tag,
+            duration_ms=elapsed_ms,
+            dataset=dataset_info,
+            metrics=metric_results,
+            branches=branch_results,
+            samples=sample_results,
+            curves={},
         )
 
-        if self._storage:
-            self._storage.save(result)
+        # 5. Store
+        if self._storage is not None:
+            self._storage.save(bench_result)
 
-        return result
+        # 6. Reports
+        for reporter in self._reporters:
+            try:
+                writer = io.StringIO()
+                reporter.generate(writer, bench_result)
+            except Exception:
+                continue
 
-    def report(self, result: RunResult, format: str = "markdown") -> None:
-        """Print a report to stdout."""
-        if format == "markdown":
-            print(MarkdownReporter().generate(result))
-        else:
-            import json
+        # 7. Compare with previous
+        if self._comparator is not None and self._storage is not None:
+            try:
+                prev = self._storage.latest()
+                if prev.id != bench_result.id:
+                    diff = self._comparator.compare(prev, bench_result)
+                    if opts.fail_on_regression and diff.has_regression():
+                        raise RuntimeError(f"Regression detected:\n{diff.summary()}")
+            except FileNotFoundError:
+                pass
 
-            from pykit_bench.report import JsonReporter
-
-            print(json.dumps(JsonReporter().generate(result), indent=2, default=str))
+        return bench_result

@@ -33,6 +33,7 @@ dev = [
     "pykit-messaging",
     "pykit-httpclient",
     "pykit-llm",
+    "pykit-ai",
     "pykit-storage",
     "pykit-cache",
     "pykit-database",
@@ -52,10 +53,10 @@ dev = [
     "pykit-embedding",
     "pykit-vectorstore",
     "pykit-llm-providers",
-    "pykit-explain",
     "pykit-hook",
     "pykit-agent",
     "pykit-mcp",
+    "pykit-skill",
     "pykit-transcription",
     "aiosqlite",
     "pytest",
@@ -97,6 +98,7 @@ constraint-dependencies = [
 
 [tool.uv.sources]
 pykit                = { workspace = true }
+pykit-ai          = { workspace = true }
 pykit-agent          = { workspace = true }
 pykit-llm-providers = { workspace = true }
 pykit-auth           = { workspace = true }
@@ -115,7 +117,6 @@ pykit-discovery      = { workspace = true }
 pykit-embedding      = { workspace = true }
 pykit-encryption     = { workspace = true }
 pykit-errors         = { workspace = true }
-pykit-explain        = { workspace = true }
 pykit-grpc           = { workspace = true }
 pykit-hook           = { workspace = true }
 pykit-httpclient     = { workspace = true }
@@ -123,6 +124,7 @@ pykit-messaging     = { workspace = true }
 pykit-llm            = { workspace = true }
 pykit-logging        = { workspace = true }
 pykit-mcp            = { workspace = true }
+pykit-skill          = { workspace = true }
 pykit-media          = { workspace = true }
 pykit-observability  = { workspace = true }
 pykit-pipeline       = { workspace = true }
@@ -193,6 +195,7 @@ source_pkgs = [
     "pykit_sse",
     "pykit_stateful",
     "pykit_llm",
+    "pykit_ai",
     "pykit_discovery",
     "pykit_process",
     "pykit_media",
@@ -201,8 +204,8 @@ source_pkgs = [
     "pykit_embedding",
     "pykit_vectorstore",
     "pykit_llm_providers",
-    "pykit_explain",
     "pykit_transcription",
+    "pykit_skill",
 ]
 branch = true
 data_file = ".cache/coverage/.coverage"
@@ -319,10 +322,11 @@ known-first-party = [
     "pykit_observability", "pykit_security", "pykit_dag", "pykit_worker",
     "pykit_sse", "pykit_stateful", "pykit_database", "pykit_cache",
     "pykit_storage", "pykit_messaging", "pykit_httpclient", "pykit_grpc",
-    "pykit_auth", "pykit_authz", "pykit_llm", "pykit_discovery",
+    "pykit_auth", "pykit_authz", "pykit_llm", "pykit_ai", "pykit_discovery",
     "pykit_process", "pykit_workload",
-    "pykit_llm_providers", "pykit_explain",
+    "pykit_llm_providers",
     "pykit_transcription",
+    "pykit_skill",
 ]
 
 [tool.mypy]
@@ -332,6 +336,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_any_generics = true
 warn_redundant_casts = true
+exclude = '(^|/)(tests|__pycache__)/'
 packages = [
     "pykit",
     "pykit_errors",
@@ -366,6 +371,7 @@ packages = [
     "pykit_sse",
     "pykit_stateful",
     "pykit_llm",
+    "pykit_ai",
     "pykit_discovery",
     "pykit_process",
     "pykit_media",
@@ -374,7 +380,6 @@ packages = [
     "pykit_embedding",
     "pykit_vectorstore",
     "pykit_llm_providers",
-    "pykit_explain",
     "pykit_transcription",
     "pykit_agent",
     "pykit_hook",
@@ -383,6 +388,7 @@ packages = [
     "pykit_schema",
     "pykit_integration",
     "pykit_tool",
+    "pykit_skill",
 ]
 
 [[tool.mypy.overrides]]
@@ -419,11 +425,11 @@ root_packages = [
     "pykit_auth", "pykit_authz",
     "pykit_database", "pykit_cache", "pykit_storage", "pykit_messaging", "pykit_httpclient",
     "pykit_server", "pykit_grpc",
-    "pykit_llm", "pykit_inference", "pykit_bench", "pykit_dataset",
-    "pykit_embedding", "pykit_vectorstore", "pykit_llm_providers", "pykit_explain",
+    "pykit_llm", "pykit_ai", "pykit_inference", "pykit_bench", "pykit_dataset",
+    "pykit_embedding", "pykit_vectorstore", "pykit_llm_providers",
     "pykit_transcription",
     "pykit_agent", "pykit_discovery", "pykit_workload", "pykit_process",
-    "pykit_testutil", "pykit_integration", "pykit_tool",
+    "pykit_testutil", "pykit_integration", "pykit_tool", "pykit_skill",
 ]
 
 [[tool.importlinter.contracts]]
@@ -431,14 +437,16 @@ name = "Layer architecture"
 type = "layers"
 layers = [
     "pykit_agent | pykit_workload | pykit_process | pykit_testutil | pykit_integration",
-    "pykit_explain | pykit_inference | pykit_bench | pykit_dataset | pykit_transcription",
+    "pykit_skill",
+    "pykit_inference | pykit_bench | pykit_dataset | pykit_transcription",
     "pykit_llm_providers",
-    "pykit_llm | pykit_embedding | pykit_vectorstore",
+    "pykit_llm | pykit_embedding | pykit_vectorstore | pykit_mcp",
+    "pykit_ai",
     "pykit_server | pykit_grpc",
     "pykit_discovery | pykit_database | pykit_cache | pykit_storage | pykit_messaging | pykit_httpclient",
     "pykit_auth | pykit_authz | pykit_security",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
-    "pykit_di | pykit_bootstrap | pykit_observability | pykit_mcp | pykit_chain",
+    "pykit_di | pykit_bootstrap | pykit_observability | pykit_chain",
     "pykit_hook | pykit_provider | pykit_component | pykit_resilience | pykit_schema",
     "pykit_validation | pykit_encryption | pykit_util | pykit_version | pykit_media",
     "pykit_errors | pykit_config | pykit_logging",

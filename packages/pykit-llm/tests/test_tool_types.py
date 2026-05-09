@@ -1,15 +1,15 @@
-"""Tests for tool calling types in pykit_llm."""
+"""Tests for canonical tool and message types in pykit_llm."""
 
 from __future__ import annotations
 
+from pykit_ai import ToolUseBlock
 from pykit_llm import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
-    FunctionCall,
+    FinishReason,
     StreamChunk,
     TextBlock,
-    ToolCall,
     ToolChoice,
     ToolResultMessage,
     UserMessage,
@@ -18,22 +18,15 @@ from pykit_llm import (
     tool_result_msg,
     user,
 )
+from pykit_llm.types import _StreamToolCall
 
 
-class TestToolCall:
+class TestToolUseBlock:
     def test_basic(self):
-        tc = ToolCall(
-            id="call_abc",
-            function=FunctionCall(name="search", arguments='{"q":"test"}'),
-        )
-        assert tc.id == "call_abc"
-        assert tc.type == "function"
-        assert tc.function.name == "search"
-        assert tc.function.arguments == '{"q":"test"}'
-
-    def test_custom_type(self):
-        tc = ToolCall(id="1", function=FunctionCall(name="f", arguments="{}"), type="custom")
-        assert tc.type == "custom"
+        block = ToolUseBlock(id="call_abc", name="search", input={"q": "test"})
+        assert block.id == "call_abc"
+        assert block.name == "search"
+        assert block.input == {"q": "test"}
 
 
 class TestToolResultMessage:
@@ -47,13 +40,13 @@ class TestToolResultMessage:
 
     def test_role(self):
         result = ToolResultMessage(tool_use_id="call_1", content="result data")
-        assert result.role == "tool_result"
+        assert result.role == "tool"
         assert result.content == "result data"
         assert result.tool_use_id == "call_1"
 
     def test_convenience_constructor(self):
         msg = tool_result_msg("call_1", "result data")
-        assert msg.role == "tool_result"
+        assert msg.role == "tool"
         assert msg.content == "result data"
         assert msg.tool_use_id == "call_1"
         assert msg.is_error is False
@@ -88,17 +81,17 @@ class TestMessageWithTools:
         msg = AssistantMessage(
             content=[TextBlock(text="")],
             tool_calls=[
-                ToolCall(id="1", function=FunctionCall(name="search", arguments='{"q":"test"}')),
-                ToolCall(id="2", function=FunctionCall(name="fetch", arguments='{"url":"x"}')),
+                ToolUseBlock(id="1", name="search", input={"q": "test"}),
+                ToolUseBlock(id="2", name="fetch", input={"url": "x"}),
             ],
         )
         assert len(msg.tool_calls) == 2
-        assert msg.tool_calls[0].function.name == "search"
+        assert msg.tool_calls[0].name == "search"
 
     def test_tool_result_message(self):
         msg = ToolResultMessage(tool_use_id="call_1", content="result")
         assert msg.tool_use_id == "call_1"
-        assert msg.role == "tool_result"
+        assert msg.role == "tool"
 
     def test_user_message_defaults(self):
         msg = user("hello")
@@ -113,10 +106,7 @@ class TestMessageWithTools:
 
 class TestCompletionRequestWithTools:
     def test_tools_field(self):
-        req = CompletionRequest(
-            messages=[user("hello")],
-            tool_choice=ToolChoice.auto(),
-        )
+        req = CompletionRequest(messages=[user("hello")], tool_choice=ToolChoice.auto())
         assert req.tools is None
         assert req.tool_choice.mode == "auto"
 
@@ -137,27 +127,20 @@ class TestCompletionResponseWithTools:
 
     def test_has_tool_calls_true(self):
         resp = CompletionResponse(
-            message=AssistantMessage(
-                tool_calls=[
-                    ToolCall(id="1", function=FunctionCall(name="f", arguments="{}")),
-                ],
-            ),
+            message=AssistantMessage(tool_calls=[ToolUseBlock(id="1", name="f", input={})]),
         )
         assert resp.has_tool_calls() is True
 
     def test_stop_reason_tool_use(self):
-        resp = CompletionResponse(message=assistant(""), stop_reason="tool_use")
-        assert resp.stop_reason == "tool_use"
+        resp = CompletionResponse(message=assistant(""), stop_reason=FinishReason.TOOL_USE)
+        assert resp.stop_reason == FinishReason.TOOL_USE
 
 
 class TestStreamChunkWithTools:
     def test_tool_calls_field(self):
-        chunk = StreamChunk(
-            tool_calls=[
-                ToolCall(id="1", function=FunctionCall(name="f", arguments="{}")),
-            ]
-        )
+        chunk = StreamChunk(tool_calls=[_StreamToolCall(index=1, id="1", name="f", input_delta="{}")])
         assert len(chunk.tool_calls) == 1
+        assert chunk.tool_calls[0].name == "f"
 
     def test_defaults(self):
         chunk = StreamChunk()

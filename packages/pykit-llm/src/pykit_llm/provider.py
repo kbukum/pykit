@@ -1,26 +1,31 @@
-"""LLM provider protocol — the universal interface for completions."""
+"""LLM provider protocol — the universal interface for completions.
+
+The canonical ``Provider`` Protocol natively satisfies pykit-provider's
+``RequestResponse[CompletionRequest, CompletionResponse]`` and
+``Stream[CompletionRequest, StreamEvent]`` shapes via the ``execute`` and
+``execute_stream`` methods, which alias ``complete`` and ``stream``
+respectively. Implementations may inherit ``ProviderBase`` to pick up the
+default aliases and ``Component`` lifecycle, or implement the methods directly.
+"""
 
 from __future__ import annotations
 
+import time
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from pykit_llm.stream_events import StreamEvent
-from pykit_llm.types import CompletionRequest, CompletionResponse, Message, StreamChunk
+from pykit_ai import Capabilities, Message, StreamEvent
+from pykit_ai import count_tokens_approx as ai_count_tokens_approx
+from pykit_component import Health, HealthStatus
+from pykit_llm.types import CompletionRequest, CompletionResponse, StreamChunk
 
-
-@dataclass
-class Capabilities:
-    """Describes what a provider supports."""
-
-    supports_tools: bool = False
-    supports_vision: bool = False
-    supports_thinking: bool = False
-    supports_streaming: bool = False
-    max_context_tokens: int = 0
-    max_output_tokens: int = 0
-    model_id: str = ""
+__all__ = [
+    "Capabilities",
+    "LLMProvider",
+    "Provider",
+    "ProviderBase",
+    "count_tokens_approx",
+]
 
 
 @runtime_checkable
@@ -34,35 +39,89 @@ class LLMProvider(Protocol):
 
 @runtime_checkable
 class Provider(Protocol):
-    """Enhanced provider protocol with capabilities and token counting."""
+    """Enhanced provider protocol with capabilities and token counting.
+
+    Natively implements pykit-provider's ``RequestResponse`` shape (via
+    ``execute``) and ``Stream`` shape (via ``execute_stream``), and
+    pykit-component's ``Component`` lifecycle (``name``, ``start``, ``stop``,
+    ``health``). Drop-in compatible with dag/pipeline/chain/worker consumers.
+    """
+
+    @property
+    def name(self) -> str: ...
+
+    async def is_available(self) -> bool: ...
+
+    async def start(self) -> None: ...
+
+    async def stop(self) -> None: ...
+
+    async def health(self) -> Health: ...
 
     async def complete(self, request: CompletionRequest) -> CompletionResponse: ...
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamEvent]: ...
+
+    async def execute(self, input: CompletionRequest) -> CompletionResponse: ...
+
+    async def execute_stream(self, input: CompletionRequest) -> AsyncIterator[StreamEvent]: ...
 
     def capabilities(self) -> Capabilities: ...
 
     def count_tokens(self, messages: list[Message]) -> int: ...
 
 
-def count_tokens_approx(messages: list[Message]) -> int:
-    """Approximate token count based on ~4 characters per token.
+class ProviderBase:
+    """Mixin supplying ``execute``/``execute_stream`` aliases and ``Component`` lifecycle.
 
-    Args:
-        messages: List of messages to estimate token count for.
+    Concrete LLM providers (OpenAI, Anthropic, Gemini) may inherit this to gain
+    the canonical provider/component surface without re-implementing it. A
+    ``last_call_at`` timestamp is updated on every ``complete``/``stream`` to
+    feed the ``health()`` payload.
 
-    Returns:
-        Approximate token count.
+    Subclasses must implement ``complete`` and ``stream`` and set ``_name`` to
+    the provider's stable identity (e.g. ``"openai"``).
     """
-    total_chars = 0
-    for msg in messages:
-        match msg:
-            case m if hasattr(m, "content") and isinstance(m.content, str):
-                total_chars += len(m.content)
-            case m if hasattr(m, "content") and isinstance(m.content, list):
-                from pykit_llm.types import TextBlock
 
-                for block in m.content:
-                    if isinstance(block, TextBlock):
-                        total_chars += len(block.text)
-    return total_chars // 4
+    _name: str = "llm"
+
+    def __init__(self) -> None:
+        self._last_call_at: float = 0.0
+        self._started: bool = False
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    async def is_available(self) -> bool:
+        return True
+
+    async def start(self) -> None:
+        self._started = True
+
+    async def stop(self) -> None:
+        self._started = False
+        close = getattr(self, "close", None)
+        if callable(close):
+            await close()
+
+    async def health(self) -> Health:
+        status = HealthStatus.HEALTHY if self._started else HealthStatus.UNHEALTHY
+        message = f"last_call_at={self._last_call_at:.3f}"
+        return Health(name=self._name, status=status, message=message)
+
+    def _touch(self) -> None:
+        self._last_call_at = time.monotonic()
+
+    async def execute(self, input: CompletionRequest) -> CompletionResponse:
+        result: CompletionResponse = await self.complete(input)  # type: ignore[attr-defined]
+        return result
+
+    async def execute_stream(self, input: CompletionRequest) -> AsyncIterator[StreamEvent]:
+        async for event in self.stream(input):  # type: ignore[attr-defined]
+            yield event
+
+
+def count_tokens_approx(messages: list[Message]) -> int:
+    """Approximate token count using canonical AI message heuristics."""
+    return ai_count_tokens_approx(messages)

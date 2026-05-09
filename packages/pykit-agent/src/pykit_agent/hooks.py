@@ -1,89 +1,70 @@
-"""Domain-specific hook event types for the agent lifecycle."""
+"""Canonical observe-only agent hook Protocol."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
-from pykit_llm.types import AssistantMessage, CompletionRequest, CompletionResponse
-
-# ---------------------------------------------------------------------------
-# Event type constants
-# ---------------------------------------------------------------------------
-
-EVENT_PRE_TOOL_CALL = "pre_tool_call"
-EVENT_POST_TOOL_CALL = "post_tool_call"
-EVENT_PRE_LLM_CALL = "pre_llm_call"
-EVENT_POST_LLM_CALL = "post_llm_call"
-EVENT_ON_ERROR = "on_error"
-EVENT_TURN_START = "turn_start"
-EVENT_TURN_END = "turn_end"
-
-# ---------------------------------------------------------------------------
-# Hook events — each satisfies the pykit_hook.Event protocol
-# ---------------------------------------------------------------------------
+from pykit_ai import ToolResultBlock
+from pykit_llm.types import AssistantMessage, CompletionRequest
+from pykit_llm.types import CompletionResponse as LLMResponse
 
 
-@dataclass
-class PreToolCall:
-    """Emitted before a tool is called."""
+@runtime_checkable
+class AgentHook(Protocol):
+    """Observe-only async hook surface for the agent loop."""
 
-    name: str = ""
-    input: Any = None
-    type: str = EVENT_PRE_TOOL_CALL
+    async def on_start(self, turn: int) -> None: ...
 
+    async def on_llm_request(self, request: CompletionRequest) -> None: ...
 
-@dataclass
-class PostToolCall:
-    """Emitted after a tool call completes."""
+    async def on_llm_response(self, response: LLMResponse) -> None: ...
 
-    name: str = ""
-    input: Any = None
-    result: Any = None
-    error: Exception | None = None
-    type: str = EVENT_POST_TOOL_CALL
+    async def on_tool_call(self, name: str, input_data: dict[str, object]) -> None: ...
 
+    async def on_tool_result(self, name: str, result: ToolResultBlock) -> None: ...
 
-@dataclass
-class PreLLMCall:
-    """Emitted before an LLM completion is requested."""
+    async def on_mcp_request(self, server: str, method: str, input_data: dict[str, object]) -> None: ...
 
-    request: CompletionRequest = field(default_factory=lambda: CompletionRequest(messages=[]))
-    type: str = EVENT_PRE_LLM_CALL
+    async def on_mcp_result(self, server: str, method: str, result: Any) -> None: ...
 
+    # MCP server result payloads are intentionally opaque at this layer.
 
-@dataclass
-class PostLLMCall:
-    """Emitted after an LLM completion returns."""
+    async def on_step_complete(self, turn: int, message: AssistantMessage) -> None: ...
 
-    response: CompletionResponse = field(
-        default_factory=lambda: CompletionResponse(message=AssistantMessage())
-    )
-    error: Exception | None = None
-    type: str = EVENT_POST_LLM_CALL
+    async def on_error(self, error: Exception) -> None: ...
+
+    async def on_stop(self, reason: str) -> None: ...
 
 
-@dataclass
-class OnError:
-    """Emitted when an error occurs."""
+class NoopHook:
+    """Default hook implementation."""
 
-    error: Exception = field(default_factory=Exception)
-    source: str = ""
-    type: str = EVENT_ON_ERROR
+    async def on_start(self, turn: int) -> None:
+        return None
 
+    async def on_llm_request(self, request: CompletionRequest) -> None:
+        return None
 
-@dataclass
-class TurnStart:
-    """Emitted at the beginning of an agent turn."""
+    async def on_llm_response(self, response: LLMResponse) -> None:
+        return None
 
-    turn: int = 0
-    type: str = EVENT_TURN_START
+    async def on_tool_call(self, name: str, input_data: dict[str, object]) -> None:
+        return None
 
+    async def on_tool_result(self, name: str, result: ToolResultBlock) -> None:
+        return None
 
-@dataclass
-class TurnEnd:
-    """Emitted at the end of an agent turn."""
+    async def on_mcp_request(self, server: str, method: str, input_data: dict[str, object]) -> None:
+        return None
 
-    turn: int = 0
-    message: AssistantMessage = field(default_factory=AssistantMessage)
-    type: str = EVENT_TURN_END
+    async def on_mcp_result(self, server: str, method: str, result: Any) -> None:
+        return None
+
+    async def on_step_complete(self, turn: int, message: AssistantMessage) -> None:
+        return None
+
+    async def on_error(self, error: Exception) -> None:
+        return None
+
+    async def on_stop(self, reason: str) -> None:
+        return None

@@ -48,8 +48,17 @@ dependencies = [
     "pykit-workload",
     # Layer 8 — AI/ML
     "pykit-llm",
+    "pykit-ai",
     "pykit-inference",
     "pykit-dataset",
+    "pykit-embedding",
+    "pykit-llm-providers",
+    "pykit-tool",
+    "pykit-agent",
+    "pykit-mcp",
+    "pykit-skill",
+    "pykit-hook",
+    "pykit-schema",
     # Layer 9 — tools
     "pykit-bench",
     "pykit-testutil",

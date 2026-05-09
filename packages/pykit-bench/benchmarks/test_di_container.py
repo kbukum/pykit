@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Protocol, TypeVar
+
 import pytest
 
 pytestmark = pytest.mark.benchmark
 
+T = TypeVar("T")
 
-def test_container_resolve_simple(benchmark: pytest.FixtureRequest) -> None:
+
+class Benchmark(Protocol):
+    def __call__(self, target: Callable[[], T], *args: object, **kwargs: object) -> T: ...
+
+
+def test_container_resolve_simple(benchmark: Benchmark) -> None:
     """Benchmark resolving a simple registered value."""
     try:
         from pykit_di import Container
@@ -20,7 +29,7 @@ def test_container_resolve_simple(benchmark: pytest.FixtureRequest) -> None:
         pytest.skip("pykit-di not available")
 
 
-def test_container_resolve_lazy(benchmark: pytest.FixtureRequest) -> None:
+def test_container_resolve_lazy(benchmark: Benchmark) -> None:
     """Benchmark resolving a lazy-registered component."""
     try:
         from pykit_di import Container

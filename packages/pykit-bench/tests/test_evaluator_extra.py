@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 from pykit_bench.evaluator import Evaluator, EvaluatorFunc, FromProvider
@@ -21,20 +20,20 @@ class TestEvaluatorFunc:
         ev = EvaluatorFunc("my-eval", dummy)
         assert ev.name == "my-eval"
 
-    def test_is_available(self):
+    async def test_is_available(self):
         async def dummy(data: bytes) -> Prediction[str]:
             return Prediction(label="a", score=0.5)
 
         ev = EvaluatorFunc("test", dummy)
-        result = asyncio.get_event_loop().run_until_complete(ev.is_available())
+        result = await ev.is_available()
         assert result is True
 
-    def test_evaluate(self):
+    async def test_evaluate(self):
         async def classify(data: bytes) -> Prediction[str]:
             return Prediction(label="positive", score=0.95)
 
         ev = EvaluatorFunc("classifier", classify)
-        pred = asyncio.get_event_loop().run_until_complete(ev.evaluate(b"test data"))
+        pred = await ev.evaluate(b"test data")
         assert pred.label == "positive"
         assert pred.score == 0.95
 
@@ -68,24 +67,24 @@ class TestFromProvider:
         )
         assert ev.name == "grpc-provider"
 
-    def test_is_available(self):
+    async def test_is_available(self):
         provider = self._make_provider()
         ev = FromProvider(
             provider=provider,
             to_input=lambda raw: raw,
             to_prediction=lambda resp: Prediction(label=resp["label"], score=resp["score"]),
         )
-        result = asyncio.get_event_loop().run_until_complete(ev.is_available())
+        result = await ev.is_available()
         assert result is True
 
-    def test_evaluate(self):
+    async def test_evaluate(self):
         provider = self._make_provider()
         ev = FromProvider(
             provider=provider,
             to_input=lambda raw: {"data": raw},
             to_prediction=lambda resp: Prediction(label=resp["label"], score=resp["score"]),
         )
-        pred = asyncio.get_event_loop().run_until_complete(ev.evaluate(b"input"))
+        pred = await ev.evaluate(b"input")
         assert pred.label == "pos"
         assert pred.score == 0.88
         provider.execute.assert_awaited_once_with({"data": b"input"})

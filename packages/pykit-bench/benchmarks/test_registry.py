@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Protocol, TypeVar
+
 import pytest
 
 pytestmark = pytest.mark.benchmark
 
+T = TypeVar("T")
 
-def test_registry_get(benchmark: pytest.FixtureRequest) -> None:
+
+class Benchmark(Protocol):
+    def __call__(self, target: Callable[[], T], *args: object, **kwargs: object) -> T: ...
+
+
+def test_registry_get(benchmark: Benchmark) -> None:
     """Benchmark registry lookup."""
     try:
         from pykit_util.registry import Registry
@@ -19,7 +28,7 @@ def test_registry_get(benchmark: pytest.FixtureRequest) -> None:
         pytest.skip("pykit-util.registry not available")
 
 
-def test_registry_contains(benchmark: pytest.FixtureRequest) -> None:
+def test_registry_contains(benchmark: Benchmark) -> None:
     """Benchmark registry membership check."""
     try:
         from pykit_util.registry import Registry

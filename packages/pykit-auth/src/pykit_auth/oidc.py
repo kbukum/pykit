@@ -24,9 +24,9 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, rsa
 from pykit_auth.jwt import JWTAlgorithm
 from pykit_errors import InvalidInputError
 
-type TokenResponseValue = str | int | float | bool | None
-type TokenResponseData = dict[str, TokenResponseValue]
-type VerificationKey = (
+TokenResponseValue = str | int | float | bool | None
+TokenResponseData = dict[str, TokenResponseValue]
+VerificationKey = (
     rsa.RSAPublicKey
     | ec.EllipticCurvePublicKey
     | ed25519.Ed25519PublicKey

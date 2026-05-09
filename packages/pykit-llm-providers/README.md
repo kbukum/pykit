@@ -32,3 +32,33 @@ print(response.text)
 - Embedding generation via provider-native APIs
 - Automatic retries and token-budget management via `pykit-resilience`
 - Pluggable — swap providers without changing application code
+
+## Architecture
+
+```mermaid
+flowchart TD
+  PROV[pykit-llm-providers]
+  OAI[openai]
+  ANT[anthropic]
+  GEM[gemini]
+  COM[common]
+  LLM[imports pykit-llm]
+  AI[imports pykit-ai]
+  EMB[imports pykit-embedding]
+  HTTP[imports pykit-httpclient]
+  LP[implements LLMProvider]
+  EP[implements embedding Provider]
+
+  PROV --> OAI
+  PROV --> ANT
+  PROV --> GEM
+  PROV --> COM
+  PROV --> LLM
+  PROV --> AI
+  PROV --> EMB
+  PROV --> HTTP
+  OAI --> LP
+  ANT --> LP
+  GEM --> LP
+  OAI --> EP
+```

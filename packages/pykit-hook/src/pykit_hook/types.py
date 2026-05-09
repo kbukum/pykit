@@ -10,7 +10,7 @@ from typing import Protocol, runtime_checkable
 EventType = str
 """String identifier for an event category (e.g. ``"pre_tool_call"``)."""
 
-type HookContext = dict[str, object] | object
+HookContext = dict[str, object] | object
 """Optional context passed to handlers during emission."""
 
 
@@ -42,7 +42,7 @@ class Result:
 
 # Handler is any callable — the registry inspects the signature at runtime
 # to decide whether to pass (event,) or (context, event).
-type Handler = Callable[..., Result | Awaitable[Result]]
+Handler = Callable[..., Result | Awaitable[Result]]
 
 
 def continue_() -> Result:

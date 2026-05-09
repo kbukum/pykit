@@ -8,24 +8,14 @@ from typing import Any
 
 from mcp import types as mcp_types
 
-from pykit_tool.definition import Annotations, Definition
+from pykit_tool.definition import Annotations, Definition, Envelope, Safety
 from pykit_tool.result import Result
 
 
 def definition_to_mcp_tool(defn: Definition, prefix: str = "") -> mcp_types.Tool:
     """Convert a pykit Definition to an MCP Tool."""
     name = f"{prefix}{defn.name}" if prefix else defn.name
-
-    annotations: mcp_types.ToolAnnotations | None = None
-    if defn.annotations is not None:
-        annotations = mcp_types.ToolAnnotations(
-            title=defn.annotations.title or None,
-            readOnlyHint=defn.annotations.read_only_hint,
-            destructiveHint=defn.annotations.destructive_hint,
-            idempotentHint=defn.annotations.idempotent_hint,
-            openWorldHint=defn.annotations.open_world_hint,
-        )
-
+    annotations = _to_mcp_annotations(defn)
     input_schema = defn.input_schema or {"type": "object", "properties": {}}
 
     return mcp_types.Tool(
@@ -36,31 +26,63 @@ def definition_to_mcp_tool(defn: Definition, prefix: str = "") -> mcp_types.Tool
     )
 
 
+def _to_mcp_annotations(defn: Definition) -> mcp_types.ToolAnnotations:
+    safety = defn.envelope.safety
+    read_only = safety == Safety.READ_ONLY
+    destructive = safety == Safety.DESTRUCTIVE
+    open_world = bool(defn.envelope.network.rules or defn.envelope.filesystem or defn.envelope.subprocess)
+    # Preserve open_world_hint from annotations if set (e.g. from MCP round-trip).
+    if defn.annotations.open_world_hint is not None:
+        open_world = defn.annotations.open_world_hint
+    return mcp_types.ToolAnnotations(
+        title=defn.annotations.title or None,
+        readOnlyHint=read_only,
+        destructiveHint=destructive,
+        idempotentHint=defn.annotations.idempotent_hint,
+        openWorldHint=open_world,
+    )
+
+
 def mcp_tool_to_definition(tool: mcp_types.Tool, prefix: str = "") -> Definition:
     """Convert an MCP Tool to a pykit Definition."""
     name = tool.name
     if prefix and name.startswith(prefix):
         name = name[len(prefix) :]
 
-    annotations: Annotations | None = None
+    annotations = Annotations()
     if tool.annotations is not None:
         annotations = Annotations(
             title=tool.annotations.title or "",
-            read_only_hint=tool.annotations.readOnlyHint,
-            destructive_hint=tool.annotations.destructiveHint,
             idempotent_hint=tool.annotations.idempotentHint,
-            open_world_hint=tool.annotations.openWorldHint,
         )
 
     input_schema: dict[str, Any] = {}
     if tool.inputSchema:
         input_schema = dict(tool.inputSchema)
 
+    safety = Safety.READ_ONLY
+    open_world_hint: bool | None = None
+    if tool.annotations is not None:
+        if tool.annotations.readOnlyHint:
+            safety = Safety.READ_ONLY
+        elif tool.annotations.destructiveHint:
+            safety = Safety.DESTRUCTIVE
+        else:
+            safety = Safety.MUTATING
+        open_world_hint = tool.annotations.openWorldHint
+        if tool.annotations.openWorldHint is not None:
+            annotations = Annotations(
+                title=annotations.title,
+                idempotent_hint=annotations.idempotent_hint,
+                open_world_hint=open_world_hint,
+            )
+
     return Definition(
         name=name,
         description=tool.description or "",
         input_schema=input_schema,
         annotations=annotations,
+        envelope=Envelope(safety=safety),
     )
 
 

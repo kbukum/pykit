@@ -8,35 +8,36 @@ from typing import Any
 
 import httpx
 
+from pykit_ai import ContentBlock, FinishReason, TextBlock, ToolResultBlock, ToolUseBlock, Usage
 from pykit_llm.config import LLMConfig
 from pykit_llm.errors import LLMError, LLMErrorCode
+from pykit_llm.provider import ProviderBase
 from pykit_llm.types import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
-    ContentBlock,
-    FunctionCall,
     Message,
     StreamChunk,
     SystemMessage,
-    TextBlock,
-    ToolCall,
-    ToolResultBlock,
     ToolResultMessage,
-    ToolUseBlock,
-    Usage,
     UserMessage,
+    _StreamToolCall,
     text_of,
 )
 from pykit_llm_providers.anthropic.config import AnthropicConfig
 
+_ANTHROPIC_STOP_MAP: dict[str, FinishReason] = {
+    "end_turn": FinishReason.STOP,
+    "stop_sequence": FinishReason.STOP,
+    "tool_use": FinishReason.TOOL_USE,
+    "max_tokens": FinishReason.LENGTH,
+}
 
-class AnthropicProvider:
-    """Anthropic Claude chat completion provider.
 
-    Implements the :class:`~pykit_llm.provider.LLMProvider` protocol using
-    the Anthropic Messages API (``/v1/messages``).
-    """
+class AnthropicProvider(ProviderBase):
+    """Anthropic Claude chat completion provider."""
+
+    _name = "anthropic"
 
     def __init__(
         self,
@@ -44,6 +45,7 @@ class AnthropicProvider:
         *,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> None:
+        super().__init__()
         self._config = config
         self._llm_config = LLMConfig(
             base_url=config.base_url,
@@ -64,12 +66,9 @@ class AnthropicProvider:
             kwargs["transport"] = transport
         self._client = httpx.AsyncClient(**kwargs)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     async def complete(self, request: CompletionRequest) -> CompletionResponse:
         """Send a messages request and return a single response."""
+        self._touch()
         payload = _build_payload(request, self._config)
         resp = await self._client.post("/v1/messages", json=payload)
         err = _classify_status(resp.status_code)
@@ -79,6 +78,7 @@ class AnthropicProvider:
 
     async def stream(self, request: CompletionRequest) -> AsyncIterator[StreamChunk]:
         """Stream messages via SSE."""
+        self._touch()
         payload = _build_payload(request, self._config)
         payload["stream"] = True
         try:
@@ -97,102 +97,85 @@ class AnthropicProvider:
         """Close the underlying HTTP client."""
         await self._client.aclose()
 
-    # ------------------------------------------------------------------
-    # Internals
-    # ------------------------------------------------------------------
-
 
 def _build_payload(request: CompletionRequest, config: AnthropicConfig) -> dict[str, Any]:
     """Map a universal CompletionRequest to the Anthropic JSON body."""
     model = request.model or config.model
     max_tokens = request.max_tokens or config.max_tokens
-
     system_text = ""
     messages: list[dict[str, Any]] = []
-
-    for msg in request.messages:
-        match msg:
+    for message in request.messages:
+        match message:
             case SystemMessage(content=content):
                 system_text = content
             case _:
-                messages.append(_encode_message(msg))
-
+                messages.append(_encode_message(message))
     payload: dict[str, Any] = {
         "model": model,
         "max_tokens": max_tokens,
         "messages": messages,
     }
-
     if system_text:
         payload["system"] = system_text
-
     if request.temperature != 0.7:
         payload["temperature"] = request.temperature
-
     if request.stop:
         payload["stop_sequences"] = request.stop
-
     if request.extra:
         payload.update(request.extra)
-
     return payload
 
 
 def _encode_message(msg: Message) -> dict[str, Any]:
-    """Encode a discriminated union Message to the Anthropic wire format."""
+    """Encode a canonical Message to the Anthropic wire format."""
     match msg:
         case UserMessage(content=blocks):
             content_parts: list[dict[str, Any]] = []
             for block in blocks:
                 match block:
-                    case ToolResultBlock(tool_use_id=tid, content=content, is_error=is_error):
+                    case ToolResultBlock(id=tool_use_id, content=content, is_error=is_error):
                         part: dict[str, Any] = {
                             "type": "tool_result",
-                            "tool_use_id": tid,
+                            "tool_use_id": tool_use_id,
                             "content": content,
                         }
                         if is_error:
                             part["is_error"] = True
                         content_parts.append(part)
                     case _:
-                        content_parts.append({"type": "text", "text": text_of([block])})
-
+                        text = text_of([block])
+                        if text:
+                            content_parts.append({"type": "text", "text": text})
             if len(content_parts) == 1 and content_parts[0].get("type") == "text":
                 return {"role": "user", "content": content_parts[0]["text"]}
             return {"role": "user", "content": content_parts}
-
-        case AssistantMessage(content=blocks):
-            content_parts_a: list[dict[str, Any]] = []
+        case AssistantMessage(content=blocks, tool_calls=tool_calls):
+            asst_parts: list[dict[str, Any]] = []
             for block in blocks:
-                match block:
-                    case ToolUseBlock(id=tid, name=name, input=inp):
-                        content_parts_a.append(
-                            {
-                                "type": "tool_use",
-                                "id": tid,
-                                "name": name,
-                                "input": inp,
-                            }
-                        )
-                    case _:
-                        t = text_of([block])
-                        if t:
-                            content_parts_a.append({"type": "text", "text": t})
-
-            if len(content_parts_a) == 1 and content_parts_a[0].get("type") == "text":
-                return {"role": "assistant", "content": content_parts_a[0]["text"]}
-            return {"role": "assistant", "content": content_parts_a}
-
-        case ToolResultMessage(tool_use_id=tid, content=content, is_error=is_error):
-            part_t: dict[str, Any] = {
+                text = text_of([block])
+                if text:
+                    asst_parts.append({"type": "text", "text": text})
+            for tool_call in tool_calls:
+                asst_parts.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call.id,
+                        "name": tool_call.name,
+                        "input": tool_call.input,
+                    }
+                )
+            if len(asst_parts) == 1 and asst_parts[0].get("type") == "text":
+                return {"role": "assistant", "content": asst_parts[0]["text"]}
+            return {"role": "assistant", "content": asst_parts}
+        case ToolResultMessage(tool_use_id=tool_use_id, content=content, is_error=is_error):
+            tool_msg_part: dict[str, Any] = {
                 "type": "tool_result",
-                "tool_use_id": tid,
+                "tool_use_id": tool_use_id,
                 "content": content,
             }
             if is_error:
-                part_t["is_error"] = True
-            return {"role": "user", "content": [part_t]}
-
+                tool_msg_part["is_error"] = True
+            return {"role": "user", "content": [tool_msg_part]}
         case _:
             return {"role": "user", "content": ""}
 
@@ -200,29 +183,25 @@ def _encode_message(msg: Message) -> dict[str, Any]:
 def _parse_response(data: dict[str, Any]) -> CompletionResponse:
     """Parse an Anthropic Messages API response."""
     content_blocks: list[ContentBlock] = []
+    tool_calls: list[ToolUseBlock] = []
     for block in data.get("content", []):
         if block["type"] == "text":
             content_blocks.append(TextBlock(text=block["text"]))
         elif block["type"] == "tool_use":
-            content_blocks.append(
+            tool_calls.append(
                 ToolUseBlock(
-                    id=block["id"],
-                    name=block["name"],
+                    id=block.get("id", ""),
+                    name=block.get("name", ""),
                     input=block.get("input", {}),
                 )
             )
-
     usage_data = data.get("usage", {})
     usage = Usage(
-        prompt_tokens=usage_data.get("input_tokens", 0),
-        completion_tokens=usage_data.get("output_tokens", 0),
-        total_tokens=usage_data.get("input_tokens", 0) + usage_data.get("output_tokens", 0),
+        input_tokens=usage_data.get("input_tokens", 0),
+        output_tokens=usage_data.get("output_tokens", 0),
     )
-
-    stop_reason = data.get("stop_reason", "end_turn")
-
-    message = AssistantMessage(content=content_blocks)
-
+    stop_reason = _ANTHROPIC_STOP_MAP.get(data.get("stop_reason", "end_turn"), FinishReason.STOP)
+    message = AssistantMessage(content=content_blocks, tool_calls=tool_calls, usage=usage)
     return CompletionResponse(
         message=message,
         model=data.get("model", ""),
@@ -236,30 +215,14 @@ def _classify_status(status_code: int) -> LLMError | None:
     if 200 <= status_code < 300:
         return None
     if status_code in (401, 403):
-        return LLMError(
-            f"HTTP {status_code}",
-            status_code=status_code,
-            code=LLMErrorCode.AUTH,
-        )
+        return LLMError(f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.AUTH)
     if status_code == 429:
-        return LLMError(
-            "HTTP 429",
-            status_code=429,
-            code=LLMErrorCode.RATE_LIMIT,
-            retryable=True,
-        )
+        return LLMError("HTTP 429", status_code=429, code=LLMErrorCode.RATE_LIMIT, retryable=True)
     if 400 <= status_code < 500:
-        return LLMError(
-            f"HTTP {status_code}",
-            status_code=status_code,
-            code=LLMErrorCode.INVALID_REQUEST,
-        )
+        return LLMError(f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.INVALID_REQUEST)
     if status_code >= 500:
         return LLMError(
-            f"HTTP {status_code}",
-            status_code=status_code,
-            code=LLMErrorCode.SERVER,
-            retryable=True,
+            f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.SERVER, retryable=True
         )
     return LLMError(f"HTTP {status_code}", status_code=status_code, code=LLMErrorCode.SERVER)
 
@@ -275,26 +238,24 @@ async def _iter_sse(resp: httpx.Response) -> AsyncIterator[StreamChunk]:
         if not line.startswith("data: "):
             continue
         payload = line[len("data: ") :]
-
         try:
             data = json.loads(payload)
         except json.JSONDecodeError:
             continue
-
         event_type = data.get("type", "")
-
         if event_type == "content_block_start":
-            cb = data.get("content_block", {})
-            if cb.get("type") == "tool_use":
+            block = data.get("content_block", {})
+            if block.get("type") == "tool_use":
                 yield StreamChunk(
                     tool_calls=[
-                        ToolCall(
-                            id=cb.get("id", ""),
-                            function=FunctionCall(name=cb.get("name", ""), arguments=""),
+                        _StreamToolCall(
+                            index=data.get("index", 0),
+                            id=block.get("id", ""),
+                            name=block.get("name", ""),
+                            input_delta="",
                         )
                     ]
                 )
-
         elif event_type == "content_block_delta":
             delta = data.get("delta", {})
             if delta.get("type") == "text_delta":
@@ -302,26 +263,23 @@ async def _iter_sse(resp: httpx.Response) -> AsyncIterator[StreamChunk]:
             elif delta.get("type") == "input_json_delta":
                 yield StreamChunk(
                     tool_calls=[
-                        ToolCall(
-                            id="",
-                            function=FunctionCall(name="", arguments=delta.get("partial_json", "")),
+                        _StreamToolCall(
+                            index=data.get("index", 0),
+                            input_delta=delta.get("partial_json", ""),
                         )
                     ]
                 )
-
         elif event_type == "message_delta":
             usage_data = data.get("usage", {})
             usage = (
                 Usage(
-                    prompt_tokens=usage_data.get("input_tokens", 0),
-                    completion_tokens=usage_data.get("output_tokens", 0),
-                    total_tokens=(usage_data.get("input_tokens", 0) + usage_data.get("output_tokens", 0)),
+                    input_tokens=usage_data.get("input_tokens", 0),
+                    output_tokens=usage_data.get("output_tokens", 0),
                 )
                 if usage_data
                 else None
             )
             yield StreamChunk(usage=usage)
-
         elif event_type == "message_stop":
             yield StreamChunk(done=True)
             return

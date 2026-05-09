@@ -8,10 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from pykit_bench.cli import cmd_compare, cmd_history, cmd_latest, main
-
-# ---------------------------------------------------------------------------
-# cmd_compare
-# ---------------------------------------------------------------------------
+from pykit_bench.storage import ListOptions
 
 
 class TestCmdCompare:
@@ -30,8 +27,8 @@ class TestCmdCompare:
         args = argparse.Namespace(results_dir="some/path", run_a="run-a", run_b="run-b")
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
-            patch("pykit_bench.cli.RunComparator", mock_comparator),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
+            patch("pykit_bench.cli.BenchRunComparator", mock_comparator),
             patch("builtins.print") as mock_print,
         ):
             cmd_compare(args)
@@ -44,17 +41,12 @@ class TestCmdCompare:
         args = argparse.Namespace(results_dir="some/path", run_a="run-a", run_b="run-b")
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
             patch("builtins.print"),
             pytest.raises(SystemExit) as exc_info,
         ):
             cmd_compare(args)
         assert exc_info.value.code == 1
-
-
-# ---------------------------------------------------------------------------
-# cmd_history
-# ---------------------------------------------------------------------------
 
 
 class TestCmdHistory:
@@ -65,19 +57,19 @@ class TestCmdHistory:
         args = argparse.Namespace(results_dir="some/path", type=None)
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
             patch("builtins.print") as mock_print,
         ):
             cmd_history(args)
             mock_print.assert_called_once_with("No runs found.")
+            mock_storage.list_runs.assert_called_once_with(ListOptions())
 
     def test_history_with_runs(self):
         run_summary = MagicMock()
-        run_summary.run_id = "run-1"
+        run_summary.id = "run-1"
         run_summary.tag = "test"
         run_summary.f1 = 0.95
-        run_summary.accuracy = 0.92
-        run_summary.sample_count = 100
+        run_summary.dataset = "dataset-a"
 
         mock_storage = MagicMock()
         mock_storage.list_runs.return_value = [run_summary]
@@ -85,30 +77,38 @@ class TestCmdHistory:
         args = argparse.Namespace(results_dir="some/path", type=None)
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
             patch("builtins.print") as mock_print,
         ):
             cmd_history(args)
-            # Header + separator + 1 run line = 3 calls
             assert mock_print.call_count == 3
+            mock_storage.list_runs.assert_called_once_with(ListOptions())
 
     def test_history_with_type_filter(self):
+        keep = MagicMock()
+        keep.id = "audio-run"
+        keep.tag = "test"
+        keep.f1 = 0.8
+        keep.dataset = "audio-ds"
+
+        skip = MagicMock()
+        skip.id = "text-run"
+        skip.tag = "test"
+        skip.f1 = 0.9
+        skip.dataset = "text-ds"
+
         mock_storage = MagicMock()
-        mock_storage.list_runs.return_value = []
+        mock_storage.list_runs.return_value = [keep, skip]
 
         args = argparse.Namespace(results_dir="some/path", type="audio")
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
-            patch("builtins.print"),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
+            patch("builtins.print") as mock_print,
         ):
             cmd_history(args)
-            mock_storage.list_runs.assert_called_once_with(media_type="audio")
-
-
-# ---------------------------------------------------------------------------
-# cmd_latest
-# ---------------------------------------------------------------------------
+            assert mock_print.call_count == 3
+            mock_storage.list_runs.assert_called_once_with(ListOptions())
 
 
 class TestCmdLatest:
@@ -118,17 +118,17 @@ class TestCmdLatest:
         mock_storage.latest.return_value = mock_run
 
         mock_reporter = MagicMock()
-        mock_reporter.return_value.generate.return_value = "Report text"
 
         args = argparse.Namespace(results_dir="some/path")
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
-            patch("pykit_bench.report.MarkdownReporter", mock_reporter),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
+            patch("pykit_bench.cli.MarkdownReporter", return_value=mock_reporter),
             patch("builtins.print") as mock_print,
         ):
             cmd_latest(args)
-            mock_print.assert_called_once_with("Report text")
+            mock_reporter.generate.assert_called_once()
+            mock_print.assert_called_once()
 
     def test_latest_no_runs(self):
         mock_storage = MagicMock()
@@ -137,17 +137,12 @@ class TestCmdLatest:
         args = argparse.Namespace(results_dir="some/path")
 
         with (
-            patch("pykit_bench.cli.RunStorage", return_value=mock_storage),
+            patch("pykit_bench.cli.FileRunStorage", return_value=mock_storage),
             patch("builtins.print"),
             pytest.raises(SystemExit) as exc_info,
         ):
             cmd_latest(args)
         assert exc_info.value.code == 1
-
-
-# ---------------------------------------------------------------------------
-# main
-# ---------------------------------------------------------------------------
 
 
 class TestMain:

@@ -11,6 +11,7 @@ from pykit_authz import (
     AuthorizationRequest,
     Checker,
     CheckerFunc,
+    Condition,
     PermissionDeniedError,
     Resource,
     RoleBinding,
@@ -19,7 +20,7 @@ from pykit_authz import (
     match_pattern,
 )
 
-type _Attrs = dict[str, str | int | float | bool]
+_Attrs = dict[str, str | int | float | bool]
 
 
 def _request(
@@ -121,3 +122,31 @@ class TestCheckerFunc:
         assert isinstance(checker, Checker)
         assert checker.check(_request(action="read")) is True
         assert checker.check(_request(action="write")) is False
+
+
+class TestConditions:
+    def test_condition_equals_not_equals_one_of_and_compare(self) -> None:
+        req = AuthorizationRequest(
+            subject=Subject("user-1", attributes={"tenant": "acme", "tier": "gold"}),
+            action="read",
+            resource=Resource("article", "res-1", attributes={"tenant": "acme", "state": "draft"}),
+        )
+        assert Condition("subject", "tenant", values=("acme",)).matches(req)
+        assert Condition("resource", "state", operator="not_equals", values=("published",)).matches(req)
+        assert Condition("subject", "tier", operator="one_of", values=("silver", "gold")).matches(req)
+        assert Condition("subject", "tenant", compare_source="resource", compare_key="tenant").matches(req)
+        assert Condition("subject", "missing", values=("x",)).matches(req) is False
+        assert Condition("context", "missing", values=("x",)).matches(req) is False
+        assert Condition("resource", "type", values=("article",)).matches(req)
+        assert Condition("resource", "id", values=("res-1",)).matches(req)
+        assert Condition("subject", "id", values=("user-1",)).matches(req)
+
+    def test_rule_conditions_must_all_match(self) -> None:
+        req = _request(subject_attrs={"tenant": "acme"}, resource_attrs={"tenant": "acme"})
+        rule = ABACRule(
+            name="same-tenant",
+            actions=("read",),
+            resources=("article",),
+            conditions=(Condition("subject", "tenant", compare_source="resource", compare_key="tenant"),),
+        )
+        assert rule.matches(req)

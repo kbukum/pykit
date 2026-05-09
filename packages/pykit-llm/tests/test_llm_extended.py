@@ -7,6 +7,7 @@ import json
 import httpx
 import pytest
 
+from pykit_ai import FinishReason
 from pykit_llm import (
     CompletionRequest,
     LLMConfig,
@@ -157,14 +158,14 @@ class TestLLMErrorFormatting:
 
 class TestUsageExtended:
     def test_usage_with_zeros(self):
-        u = Usage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-        assert u.prompt_tokens == 0
-        assert u.completion_tokens == 0
-        assert u.total_tokens == 0
+        u = Usage(input_tokens=0, output_tokens=0)
+        assert u.input_tokens == 0
+        assert u.output_tokens == 0
+        assert u.input_tokens + u.output_tokens == 0
 
     def test_usage_large_values(self):
-        u = Usage(prompt_tokens=1_000_000, completion_tokens=500_000, total_tokens=1_500_000)
-        assert u.prompt_tokens + u.completion_tokens == u.total_tokens
+        u = Usage(input_tokens=1_000_000, output_tokens=500_000)
+        assert u.input_tokens + u.output_tokens == 1_500_000
 
 
 # ---------------------------------------------------------------------------
@@ -211,10 +212,10 @@ class TestStreamChunkExtended:
         assert c.done is True
 
     def test_done_with_usage(self):
-        u = Usage(prompt_tokens=10, completion_tokens=5, total_tokens=15)
+        u = Usage(input_tokens=10, output_tokens=5)
         c = StreamChunk(done=True, usage=u)
         assert c.usage is not None
-        assert c.usage.total_tokens == 15
+        assert c.usage.input_tokens + c.usage.output_tokens == 15
 
 
 # ---------------------------------------------------------------------------
@@ -349,7 +350,7 @@ class TestOpenAIResponseParsing:
             req = CompletionRequest(messages=[user("Hi")])
             resp = await provider.complete(req)
             assert resp.text() == "ok"
-            assert resp.usage.prompt_tokens == 0
+            assert resp.usage.input_tokens == 0
         finally:
             await provider.close()
 
@@ -363,7 +364,7 @@ class TestOpenAIResponseParsing:
         try:
             req = CompletionRequest(messages=[user("Hi")])
             resp = await provider.complete(req)
-            assert resp.stop_reason == "length"
+            assert resp.stop_reason == FinishReason.LENGTH
         finally:
             await provider.close()
 
@@ -431,7 +432,7 @@ class TestOpenAISSEParsing:
             content_chunks = [c for c in chunks if not c.done]
             assert len(content_chunks) >= 1
             assert content_chunks[0].usage is not None
-            assert content_chunks[0].usage.total_tokens == 6
+            assert content_chunks[0].usage.input_tokens + content_chunks[0].usage.output_tokens == 6
         finally:
             await provider.close()
 
