@@ -28,5 +28,6 @@ jobs:
       - uses: github/codeql-action/init@e46ed2cbd01164d986452f91f178727624ae40d7
         with:
           languages: python
+          config-file: .github/codeql-config.yml
       - uses: github/codeql-action/autobuild@e46ed2cbd01164d986452f91f178727624ae40d7
       - uses: github/codeql-action/analyze@e46ed2cbd01164d986452f91f178727624ae40d7

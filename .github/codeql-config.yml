@@ -1,0 +1,28 @@
+# CodeQL configuration for pykit.
+#
+# Excludes query rules that consistently produce false positives in idiomatic
+# Python 3.13+ code (match/case exhaustiveness, async await side-effects,
+# TYPE_CHECKING-guarded imports).
+
+name: "pykit-codeql-config"
+
+queries:
+  - uses: security-and-quality
+
+query-filters:
+  # await expressions used for side-effects (task completion, async lifecycle)
+  # are flagged as "ineffectual" because the return value is discarded, but the
+  # await IS the intended effect.
+  - exclude:
+      id: py/ineffectual-statement
+
+  # CodeQL does not model Python match/case exhaustiveness.  Functions with
+  # ``case _:`` catch-all arms that return or raise are incorrectly flagged as
+  # having implicit fall-through returns.
+  - exclude:
+      id: py/mixed-returns
+
+  # TYPE_CHECKING-guarded imports are never executed at runtime, so cycles
+  # involving them are safe.  CodeQL does not recognise the guard.
+  - exclude:
+      id: py/unsafe-cyclic-import
