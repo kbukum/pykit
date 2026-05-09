@@ -10,7 +10,7 @@ from pykit_bench.types import ScoredSample
 L = TypeVar("L")
 
 
-class Metric(Protocol[L]):
+class Metric[L](Protocol):
     """A pluggable evaluation metric.
 
     Mirrors gokit's ``metric.Metric[L]`` interface.
