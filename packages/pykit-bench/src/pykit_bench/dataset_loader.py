@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, TypeVar
 
 from pykit_bench.dataset import DatasetManifest, Sample
 from pykit_bench.types import BenchSample
-from pykit_pipeline.base import Pipeline, PipelineIterator
+from pykit_pipeline import Pipeline, PipelineIterator
 
 if TYPE_CHECKING:
     from collections.abc import Callable
