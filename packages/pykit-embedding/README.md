@@ -11,14 +11,19 @@ uv add pykit-embedding
 ## Quick start
 
 ```python
+import asyncio
 from pykit_ai import Model
 from pykit_embedding import EmbedRequest, InMemoryProvider, Text
 
-provider = InMemoryProvider(dimensions=4)
-response = await provider.embed(
-    EmbedRequest(model=Model(name="test-embedding"), inputs=[Text(text="hello")])
-)
-vector = response.embeddings[0].vector
+async def main():
+    provider = InMemoryProvider(dimensions=4)
+    response = await provider.embed(
+        EmbedRequest(model=Model(name="test-embedding"), inputs=[Text(text="hello")])
+    )
+    vector = response.embeddings[0].vector
+    print(f"Embedding ({len(vector)}d): {vector}")
+
+asyncio.run(main())
 ```
 
 ## Provider placement
