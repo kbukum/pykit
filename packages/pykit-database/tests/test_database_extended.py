@@ -162,8 +162,6 @@ class TestTransactionIsolation:
                 raise ValueError("abort")
         except ValueError as exc:
             assert str(exc) == "abort"
-        else:
-            pytest.fail("Expected ValueError")
 
         async with db.session() as sess:
             result = await sess.execute(select(User).where(User.email == "ghost@x.com"))

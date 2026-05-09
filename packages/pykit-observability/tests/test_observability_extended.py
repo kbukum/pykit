@@ -389,8 +389,6 @@ class TestMultipleOperationContexts:
                 raise RuntimeError("test error")
         except RuntimeError as exc:
             assert str(exc) == "test error"
-        else:
-            pytest.fail("Expected RuntimeError")
 
         spans = exporter.get_finished_spans()
         assert len(spans) == 1

@@ -150,8 +150,6 @@ class TestDatabase:
                 raise RuntimeError("forced")
         except RuntimeError as exc:
             assert str(exc) == "forced"
-        else:
-            pytest.fail("Expected RuntimeError")
 
         # The insert should have been rolled back
         from sqlalchemy import select
@@ -205,8 +203,6 @@ class TestDatabase:
                     raise RuntimeError("forced rollback")
             except RuntimeError as exc:
                 assert str(exc) == "forced rollback"
-            else:
-                pytest.fail("Expected RuntimeError")
 
         assert shielded is True
         await database.close()

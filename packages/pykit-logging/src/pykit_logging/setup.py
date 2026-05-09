@@ -65,6 +65,7 @@ def schema_normalizer(service_name: str, environment: str = "development") -> st
 
 # Module-level OTLP bridge for graceful shutdown
 
+
 @dataclass(slots=True)
 class _LoggingState:
     otlp_bridge: OTLPLogBridge | None = None

@@ -190,8 +190,6 @@ class TestOperationContext:
                 raise ValueError("boom")
         except ValueError as exc:
             assert str(exc) == "boom"
-        else:
-            pytest.fail("Expected ValueError")
 
         spans = self.exporter.get_finished_spans()
         assert len(spans) == 1

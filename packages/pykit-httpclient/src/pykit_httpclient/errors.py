@@ -49,11 +49,12 @@ class HttpError(AppError):
         super().__init__(base_code, message)
         self.status_code = status_code
         self._http_code = code
-        self._retryable = retryable
+        self.retryable = retryable
         self.body = body
 
     @property
-    def code(self) -> ErrorCode:
+    def code(self) -> ErrorCode:  # type: ignore[override]
+        """HTTP-specific error classification (narrows base ErrorCode)."""
         return self._http_code
 
     def __str__(self) -> str:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Protocol, cast, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from pykit_messaging.types import Message
 
@@ -43,8 +43,7 @@ def chain_handlers(
     """
     result = base
     for mw in middlewares:
-        middleware = cast("Callable[[MessageHandlerProtocol], MessageHandlerProtocol]", mw)
-        result = middleware(result)
+        result = mw(result)
     return result
 
 

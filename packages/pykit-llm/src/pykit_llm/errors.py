@@ -49,10 +49,11 @@ class LLMError(AppError, GenAIError):
         super().__init__(base_code, message)
         self.status_code = status_code
         self._llm_code = code
-        self._retryable = retryable
+        self.retryable = retryable
 
     @property
-    def code(self) -> LLMErrorCode:
+    def code(self) -> LLMErrorCode:  # type: ignore[override]
+        """LLM-specific error classification (narrows base ErrorCode)."""
         return self._llm_code
 
     def __str__(self) -> str:

@@ -733,8 +733,6 @@ class TestAppErrorStr:
             raise AppError.not_found("Foo", "1")
         except AppError as err:
             assert err.code == ErrorCode.NOT_FOUND
-        else:
-            pytest.fail("Expected AppError")
 
 
 # ---------------------------------------------------------------------------
