@@ -39,7 +39,9 @@ class Result:
 
     def to_block(self, id: str) -> ToolResultBlock:
         """Return the shared GenAI tool-result wire block."""
-        if self.output is not None:
+        if self.output is not None and isinstance(
+            self.output, (dict, list, str, int, float, bool, type(None))
+        ):
             return ToolResultBlock(id=id, content=[self.output], is_error=self.is_error)
         return ToolResultBlock(id=id, content=[self.text()], is_error=self.is_error)
 
