@@ -27,8 +27,11 @@ class Registry:
 
     def build(self, kind: str, config: dict[str, Any]) -> Inference:
         """Build an adapter from a registered kind and plain configuration."""
+        normalized = kind.strip().lower()
+        if not normalized:
+            raise ValueError("inference adapter kind must not be blank")
         try:
-            factory = self._factories[kind]
+            factory = self._factories[normalized]
         except KeyError as exc:
             raise ValueError(f"unknown inference adapter {kind!r}") from exc
         return factory(dict(config))

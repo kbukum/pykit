@@ -20,8 +20,8 @@ def new_adapter(config: GeminiConfig) -> GeminiProvider:
         timeout=config.timeout,
     )
     client = HttpClient(http_config)
-    provider = GeminiProvider.__new__(GeminiProvider)
-    provider._config = config
+    provider = GeminiProvider(config)
+    # Replace the default httpx client with the pykit-managed one.
     provider._client = client._client
     if config.api_key:
         provider._client.headers["x-goog-api-key"] = config.api_key
