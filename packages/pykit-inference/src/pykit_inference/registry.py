@@ -18,7 +18,7 @@ class Registry:
 
     def register(self, kind: str, factory: ProviderFactory) -> None:
         """Register an adapter factory under a stable kind."""
-        normalized = kind.strip()
+        normalized = kind.strip().lower()
         if not normalized:
             raise ValueError("inference adapter kind is required")
         if normalized in self._factories:
