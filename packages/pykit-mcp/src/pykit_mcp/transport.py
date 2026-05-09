@@ -44,6 +44,9 @@ def create_streamable_http_security_settings(
         if parsed.query or parsed.fragment:
             msg = f"invalid allowed origin {origin!r}: origin must not contain query or fragment"
             raise ValueError(msg)
+        if parsed.username or parsed.password:
+            msg = f"invalid allowed origin {origin!r}: origin must not contain credentials"
+            raise ValueError(msg)
     hosts = list(DEFAULT_ALLOWED_HOSTS if allowed_hosts is None else allowed_hosts)
     return TransportSecuritySettings(
         enable_dns_rebinding_protection=enable_dns_rebinding_protection,
