@@ -1,30 +1,49 @@
-"""Agent types — result, events, context strategies, and errors."""
+"""Agent result, budget exceptions, and context strategies."""
 
 from __future__ import annotations
 
 import enum
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Protocol
 
-from pykit_llm.types import AssistantMessage, Message, Usage
-
-# ---------------------------------------------------------------------------
-# Stop reason
-# ---------------------------------------------------------------------------
+from pykit_ai import StreamEvent, Usage
+from pykit_llm.types import AssistantMessage, Message
 
 
 class StopReason(enum.StrEnum):
     """Why the agent loop terminated."""
 
-    END_TURN = "end_turn"
+    END_TURN = "stop"  # aligns with FinishReason.STOP
     MAX_TURNS = "max_turns"
-    MAX_BUDGET = "max_budget"
-    ABORTED = "aborted"
+    MAX_TOKENS = "length"  # aligns with FinishReason.LENGTH
+    MAX_TOOL_CALLS = "max_tool_calls"
+    WALL_CLOCK = "wall_clock"
+    CANCELLED = "cancelled"
+    ERROR = "error"
 
 
-# ---------------------------------------------------------------------------
-# Agent result
-# ---------------------------------------------------------------------------
+class AgentBudgetError(Exception):
+    """Base class for typed agent budget failures."""
+
+
+class WallClockExceededError(AgentBudgetError):
+    """Wall-clock budget was exceeded."""
+
+
+class MaxToolCallsExceededError(AgentBudgetError):
+    """Tool-call budget was exceeded."""
+
+
+class MaxTokensExceededError(AgentBudgetError):
+    """Token budget was exceeded."""
+
+
+class MaxTurnsExceededError(AgentBudgetError):
+    """Turn budget was exceeded."""
+
+
+class HookError(Exception):
+    """A hook failed."""
 
 
 @dataclass
@@ -38,80 +57,7 @@ class AgentResult:
     stop_reason: StopReason
 
 
-# ---------------------------------------------------------------------------
-# Agent events — discriminated union
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class TurnStartEvent:
-    """Emitted when a new turn begins."""
-
-    turn: int
-    type: str = "turn_start"
-
-
-@dataclass
-class ToolExecutingEvent:
-    """Emitted when a tool call starts executing."""
-
-    tool_use_id: str
-    name: str
-    input: Any
-    type: str = "tool_executing"
-
-
-@dataclass
-class ToolCompleteEvent:
-    """Emitted when a tool call finishes."""
-
-    tool_use_id: str
-    name: str
-    result: Any
-    error: Exception | None = None
-    type: str = "tool_complete"
-
-
-@dataclass
-class ContextCompactedEvent:
-    """Emitted when the context was compacted to fit token limits."""
-
-    old_tokens: int
-    new_tokens: int
-    type: str = "context_compacted"
-
-
-@dataclass
-class TurnCompleteEvent:
-    """Emitted at the end of a turn."""
-
-    turn: int
-    message: AssistantMessage
-    usage: Usage
-    type: str = "turn_complete"
-
-
-@dataclass
-class CompleteEvent:
-    """Emitted when the agent loop finishes."""
-
-    result: AgentResult
-    type: str = "complete"
-
-
-AgentEvent = (
-    TurnStartEvent
-    | ToolExecutingEvent
-    | ToolCompleteEvent
-    | ContextCompactedEvent
-    | TurnCompleteEvent
-    | CompleteEvent
-)
-
-
-# ---------------------------------------------------------------------------
-# Context strategies
-# ---------------------------------------------------------------------------
+AgentEvent = StreamEvent
 
 
 class ContextExceededError(Exception):

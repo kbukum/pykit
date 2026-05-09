@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import enum
-from typing import Any
 
+from pykit_ai import GenAIError
 from pykit_errors import AppError
 from pykit_errors.codes import ErrorCode as BaseErrorCode
 
@@ -32,10 +32,10 @@ _LLM_CODE_TO_BASE: dict[LLMErrorCode, BaseErrorCode] = {
 }
 
 
-class LLMError(AppError):
-    """Structured LLM client error with classification."""
+class LLMError(AppError, GenAIError):
+    """Structured LLM client error with GenAI-compatible classification."""
 
-    code: Any
+    code: LLMErrorCode  # type: ignore[assignment]
 
     def __init__(
         self,

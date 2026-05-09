@@ -18,14 +18,23 @@ from pykit_tool.result import Result
 class RemoteCallable:
     """A pykit Callable that delegates to a remote MCP tool via a ClientSession."""
 
-    def __init__(self, session: ClientSession, mcp_tool: McpTool, prefix: str = "") -> None:
+    def __init__(self, session: ClientSession, mcp_tool: McpTool, prefix: str = "", server: str = "") -> None:
         self._session = session
         self._definition = mcp_tool_to_definition(mcp_tool, prefix)
         self._mcp_name = mcp_tool.name
+        self._mcp_server = server
 
     @property
     def definition(self) -> Definition:
         return self._definition
+
+    @property
+    def mcp_server(self) -> str:
+        return self._mcp_server
+
+    @property
+    def mcp_method(self) -> str:
+        return "tools/call"
 
     def validate(self, input_data: dict[str, Any]) -> ValidationResult:
         schema = self._definition.input_schema
@@ -42,6 +51,7 @@ class RemoteCallable:
 async def connect(
     session: ClientSession,
     prefix: str = "",
+    server: str = "",
 ) -> list[Callable]:
     """Discover remote MCP tools and return them as pykit Callables.
 
@@ -50,6 +60,7 @@ async def connect(
     Args:
         session: An initialized MCP ClientSession.
         prefix: Optional prefix to strip from remote tool names.
+        server: Optional server name for observe-only agent hooks.
 
     Returns:
         A list of Callable wrappers for each remote MCP tool.
@@ -57,5 +68,5 @@ async def connect(
     result = await session.list_tools()
     callables: list[Callable] = []
     for tool in result.tools:
-        callables.append(RemoteCallable(session, tool, prefix))
+        callables.append(RemoteCallable(session, tool, prefix, server))
     return callables

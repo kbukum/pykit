@@ -11,9 +11,10 @@ Layer 10 — Platform / Specialist
   pykit-testutil · pykit-integration
 
 Layer 9 — AI / ML
-  pykit-llm · pykit-inference · pykit-bench · pykit-dataset
-  pykit-transcription · pykit-embedding · pykit-vectorstore
-  pykit-llm-providers · pykit-explain
+  pykit-ai · pykit-llm · pykit-llm-providers · pykit-inference
+  pykit-embedding · pykit-vectorstore · pykit-agent · pykit-tool
+  pykit-skill · pykit-mcp · pykit-transcription · pykit-bench
+  pykit-dataset
 
 Layer 8 — Servers
   pykit-server · pykit-grpc
@@ -29,7 +30,7 @@ Layer 5 — Data & Flow
 
 Layer 4 — Core Patterns
   pykit-di · pykit-bootstrap · pykit-observability · pykit-hook
-  pykit-mcp · pykit-chain
+  pykit-chain
 
 Layer 3 — Abstractions
   pykit-provider · pykit-component · pykit-resilience · pykit-schema

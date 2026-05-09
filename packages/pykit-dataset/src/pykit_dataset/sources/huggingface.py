@@ -13,7 +13,7 @@ Example::
         max_items=1000,
     )
     async for item in source.fetch():
-        print(item.label, len(item.content))
+        logger.info("%s %s", item.label, len(item.content))
 """
 
 from __future__ import annotations

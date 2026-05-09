@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from pykit_bench.bench_cli import BenchCliRunner
+from pykit_bench.comparator import BenchRunComparator, MetricChange, RunDiff
 from pykit_bench.curves import (
     CalibrationCurve,
     ConfusionMatrixDetail,
@@ -60,9 +61,8 @@ from pykit_bench.result import (
     DatasetInfo,
     MetricResult,
 )
-from pykit_bench.run_comparator import BenchRunComparator, MetricChange, RunDiff
-from pykit_bench.run_storage import FileRunStorage, ListOptions
 from pykit_bench.schema import SCHEMA_URL, SCHEMA_VERSION
+from pykit_bench.storage import FileRunStorage, ListOptions
 from pykit_bench.types import BenchSample, Prediction, ScoredSample, string_label_mapper
 
 if TYPE_CHECKING:

@@ -13,8 +13,8 @@ from cryptography.hazmat.primitives.asymmetric import ec, ed448, ed25519, rsa
 
 from pykit_errors import InvalidInputError
 
-type Claims = dict[str, object]
-type VerificationKey = (
+Claims = dict[str, object]
+VerificationKey = (
     rsa.RSAPublicKey
     | ec.EllipticCurvePublicKey
     | ed25519.Ed25519PublicKey

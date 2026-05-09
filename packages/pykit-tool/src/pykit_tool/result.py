@@ -6,6 +6,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
+from pykit_ai import ToolResultBlock
+
 
 @dataclass
 class Result:
@@ -34,6 +36,10 @@ class Result:
     def set_meta(self, key: str, value: Any) -> None:
         """Store a metadata value on the result."""
         self.metadata[key] = value
+
+    def to_block(self, id: str) -> ToolResultBlock:
+        """Return the shared GenAI tool-result wire block."""
+        return ToolResultBlock(id=id, content=[self.text()], is_error=self.is_error)
 
 
 def text_result(content: str) -> Result:

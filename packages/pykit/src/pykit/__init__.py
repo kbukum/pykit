@@ -51,11 +51,19 @@ _SUBPACKAGES: dict[str, str] = {
     "process": "pykit_process",
     "workload": "pykit_workload",
     "llm": "pykit_llm",
+    "ai": "pykit_ai",
     "inference": "pykit_inference",
     "dataset": "pykit_dataset",
     "bench": "pykit_bench",
     "testutil": "pykit_testutil",
     "discovery": "pykit_discovery",
+    "tool": "pykit_tool",
+    "agent": "pykit_agent",
+    "mcp": "pykit_mcp",
+    "prompt": "pykit_ai.prompt",
+    "skill": "pykit_skill",
+    "embedding": "pykit_embedding",
+    "llm_providers": "pykit_llm_providers",
 }
 
 

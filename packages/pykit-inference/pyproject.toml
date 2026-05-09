@@ -1,12 +1,20 @@
 [project]
 name = "pykit-inference"
-description = "Inference provider abstractions and Triton adapter"
+description = "Model-serving runtime inference abstractions and adapters"
 version = "0.1.0"
 readme = "README.md"
 license = { text = "MIT" }
-keywords = ["triton", "inference", "ml", "client"]
+keywords = ["triton", "inference", "ml", "kserve", "serving"]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "pykit-ai",
+    "httpx>=0.28",
+    "pydantic>=2.12.0,<3.0",
+    "pykit-authz",
+    "pykit-observability",
+    "pykit-resilience",
+    "pykit-tool",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -16,6 +24,4 @@ build-backend = "hatchling.build"
 packages = ["src/pykit_inference"]
 
 [project.optional-dependencies]
-grpc = [
-    "tritonclient[grpc]",
-]
+all = []

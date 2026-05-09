@@ -13,10 +13,10 @@ from typing import Protocol, cast, runtime_checkable
 
 from pykit_errors import InvalidInputError
 
-type Scope = dict[str, object]
-type Receive = Callable[[], Awaitable[dict[str, object]]]
-type Send = Callable[[dict[str, object]], Awaitable[None]]
-type ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
+Scope = dict[str, object]
+Receive = Callable[[], Awaitable[dict[str, object]]]
+Send = Callable[[dict[str, object]], Awaitable[None]]
+ASGIApp = Callable[[Scope, Receive, Send], Awaitable[None]]
 
 
 @dataclass(frozen=True, slots=True)

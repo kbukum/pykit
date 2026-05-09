@@ -1,36 +1,46 @@
 """pykit_bench — Generic accuracy benchmarking framework."""
 
-from pykit_bench.compare import ComparisonResult, RunComparator
+from pykit_bench.comparator import BenchRunComparator, MetricChange, RunDiff
 from pykit_bench.dataset import DatasetLoader, DatasetManifest, Label, Sample
-from pykit_bench.metrics import (
-    ConfusionMatrix,
-    ThresholdMetrics,
-    compute_metrics,
-    per_branch_metrics,
-    threshold_sweep,
+from pykit_bench.dataset_loader import GenericDatasetLoader
+from pykit_bench.evaluator import Evaluator, EvaluatorFunc, FromProvider
+from pykit_bench.result import (
+    BenchRunResult,
+    BenchRunSummary,
+    BenchSampleResult,
+    BranchResult,
+    DatasetInfo,
+    MetricResult,
 )
-from pykit_bench.report import JsonReporter, MarkdownReporter
-from pykit_bench.runner import BenchRunner, BranchSpec, RunResult, RunSummary, SampleResult
-from pykit_bench.storage import RunStorage
+from pykit_bench.runner import BenchRunner, BranchConfig, RunOptions
+from pykit_bench.storage import BenchRunStorage, FileRunStorage, ListOptions
+from pykit_bench.types import BenchSample, Prediction, ScoredSample
 
 __all__ = [
+    "BenchRunComparator",
+    "BenchRunResult",
+    "BenchRunStorage",
+    "BenchRunSummary",
     "BenchRunner",
-    "BranchSpec",
-    "ComparisonResult",
-    "ConfusionMatrix",
+    "BenchSample",
+    "BenchSampleResult",
+    "BranchConfig",
+    "BranchResult",
+    "DatasetInfo",
     "DatasetLoader",
     "DatasetManifest",
-    "JsonReporter",
+    "Evaluator",
+    "EvaluatorFunc",
+    "FileRunStorage",
+    "FromProvider",
+    "GenericDatasetLoader",
     "Label",
-    "MarkdownReporter",
-    "RunComparator",
-    "RunResult",
-    "RunStorage",
-    "RunSummary",
+    "ListOptions",
+    "MetricChange",
+    "MetricResult",
+    "Prediction",
+    "RunDiff",
+    "RunOptions",
     "Sample",
-    "SampleResult",
-    "ThresholdMetrics",
-    "compute_metrics",
-    "per_branch_metrics",
-    "threshold_sweep",
+    "ScoredSample",
 ]

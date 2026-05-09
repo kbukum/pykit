@@ -7,9 +7,11 @@ license = { text = "MIT" }
 keywords = ["llm", "ai", "prompts", "language-model"]
 requires-python = ">=3.13"
 dependencies = [
+    "pykit-ai",
     "pydantic",
     "pykit-errors",
     "pykit-tool",
+    "pykit-component",
 ]
 
 [build-system]

@@ -9,10 +9,10 @@ from typing import Literal, Protocol, runtime_checkable
 from pykit_authz.errors import PermissionDeniedError
 from pykit_authz.matcher import match_any
 
-type AttributeValue = str | int | float | bool
-type Attributes = Mapping[str, AttributeValue]
-type AttributeSource = Literal["subject", "resource", "context"]
-type ConditionOperator = Literal["equals", "not_equals", "one_of"]
+AttributeValue = str | int | float | bool
+Attributes = Mapping[str, AttributeValue]
+AttributeSource = Literal["subject", "resource", "context"]
+ConditionOperator = Literal["equals", "not_equals", "one_of"]
 
 
 @dataclass(frozen=True, slots=True)

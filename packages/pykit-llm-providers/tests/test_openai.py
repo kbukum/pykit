@@ -7,6 +7,7 @@ import json
 import httpx
 import pytest
 
+from pykit_ai import ToolUseBlock
 from pykit_embedding.provider import EmbeddingError, EmbeddingProvider
 from pykit_llm import (
     CompletionRequest,
@@ -21,6 +22,26 @@ from pykit_llm_providers.openai import OpenAIConfig, OpenAIEmbeddingProvider, Op
 
 def _mock_transport(handler):
     return httpx.MockTransport(handler)
+
+
+def _assemble_tool_calls(chunks: list[StreamChunk]) -> list[ToolUseBlock]:
+    states: dict[int, dict[str, str]] = {}
+    for chunk in chunks:
+        for tool_call in chunk.tool_calls or []:
+            state = states.setdefault(tool_call.index, {"id": "", "name": "", "input_json": ""})
+            if tool_call.id:
+                state["id"] = tool_call.id
+            if tool_call.name:
+                state["name"] = tool_call.name
+            state["input_json"] += tool_call.input_delta
+
+    tool_calls: list[ToolUseBlock] = []
+    for index in sorted(states):
+        state = states[index]
+        input_data = json.loads(state["input_json"] or "{}")
+        assert isinstance(input_data, dict)
+        tool_calls.append(ToolUseBlock(id=state["id"], name=state["name"], input=input_data))
+    return tool_calls
 
 
 def _openai_response(
@@ -135,7 +156,7 @@ class TestOpenAIComplete:
             resp = await provider.complete(req)
             assert resp.text() == "Hello!"
             assert resp.model == "gpt-4"
-            assert resp.usage.prompt_tokens == 10
+            assert resp.usage.input_tokens == 10
             assert resp.stop_reason == "stop"
         finally:
             await provider.close()
@@ -221,7 +242,7 @@ class TestOpenAIStreamToolCalls:
         return LLMConfig(api_key="sk-test", model="gpt-4")
 
     async def test_stream_tool_calls(self, config):
-        """Tool call deltas in the SSE stream populate StreamChunk.tool_calls."""
+        """Tool call deltas in the SSE stream assemble into canonical tool blocks."""
         chunks_data: list[dict] = [
             {
                 "id": "chatcmpl-0",
@@ -233,6 +254,7 @@ class TestOpenAIStreamToolCalls:
                         "delta": {
                             "tool_calls": [
                                 {
+                                    "index": 0,
                                     "id": "call_abc",
                                     "function": {
                                         "name": "get_weather",
@@ -255,6 +277,7 @@ class TestOpenAIStreamToolCalls:
                         "delta": {
                             "tool_calls": [
                                 {
+                                    "index": 0,
                                     "id": "",
                                     "function": {
                                         "name": "",
@@ -269,8 +292,8 @@ class TestOpenAIStreamToolCalls:
             },
         ]
         sse = ""
-        for d in chunks_data:
-            sse += f"data: {json.dumps(d)}\n\n"
+        for data in chunks_data:
+            sse += f"data: {json.dumps(data)}\n\n"
         sse += "data: [DONE]\n\n"
 
         def handler(request: httpx.Request) -> httpx.Response:
@@ -278,17 +301,11 @@ class TestOpenAIStreamToolCalls:
 
         provider = OpenAIProvider(config, transport=_mock_transport(handler))
         try:
-            chunks: list[StreamChunk] = []
-            async for chunk in provider.stream(CompletionRequest(messages=[user("weather")])):
-                chunks.append(chunk)
-            tc_chunks = [c for c in chunks if c.tool_calls]
-            assert len(tc_chunks) == 2
-            first = tc_chunks[0].tool_calls[0]
-            assert first.id == "call_abc"
-            assert first.function.name == "get_weather"
-            assert first.function.arguments == '{"loc'
-            second = tc_chunks[1].tool_calls[0]
-            assert second.function.arguments == 'ation":"NYC"}'
+            chunks = [chunk async for chunk in provider.stream(CompletionRequest(messages=[user("weather")]))]
+            assert _assemble_tool_calls(chunks) == [
+                ToolUseBlock(id="call_abc", name="get_weather", input={"location": "NYC"})
+            ]
+            assert sum(chunk.done for chunk in chunks) == 1
         finally:
             await provider.close()
 
@@ -332,6 +349,8 @@ class TestOpenAIEmbeddingProvider:
             assert body["input"] == ["hello"]
             return httpx.Response(200, json=_embedding_response([[0.1, 0.2, 0.3]]))
 
+        from pykit_ai import Model
+        from pykit_embedding import EmbedRequest, Text
         from pykit_httpclient import AuthConfig, HttpClient, HttpConfig
 
         http_config = HttpConfig(
@@ -343,10 +362,12 @@ class TestOpenAIEmbeddingProvider:
         client = HttpClient(http_config, transport=_mock_transport(handler))
         provider = OpenAIEmbeddingProvider(config, client=client)
         try:
-            result = await provider.embed(["hello"])
-            assert len(result) == 1
-            assert len(result[0]) == 3
-            assert abs(result[0][0] - 0.1) < 1e-6
+            result = await provider.embed(
+                EmbedRequest(model=Model(name="text-embedding-3-small"), inputs=[Text(text="hello")])
+            )
+            assert len(result.embeddings) == 1
+            assert result.embeddings[0].vector == [0.1, 0.2, 0.3]
+            assert result.usage.input_tokens == 10
         finally:
             await provider.close()
 
@@ -359,6 +380,8 @@ class TestOpenAIEmbeddingProvider:
                 json=_embedding_response([[0.1, 0.2, 0.3], [0.4, 0.5, 0.6]]),
             )
 
+        from pykit_ai import Model
+        from pykit_embedding import EmbedRequest, Text
         from pykit_httpclient import AuthConfig, HttpClient, HttpConfig
 
         http_config = HttpConfig(
@@ -370,16 +393,24 @@ class TestOpenAIEmbeddingProvider:
         client = HttpClient(http_config, transport=_mock_transport(handler))
         provider = OpenAIEmbeddingProvider(config, client=client)
         try:
-            result = await provider.embed(["hello", "world"])
-            assert len(result) == 2
+            result = await provider.embed(
+                EmbedRequest(
+                    model=Model(name="text-embedding-3-small"),
+                    inputs=[Text(text="hello"), Text(text="world")],
+                )
+            )
+            assert len(result.embeddings) == 2
         finally:
             await provider.close()
 
     async def test_embed_empty(self, config: OpenAIConfig) -> None:
+        from pykit_ai import Model
+        from pykit_embedding import EmbedRequest
+
         provider = OpenAIEmbeddingProvider(config)
         try:
-            result = await provider.embed([])
-            assert result == []
+            result = await provider.embed(EmbedRequest(model=Model(name="text-embedding-3-small"), inputs=[]))
+            assert result.embeddings == []
         finally:
             await provider.close()
 
@@ -387,6 +418,8 @@ class TestOpenAIEmbeddingProvider:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(500, text="Internal Server Error")
 
+        from pykit_ai import Model
+        from pykit_embedding import EmbedRequest, Text
         from pykit_httpclient import AuthConfig, HttpClient, HttpConfig
 
         http_config = HttpConfig(
@@ -399,7 +432,9 @@ class TestOpenAIEmbeddingProvider:
         provider = OpenAIEmbeddingProvider(config, client=client)
         try:
             with pytest.raises(EmbeddingError) as exc_info:
-                await provider.embed(["hello"])
+                await provider.embed(
+                    EmbedRequest(model=Model(name="text-embedding-3-small"), inputs=[Text(text="hello")])
+                )
             assert exc_info.value.retryable is True
         finally:
             await provider.close()
@@ -408,6 +443,8 @@ class TestOpenAIEmbeddingProvider:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(401, text="Unauthorized")
 
+        from pykit_ai import Model
+        from pykit_embedding import EmbedRequest, Text
         from pykit_httpclient import AuthConfig, HttpClient, HttpConfig
 
         http_config = HttpConfig(
@@ -420,15 +457,95 @@ class TestOpenAIEmbeddingProvider:
         provider = OpenAIEmbeddingProvider(config, client=client)
         try:
             with pytest.raises(EmbeddingError) as exc_info:
-                await provider.embed(["hello"])
+                await provider.embed(
+                    EmbedRequest(model=Model(name="text-embedding-3-small"), inputs=[Text(text="hello")])
+                )
             assert exc_info.value.retryable is False
         finally:
             await provider.close()
 
-    def test_dimensions(self, config: OpenAIConfig) -> None:
-        provider = OpenAIEmbeddingProvider(config)
-        assert provider.dimensions() == 3
-
     def test_implements_protocol(self, config: OpenAIConfig) -> None:
         provider = OpenAIEmbeddingProvider(config)
         assert isinstance(provider, EmbeddingProvider)
+
+
+class TestOpenAIResponseToolCalls:
+    @pytest.fixture
+    def config(self):
+        return LLMConfig(api_key="sk-test", model="gpt-4")
+
+    async def test_complete_parses_tool_use_block_single(self, config):
+        data = {
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "model": "gpt-4",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "call_1",
+                                "type": "function",
+                                "function": {
+                                    "name": "get_weather",
+                                    "arguments": '{"city":"NYC","units":"metric"}',
+                                },
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=data)
+
+        provider = OpenAIProvider(config, transport=_mock_transport(handler))
+        try:
+            resp = await provider.complete(CompletionRequest(messages=[user("weather")]))
+            assert len(resp.message.tool_calls) == 1
+            tool_call = resp.message.tool_calls[0]
+            assert tool_call.id == "call_1"
+            assert tool_call.name == "get_weather"
+            assert tool_call.input["city"] == "NYC"
+            assert tool_call.input["units"] == "metric"
+        finally:
+            await provider.close()
+
+    async def test_complete_parses_tool_use_block_empty_args(self, config):
+        data = {
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "model": "gpt-4",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "id": "c2",
+                                "type": "function",
+                                "function": {"name": "ping", "arguments": "{}"},
+                            }
+                        ],
+                    },
+                    "finish_reason": "tool_calls",
+                }
+            ],
+            "usage": {},
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=data)
+
+        provider = OpenAIProvider(config, transport=_mock_transport(handler))
+        try:
+            resp = await provider.complete(CompletionRequest(messages=[user("ping")]))
+            assert resp.message.tool_calls[0].input == {}
+        finally:
+            await provider.close()

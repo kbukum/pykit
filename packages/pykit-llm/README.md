@@ -62,3 +62,29 @@ asyncio.run(main())
 
 - [Main pykit README](../../README.md)
 - [tests/](tests/) — additional usage examples
+
+## Architecture
+
+```mermaid
+flowchart TD
+  LLM[pykit-llm]
+  CFG[config + provider]
+  TYP[types + structured]
+  EVT[stream_events]
+  AI[imports pykit-ai]
+  TOOL[imports pykit-tool]
+  ERR[imports pykit-errors]
+  OAI[OpenAI adapter]
+  ANT[Anthropic adapter]
+  GEM[Gemini adapter]
+
+  LLM --> CFG
+  LLM --> TYP
+  LLM --> EVT
+  LLM --> AI
+  LLM --> TOOL
+  LLM --> ERR
+  OAI --> LLM
+  ANT --> LLM
+  GEM --> LLM
+```

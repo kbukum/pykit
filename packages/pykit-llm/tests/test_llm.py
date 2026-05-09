@@ -7,13 +7,13 @@ import json
 import httpx
 import pytest
 
+from pykit_ai import FinishReason
 from pykit_llm import (
     AssistantMessage,
     CompletionRequest,
     CompletionResponse,
     LLMConfig,
     LLMProvider,
-    StopReason,
     StreamChunk,
     TextBlock,
     Usage,
@@ -96,7 +96,7 @@ class TestTypes:
         from pykit_llm import tool_result_msg
 
         m = tool_result_msg("tu-1", "result data")
-        assert m.role == "tool_result"
+        assert m.role == "tool"
         assert m.tool_use_id == "tu-1"
         assert m.content == "result data"
         assert m.is_error is False
@@ -105,16 +105,17 @@ class TestTypes:
         blocks = [TextBlock(text="hello"), TextBlock(text=" world")]
         assert text_of(blocks) == "hello world"
 
-    def test_stop_reason_constants(self):
-        assert StopReason.END_TURN == "end_turn"
-        assert StopReason.TOOL_USE == "tool_use"
-        assert StopReason.MAX_TOKENS == "max_tokens"
+    def test_finish_reason_constants(self):
+        assert FinishReason.STOP == "stop"
+        assert FinishReason.TOOL_USE == "tool_use"
+        assert FinishReason.LENGTH == "length"
+        assert FinishReason.CONTENT_FILTER == "content_filter"
 
     def test_usage_defaults(self):
         u = Usage()
-        assert u.prompt_tokens == 0
-        assert u.completion_tokens == 0
-        assert u.total_tokens == 0
+        assert u.input_tokens == 0
+        assert u.output_tokens == 0
+        assert u.input_tokens + u.output_tokens == 0
 
     def test_completion_request_defaults(self):
         req = CompletionRequest(messages=[])
@@ -129,8 +130,8 @@ class TestTypes:
         msg = AssistantMessage(content=[TextBlock(text="hello")])
         r = CompletionResponse(message=msg, model="gpt-4")
         assert r.text() == "hello"
-        assert r.stop_reason == ""
-        assert r.usage.prompt_tokens == 0
+        assert r.stop_reason == FinishReason.STOP
+        assert r.usage.input_tokens == 0
 
     def test_completion_response_has_tool_calls(self):
         msg = AssistantMessage()
@@ -252,10 +253,10 @@ class TestOpenAIComplete:
             resp = await provider.complete(req)
             assert resp.text() == "Hello!"
             assert resp.model == "gpt-4"
-            assert resp.usage.prompt_tokens == 10
-            assert resp.usage.completion_tokens == 5
-            assert resp.usage.total_tokens == 15
-            assert resp.stop_reason == "stop"
+            assert resp.usage.input_tokens == 10
+            assert resp.usage.output_tokens == 5
+            assert resp.usage.input_tokens + resp.usage.output_tokens == 15
+            assert resp.stop_reason == FinishReason.STOP
         finally:
             await provider.close()
 

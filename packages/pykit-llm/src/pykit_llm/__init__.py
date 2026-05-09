@@ -1,34 +1,13 @@
-"""pykit-llm — LLM provider abstractions with discriminated union message types."""
+"""pykit-llm — LLM provider abstractions built on canonical pykit_ai types."""
 
-from pykit_llm.config import LLMConfig
-from pykit_llm.provider import Capabilities, LLMProvider, Provider, count_tokens_approx
-from pykit_llm.stream_events import (
-    ContentDelta,
-    MessageComplete,
-    MessageStart,
-    StreamError,
-    StreamEvent,
-    ThinkingDelta,
-    ToolCallDelta,
-    UsageUpdate,
-)
-from pykit_llm.structured import ParseError, StructuredOutput
-from pykit_llm.template import PromptTemplate, TemplateRegistry
-from pykit_llm.types import (
+from pykit_ai import (
     AssistantMessage,
-    CompletionRequest,
-    CompletionResponse,
-    ContentBlock,
-    FunctionCall,
-    ImageBlock,
+    ContentPart,
+    FinishReason,
     Message,
-    StopReason,
-    StreamChunk,
+    Model,
     SystemMessage,
     TextBlock,
-    ThinkingBlock,
-    ToolCall,
-    ToolChoice,
     ToolResultBlock,
     ToolResultMessage,
     ToolUseBlock,
@@ -41,6 +20,31 @@ from pykit_llm.types import (
     tool_result_msg,
     user,
 )
+from pykit_llm.config import LLMConfig
+from pykit_llm.provider import Capabilities, LLMProvider, Provider, ProviderBase, count_tokens_approx
+from pykit_llm.stream_events import (
+    Error,
+    MessageStart,
+    MessageStop,
+    ReasoningDelta,
+    StreamEvent,
+    TextDelta,
+    ToolUseDelta,
+    ToolUseStart,
+    ToolUseStop,
+    UsageDelta,
+)
+from pykit_llm.structured import ParseError, StructuredOutput
+from pykit_llm.types import (
+    CompletionRequest,
+    CompletionResponse,
+    ContentBlock,
+    FileBlock,
+    ImageBlock,
+    StreamChunk,
+    ThinkingBlock,
+    ToolChoice,
+)
 
 __all__ = [
     "AssistantMessage",
@@ -48,35 +52,37 @@ __all__ = [
     "CompletionRequest",
     "CompletionResponse",
     "ContentBlock",
-    "ContentDelta",
-    "FunctionCall",
+    "ContentPart",
+    "Error",
+    "FileBlock",
+    "FinishReason",
     "ImageBlock",
     "LLMConfig",
     "LLMProvider",
     "Message",
-    "MessageComplete",
     "MessageStart",
+    "MessageStop",
+    "Model",
     "ParseError",
-    "PromptTemplate",
     "Provider",
-    "StopReason",
+    "ProviderBase",
+    "ReasoningDelta",
     "StreamChunk",
-    "StreamError",
     "StreamEvent",
     "StructuredOutput",
     "SystemMessage",
-    "TemplateRegistry",
     "TextBlock",
+    "TextDelta",
     "ThinkingBlock",
-    "ThinkingDelta",
-    "ToolCall",
-    "ToolCallDelta",
     "ToolChoice",
     "ToolResultBlock",
     "ToolResultMessage",
     "ToolUseBlock",
+    "ToolUseDelta",
+    "ToolUseStart",
+    "ToolUseStop",
     "Usage",
-    "UsageUpdate",
+    "UsageDelta",
     "UserMessage",
     "assistant",
     "count_tokens_approx",

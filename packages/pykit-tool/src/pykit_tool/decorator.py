@@ -11,7 +11,7 @@ from typing import Any, cast
 
 from pykit_schema import from_function
 from pykit_tool.context import Context
-from pykit_tool.definition import Annotations, Definition
+from pykit_tool.definition import Annotations, Definition, Envelope
 from pykit_tool.tool import Tool
 
 
@@ -19,10 +19,7 @@ def tool(
     name: str | None = None,
     description: str | None = None,
     annotations: Annotations | None = None,
-    read_only: bool = False,
-    destructive: bool = False,
-    timeout: float = 0.0,
-    max_result_size: int = 0,
+    envelope: Envelope | None = None,
 ) -> Callable[..., Tool[Any, Any]]:
     """Decorator that converts a typed function into a Tool.
 
@@ -33,11 +30,8 @@ def tool(
     Args:
         name: Tool name (defaults to function name).
         description: Tool description (defaults to docstring first line).
-        annotations: Optional behavioral hints.
-        read_only: Whether the tool only reads data.
-        destructive: Whether the tool may cause irreversible changes.
-        timeout: Default timeout in seconds.
-        max_result_size: Maximum result size in bytes.
+        annotations: Optional non-executable metadata.
+        envelope: Executable permission envelope.
 
     Returns:
         A decorator that wraps the function as a ``Tool``.
@@ -48,8 +42,7 @@ def tool(
         async def search(ctx: Context, query: str, max_results: int = 10) -> list[str]:
             return [f"Result for {query}"]
 
-        # search is now a Tool instance with auto-generated schemas
-        print(search.definition.name)  # "search"
+        assert search.definition.name == "search"
     """
 
     def decorator(fn: Callable[..., Any]) -> Tool[Any, Any]:
@@ -66,11 +59,8 @@ def tool(
             name=tool_name,
             description=tool_desc,
             input_schema=input_schema,
-            annotations=annotations,
-            read_only=read_only,
-            destructive=destructive,
-            timeout=timeout,
-            max_result_size=max_result_size,
+            annotations=annotations or Annotations(),
+            envelope=envelope or Envelope(),
         )
 
         # Determine input type from first non-skip parameter.

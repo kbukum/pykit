@@ -7,6 +7,7 @@ import json
 import httpx
 import pytest
 
+from pykit_ai import FinishReason, ToolUseBlock
 from pykit_llm import (
     CompletionRequest,
     LLMProvider,
@@ -20,6 +21,26 @@ from pykit_llm_providers.gemini import GeminiConfig, GeminiProvider
 
 def _mock_transport(handler):
     return httpx.MockTransport(handler)
+
+
+def _assemble_tool_calls(chunks: list[StreamChunk]) -> list[ToolUseBlock]:
+    states: dict[int, dict[str, str]] = {}
+    for chunk in chunks:
+        for tool_call in chunk.tool_calls or []:
+            state = states.setdefault(tool_call.index, {"id": "", "name": "", "input_json": ""})
+            if tool_call.id:
+                state["id"] = tool_call.id
+            if tool_call.name:
+                state["name"] = tool_call.name
+            state["input_json"] += tool_call.input_delta
+
+    tool_calls: list[ToolUseBlock] = []
+    for index in sorted(states):
+        state = states[index]
+        input_data = json.loads(state["input_json"] or "{}")
+        assert isinstance(input_data, dict)
+        tool_calls.append(ToolUseBlock(id=state["id"], name=state["name"], input=input_data))
+    return tool_calls
 
 
 def _gemini_response(
@@ -121,7 +142,8 @@ class TestGeminiComplete:
 
     async def test_complete_success(self, config):
         def handler(request: httpx.Request) -> httpx.Response:
-            assert "key=test-key" in str(request.url)
+            assert request.headers.get("x-goog-api-key") == "test-key"
+            assert "key=" not in str(request.url)
             assert "/v1beta/models/gemini-2.0-flash:generateContent" in str(request.url)
             body = json.loads(request.content)
             assert body["contents"][0]["role"] == "user"
@@ -132,10 +154,10 @@ class TestGeminiComplete:
         try:
             resp = await provider.complete(CompletionRequest(messages=[user("Hi")]))
             assert resp.text() == "Hello!"
-            assert resp.usage.prompt_tokens == 10
-            assert resp.usage.completion_tokens == 5
-            assert resp.usage.total_tokens == 15
-            assert resp.stop_reason == "end_turn"
+            assert resp.usage.input_tokens == 10
+            assert resp.usage.output_tokens == 5
+            assert resp.usage.input_tokens + resp.usage.output_tokens == 15
+            assert resp.stop_reason == FinishReason.STOP
         finally:
             await provider.close()
 
@@ -157,10 +179,10 @@ class TestGeminiComplete:
         finally:
             await provider.close()
 
-    async def test_complete_sends_api_key_as_query_param(self, config):
+    async def test_complete_sends_api_key_as_header(self, config):
         def handler(request: httpx.Request) -> httpx.Response:
-            assert "key=test-key" in str(request.url)
-            # API key should NOT be in headers
+            assert request.headers.get("x-goog-api-key") == "test-key"
+            assert "key=" not in str(request.url)
             assert "authorization" not in request.headers
             return httpx.Response(200, json=_gemini_response())
 
@@ -249,7 +271,7 @@ class TestGeminiComplete:
         provider = GeminiProvider(config, transport=_mock_transport(handler))
         try:
             resp = await provider.complete(CompletionRequest(messages=[user("Hi")]))
-            assert resp.stop_reason == "max_tokens"
+            assert resp.stop_reason == FinishReason.LENGTH
         finally:
             await provider.close()
 
@@ -260,7 +282,7 @@ class TestGeminiComplete:
         provider = GeminiProvider(config, transport=_mock_transport(handler))
         try:
             resp = await provider.complete(CompletionRequest(messages=[user("Hi")]))
-            assert resp.stop_reason == "content_filter"
+            assert resp.stop_reason == FinishReason.CONTENT_FILTER
         finally:
             await provider.close()
 
@@ -326,7 +348,7 @@ class TestGeminiStream:
             await provider.close()
 
     async def test_stream_function_call(self, config):
-        """functionCall parts in the SSE stream populate StreamChunk.tool_calls."""
+        """functionCall parts in the SSE stream assemble into canonical tool blocks."""
         data = {
             "candidates": [
                 {
@@ -357,16 +379,11 @@ class TestGeminiStream:
 
         provider = GeminiProvider(config, transport=_mock_transport(handler))
         try:
-            chunks: list[StreamChunk] = []
-            async for chunk in provider.stream(CompletionRequest(messages=[user("weather")])):
-                chunks.append(chunk)
-            tc_chunks = [c for c in chunks if c.tool_calls]
-            assert len(tc_chunks) == 1
-            tc = tc_chunks[0].tool_calls[0]
-            assert tc.id == "get_weather"
-            assert tc.function.name == "get_weather"
-            assert json.loads(tc.function.arguments) == {"location": "NYC"}
-            assert tc_chunks[0].done is True
+            chunks = [chunk async for chunk in provider.stream(CompletionRequest(messages=[user("weather")]))]
+            assert _assemble_tool_calls(chunks) == [
+                ToolUseBlock(id="get_weather", name="get_weather", input={"location": "NYC"})
+            ]
+            assert sum(chunk.done for chunk in chunks) == 1
         finally:
             await provider.close()
 
@@ -383,6 +400,52 @@ class TestGeminiStream:
             done_chunks = [c for c in chunks if c.done]
             assert len(done_chunks) == 1
             assert done_chunks[0].usage is not None
-            assert done_chunks[0].usage.total_tokens == 15
+            assert done_chunks[0].usage.input_tokens + done_chunks[0].usage.output_tokens == 15
+        finally:
+            await provider.close()
+
+
+class TestGeminiResponseToolCalls:
+    @pytest.fixture
+    def config(self):
+        return GeminiConfig(api_key="test-key", model="gemini-2.0-flash")
+
+    async def test_complete_parses_function_call_as_tool_use_block(self, config):
+        data = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "functionCall": {
+                                    "name": "get_weather",
+                                    "args": {"location": "NYC"},
+                                }
+                            }
+                        ],
+                        "role": "model",
+                    },
+                    "finishReason": "TOOL_USE",
+                }
+            ],
+            "usageMetadata": {
+                "promptTokenCount": 10,
+                "candidatesTokenCount": 5,
+                "totalTokenCount": 15,
+            },
+            "modelVersion": "gemini-2.0-flash",
+        }
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=data)
+
+        provider = GeminiProvider(config, transport=_mock_transport(handler))
+        try:
+            resp = await provider.complete(CompletionRequest(messages=[user("weather")]))
+            assert len(resp.message.tool_calls) == 1
+            tool_call = resp.message.tool_calls[0]
+            assert tool_call.id == "get_weather"
+            assert tool_call.name == "get_weather"
+            assert tool_call.input == {"location": "NYC"}
         finally:
             await provider.close()

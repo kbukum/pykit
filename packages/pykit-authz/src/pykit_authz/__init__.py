@@ -14,6 +14,7 @@ from pykit_authz.checker import (
     RoleBinding,
     Subject,
 )
+from pykit_authz.decision import Decider, Decision, DecisionRequest, HitlSource
 from pykit_authz.errors import PermissionDeniedError
 from pykit_authz.matcher import match_any, match_pattern
 
@@ -25,6 +26,10 @@ __all__ = [
     "Checker",
     "CheckerFunc",
     "Condition",
+    "Decider",
+    "Decision",
+    "DecisionRequest",
+    "HitlSource",
     "PermissionDeniedError",
     "Resource",
     "RoleBinding",

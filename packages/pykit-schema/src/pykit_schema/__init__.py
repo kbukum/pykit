@@ -30,6 +30,8 @@ from pykit_schema.generate import (
     from_type,
     generate,
     validate,
+    validate_elicitation_schema,
+    validate_structured_output,
 )
 
 __all__ = [
@@ -39,4 +41,6 @@ __all__ = [
     "from_type",
     "generate",
     "validate",
+    "validate_elicitation_schema",
+    "validate_structured_output",
 ]

@@ -6,7 +6,15 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
-from pykit_schema import ValidationResult, from_function, from_type, generate, validate
+from pykit_schema import (
+    ValidationResult,
+    from_function,
+    from_type,
+    generate,
+    validate,
+    validate_elicitation_schema,
+    validate_structured_output,
+)
 
 # --- Test models ---
 
@@ -263,3 +271,79 @@ class TestValidate:
 
         result = validate(schema, {"name": "Alice"})
         assert not result.valid
+
+
+class TestValidateStructuredOutput:
+    def test_valid_structured_output(self):
+        schema = {
+            "type": "object",
+            "properties": {"name": {"type": "string"}, "age": {"type": "integer"}},
+            "required": ["name"],
+        }
+
+        result = validate_structured_output(schema, {"name": "Alice", "age": 30})
+
+        assert result.valid
+        assert result.errors == []
+
+    def test_invalid_structured_output(self):
+        schema = {
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"],
+        }
+
+        result = validate_structured_output(schema, {"name": 42})
+
+        assert not result.valid
+        assert any(error.path == "name" for error in result.errors)
+
+
+class TestValidateElicitationSchema:
+    def test_valid_elicitation_schema(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer"},
+                "score": {"type": "number"},
+                "subscribed": {"type": "boolean"},
+            },
+            "required": ["name"],
+        }
+
+        result = validate_elicitation_schema(schema)
+
+        assert result.valid
+        assert result.errors == []
+
+    def test_non_object_elicitation_schema_fails(self):
+        result = validate_elicitation_schema({"type": "array", "properties": {}})
+
+        assert not result.valid
+        assert any(error.path == "$" for error in result.errors)
+
+    def test_non_mapping_properties_fail(self):
+        result = validate_elicitation_schema({"type": "object", "properties": []})
+
+        assert not result.valid
+        assert any(error.path == "properties" for error in result.errors)
+
+    def test_unsupported_property_types_fail(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "details": {"type": "object"},
+                "tags": {"type": "array"},
+                "metadata": "not-a-mapping",
+            },
+        }
+
+        result = validate_elicitation_schema(schema)
+
+        assert not result.valid
+        assert {error.path for error in result.errors} == {
+            "properties.details",
+            "properties.tags",
+            "properties.metadata",
+        }

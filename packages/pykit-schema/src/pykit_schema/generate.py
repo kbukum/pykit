@@ -16,7 +16,7 @@ import jsonschema
 from pydantic import BaseModel, create_model
 
 # Standard JSON Schema type alias.
-type JSON = dict[str, Any]
+JSON = dict[str, Any]
 
 
 @dataclass
@@ -216,3 +216,32 @@ def from_function(
             schema["description"] = first_line
 
     return schema
+
+
+def validate_structured_output(schema: JSON, value: Any) -> ValidationResult:
+    """Validate LLM/tool structured output against JSON Schema 2020-12."""
+    return validate(schema, value)
+
+
+def validate_elicitation_schema(schema: JSON) -> ValidationResult:
+    """Validate the MCP elicitation subset supported by pykit.
+
+    The subset is object schemas with primitive string/number/integer/boolean
+    properties and optional required fields.
+    """
+    errors: list[ValidationError] = []
+    if schema.get("type") != "object":
+        errors.append(ValidationError(path="$", message="elicitation schema must be an object"))
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        errors.append(ValidationError(path="properties", message="properties must be a mapping"))
+    else:
+        allowed = {"string", "number", "integer", "boolean"}
+        for name, prop in properties.items():
+            if not isinstance(prop, dict) or prop.get("type") not in allowed:
+                errors.append(
+                    ValidationError(
+                        path=f"properties.{name}", message="unsupported elicitation property type"
+                    )
+                )
+    return ValidationResult(valid=not errors, errors=errors)

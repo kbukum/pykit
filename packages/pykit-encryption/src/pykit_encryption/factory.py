@@ -8,7 +8,7 @@ from pykit_encryption.aesgcm import AESGCMEncryptor
 from pykit_encryption.base import Encryptor
 from pykit_encryption.chacha20 import ChaCha20Encryptor
 
-type EncryptorClass = type[AESGCMEncryptor] | type[ChaCha20Encryptor]
+EncryptorClass = type[AESGCMEncryptor] | type[ChaCha20Encryptor]
 
 
 class Algorithm(Enum):

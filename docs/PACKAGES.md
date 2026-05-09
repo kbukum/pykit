@@ -72,17 +72,19 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 
 | Package | Description |
 |---------|-------------|
-| `pykit-llm` | LLM client abstraction and prompt management |
-| `pykit-llm-providers` | LLM provider implementations — OpenAI, Anthropic, Gemini |
-| `pykit-inference` | Triton Inference Server client |
-| `pykit-embedding` | Text and vector embedding utilities |
+| `pykit-ai` | Shared AI vocabulary, multimodal content blocks, messages, streams, and budgets |
+| `pykit-llm` | LLM request/response and streaming abstractions |
+| `pykit-llm-providers` | LLM provider adapters — OpenAI, Anthropic, Gemini |
+| `pykit-inference` | Model-serving runtime adapters — Triton, vLLM, and TGI |
+| `pykit-embedding` | Embedding provider contracts and vector utilities |
 | `pykit-vectorstore` | Vector store abstraction for similarity search |
-| `pykit-agent` | Agentic loop — LLM orchestration, tool execution |
+| `pykit-agent` | Agent orchestration built on pykit-ai, llm, and tools |
 | `pykit-tool` | Tool definitions, auto-wiring, registry, middleware |
+| `pykit-skill` | SDK-free skill manifests, registries, loaders, and verification policies |
+| `pykit-mcp` | Model Context Protocol bridge for pykit tool registries |
+| `pykit-transcription` | Speech-to-text and transcription abstractions |
 | `pykit-hook` | Generic event hook system |
-| `pykit-mcp` | Model Context Protocol server and client bridge |
 | `pykit-schema` | JSON Schema generation and validation |
-| `pykit-explain` | Structured explanation generation via LLM |
 
 ## Platform
 

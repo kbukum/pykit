@@ -2,16 +2,25 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel
 
+from pykit_ai import JsonValue
 from pykit_schema import ValidationResult, validate
 from pykit_tool.context import Context
 from pykit_tool.definition import Annotations, Definition
 from pykit_tool.result import Result
+
+JsonObject = dict[str, JsonValue]
+
+
+class ToolExecutionError(RuntimeError):
+    """Typed wrapper for unexpected tool execution failures."""
 
 
 @dataclass
@@ -28,7 +37,7 @@ class Tool[In, Out]:
     """
 
     _definition: Definition
-    _handler: Any  # Callable[[Context, In], Awaitable[Out]]
+    _handler: Callable[[Context, In], Awaitable[Out | Result]]
     _input_type: type[In] | None = None
 
     @property
@@ -45,17 +54,21 @@ class Tool[In, Out]:
 
     async def call(self, ctx: Context, input_data: In) -> Result:
         """Execute the tool with typed input."""
-        raw = await self._handler(ctx, input_data)
-        if isinstance(raw, Result):
-            return raw
-        # Auto-wrap non-Result returns.
-        if isinstance(raw, BaseModel):
-            return Result(output=raw.model_dump(), content=raw.model_dump_json())
-        if isinstance(raw, (dict, list)):
-            return Result(output=raw, content=json.dumps(raw))
-        if isinstance(raw, str):
-            return Result(content=raw)
-        return Result(output=raw, content=str(raw) if raw is not None else "")
+        try:
+            raw = await self._handler(ctx, input_data)
+            if isinstance(raw, Result):
+                return raw
+            if isinstance(raw, BaseModel):
+                return Result(output=raw.model_dump(), content=raw.model_dump_json())
+            if isinstance(raw, (dict, list)):
+                return Result(output=raw, content=json.dumps(raw))
+            if isinstance(raw, str):
+                return Result(content=raw)
+            return Result(output=raw, content=str(raw) if raw is not None else "")
+        except (asyncio.CancelledError, KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as exc:
+            raise ToolExecutionError(str(exc)) from exc
 
     def with_annotations(self, annotations: Annotations) -> Tool[In, Out]:
         """Return a copy with updated annotations."""
@@ -65,10 +78,7 @@ class Tool[In, Out]:
             input_schema=self._definition.input_schema,
             output_schema=self._definition.output_schema,
             annotations=annotations,
-            read_only=self._definition.read_only,
-            destructive=self._definition.destructive,
-            timeout=self._definition.timeout,
-            max_result_size=self._definition.max_result_size,
+            envelope=self._definition.envelope,
         )
         return Tool(
             _definition=new_def,
@@ -84,7 +94,7 @@ class Tool[In, Out]:
 class _CallableWrapper:
     """Wraps a typed Tool as a Callable (dict in/out)."""
 
-    def __init__(self, tool: Tool) -> None:  # type: ignore[type-arg]
+    def __init__(self, tool: Tool[Any, Any]) -> None:
         self._tool = tool
 
     @property

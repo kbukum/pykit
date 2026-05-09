@@ -16,7 +16,7 @@ from pykit_hook.types import (
     continue_with_error,
 )
 
-type HandlerResult = Result | Awaitable[Result]
+HandlerResult = Result | Awaitable[Result]
 
 
 class Registry:

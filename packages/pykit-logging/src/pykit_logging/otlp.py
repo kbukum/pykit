@@ -185,7 +185,9 @@ class OTLPLogBridge:
                 span_id = span_ctx.span_id
                 trace_flags = span_ctx.trace_flags
         except Exception:
-            pass
+            logging.getLogger(__name__).debug(
+                "Unable to attach current span context to OTLP log", exc_info=True
+            )
 
         record = self._otel["LogRecord"](
             body=message,
