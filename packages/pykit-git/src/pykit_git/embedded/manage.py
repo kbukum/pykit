@@ -38,7 +38,10 @@ def list_tags(repo: pygit2.Repository) -> list[Tag]:
         if isinstance(tag_obj, pygit2.Tag):
             tagger = signature_from_pygit2(tag_obj.tagger)
             message = tag_obj.message or ""
-            target = tag_obj.target
+            raw = tag_obj.target
+            # tag_obj.target is always a pygit2.Oid in current pygit2, but guard
+            # defensively in case a future version returns a GitObject.
+            target = raw if isinstance(raw, pygit2.Oid) else raw.id
         tags.append(Tag(name=ref.shorthand, target=Oid(sha=str(target)), tagger=tagger, message=message))
     return tags
 
@@ -64,14 +67,17 @@ def delete_branch(repo: pygit2.Repository, name: str) -> None:
 
 
 def create_tag(repo: pygit2.Repository, name: str, target: str, message: str) -> None:
-    """Create an annotated tag."""
+    """Create an annotated tag when message is non-empty, or a lightweight tag otherwise."""
     commit = commit_for_ref(repo, target)
     try:
-        tagger = repo.default_signature
-    except KeyError:
-        tagger = commit.committer
-    try:
-        repo.create_tag(name, commit.id, ObjectType.COMMIT, tagger, message)
+        if message:
+            try:
+                tagger = repo.default_signature
+            except KeyError:
+                tagger = commit.committer
+            repo.create_tag(name, commit.id, ObjectType.COMMIT, tagger, message)
+        else:
+            repo.create_reference(f"refs/tags/{name}", commit.id, False)
     except pygit2.GitError as exc:
         raise internal_error(exc) from exc
 

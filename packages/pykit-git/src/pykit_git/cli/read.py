@@ -73,7 +73,7 @@ class ReadBackend:
             args.extend(["--match", options.match])
         result = self._executor.run(*args)
         if result.returncode == 0:
-            return result.stdout.decode().strip()
+            return result.stdout.decode(errors="replace").strip()
         if options.always:
             head = str(self.rev_parse("HEAD"))
             return head[:7] if options.abbreviated else head
@@ -83,7 +83,7 @@ class ReadBackend:
         result = self._executor.run("rev-parse", revision)
         if result.returncode != 0:
             _raise_git_error(result, "rev-parse", revision, refname=revision)
-        return _parse_oid(result.stdout.decode().strip())
+        return _parse_oid(result.stdout.decode(errors="replace").strip())
 
     def grep(self, pattern: str, revision: str, opts: GrepOptions | None = None) -> list[GrepMatch]:
         options = opts or GrepOptions()
@@ -98,7 +98,7 @@ class ReadBackend:
         regex_flags = re.IGNORECASE if options.ignore_case else 0
         regex = re.compile(pattern, regex_flags)
         matches: list[GrepMatch] = []
-        for raw_line in result.stdout.decode().splitlines():
+        for raw_line in result.stdout.decode(errors="replace").splitlines():
             if not raw_line:
                 continue
             match = re.match(

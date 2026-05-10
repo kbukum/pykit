@@ -48,7 +48,7 @@ class WriteBackend(abc.ABC):
         self._executor.exec("restore", "--staged", ":/")
 
     def staged_entries(self) -> list[StatusEntry]:
-        output = self._executor.exec("diff", "--cached", "--name-status").decode()
+        output = self._executor.exec("diff", "--cached", "--name-status").decode(errors="replace")
         entries: list[StatusEntry] = []
         for line in output.splitlines():
             if not line:
@@ -223,7 +223,7 @@ class WriteBackend(abc.ABC):
         raise internal_error(exc) from exc
 
     def stash_list(self) -> list[StashEntry]:
-        output = self._executor.exec("stash", "list", "--format=%gd%x00%H%x00%gs").decode()
+        output = self._executor.exec("stash", "list", "--format=%gd%x00%H%x00%gs").decode(errors="replace")
         entries: list[StashEntry] = []
         for line in output.splitlines():
             if not line:
@@ -267,7 +267,7 @@ def _format_git_date(when: datetime) -> str:
 
 def _unmerged_paths(executor: SubprocessExecutor) -> tuple[str, ...]:
     output = executor.run("diff", "--name-only", "--diff-filter=U")
-    return tuple(path for path in output.stdout.decode().splitlines() if path)
+    return tuple(path for path in output.stdout.decode(errors="replace").splitlines() if path)
 
 
 def _stash_branch(message: str) -> str | None:
