@@ -439,14 +439,14 @@ root_packages = [
 name = "Layer architecture"
 type = "layers"
 layers = [
-    "pykit_agent | pykit_workload | pykit_process | pykit_testutil | pykit_integration",
+    "pykit_agent | pykit_workload | pykit_process | pykit_git | pykit_testutil | pykit_integration",
     "pykit_skill",
     "pykit_inference | pykit_bench | pykit_dataset | pykit_transcription",
     "pykit_llm_providers",
     "pykit_llm | pykit_embedding | pykit_vectorstore | pykit_mcp",
     "pykit_ai",
     "pykit_server | pykit_grpc",
-    "pykit_discovery | pykit_database | pykit_cache | pykit_storage | pykit_messaging | pykit_httpclient | pykit_git",
+    "pykit_discovery | pykit_database | pykit_cache | pykit_storage | pykit_messaging | pykit_httpclient",
     "pykit_auth | pykit_authz | pykit_security",
     "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
     "pykit_di | pykit_bootstrap | pykit_observability | pykit_chain",

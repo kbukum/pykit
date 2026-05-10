@@ -25,7 +25,7 @@ class ManageBackend:
             args.append("refs/remotes")
         else:
             args.extend(["refs/heads", "refs/remotes"])
-        output = self._executor.exec(*args).decode()
+        output = self._executor.exec(*args).decode(errors="replace")
         branches: list[Branch] = []
         for line in output.splitlines():
             if not line:
@@ -45,7 +45,7 @@ class ManageBackend:
         for raw_record in output.split(b"\x00"):
             if not raw_record:
                 continue
-            record = raw_record.decode()
+            record = raw_record.decode(errors="replace")
             name, object_type, object_oid, peeled_oid, tagger_name, tagger_email, tagger_date, message = (
                 record.split("\x1f", 7)
             )
@@ -82,7 +82,7 @@ class ManageBackend:
         self._executor.exec("tag", "-d", name)
 
     def list_remotes(self) -> list[Remote]:
-        output = self._executor.exec("remote", "-v").decode()
+        output = self._executor.exec("remote", "-v").decode(errors="replace")
         urls: dict[str, str] = {}
         for line in output.splitlines():
             if not line:
@@ -135,13 +135,13 @@ class ManageBackend:
         result = self._executor.run("config", "--get", key)
         if result.returncode != 0:
             raise config_not_found(key)
-        return result.stdout.decode().strip()
+        return result.stdout.decode(errors="replace").strip()
 
     def config_get_all(self, key: str) -> list[str]:
         result = self._executor.run("config", "--get-all", key)
         if result.returncode != 0:
             return []
-        return [line for line in result.stdout.decode().splitlines() if line]
+        return [line for line in result.stdout.decode(errors="replace").splitlines() if line]
 
     def config_set(self, key: str, value: str) -> None:
         self._executor.exec("config", key, value)
@@ -171,7 +171,7 @@ class ManageBackend:
             )
             raise internal_error(exc) from exc
         cleaned: list[str] = []
-        for line in result.stdout.decode().splitlines():
+        for line in result.stdout.decode(errors="replace").splitlines():
             if line.startswith("Removing "):
                 cleaned.append(line.removeprefix("Removing "))
             elif line.startswith("Would remove "):

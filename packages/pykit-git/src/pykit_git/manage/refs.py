@@ -28,7 +28,7 @@ class RefManager(Protocol):
         ...
 
     def create_tag(self, name: str, target: str, message: str) -> None:
-        """Create an annotated tag."""
+        """Create a tag. Creates an annotated tag when message is non-empty, lightweight otherwise."""
         ...
 
     def delete_tag(self, name: str) -> None:

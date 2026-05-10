@@ -33,9 +33,6 @@ class WriteBackend:
             return
         self._executor.exec("add", "-A")
 
-    def rev_parse(self, revision: str) -> Oid:
-        raise NotImplementedError
-
     def unstage(self, *paths: str) -> None:
         if paths:
             self._executor.exec("restore", "--staged", "--", *paths)
