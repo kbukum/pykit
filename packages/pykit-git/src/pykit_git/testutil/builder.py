@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import shutil
 import subprocess
-import uuid
+import tempfile
 from pathlib import Path
 
 from pykit_git import repo as git_repo
@@ -30,8 +29,10 @@ class RepoBuilder:
 
     def __init__(self, path: Path | None = None) -> None:
         if path is None:
-            self._tmpdir = (Path.cwd() / ".pykit-git-testutil" / uuid.uuid4().hex).resolve()
-            self._root = self._tmpdir
+            self._tmpdir: tempfile.TemporaryDirectory[str] | None = tempfile.TemporaryDirectory(
+                prefix="pykit-git-"
+            )
+            self._root = Path(self._tmpdir.name).resolve()
         else:
             self._tmpdir = None
             self._root = Path(path).resolve()
@@ -79,15 +80,11 @@ class RepoBuilder:
 
     def cleanup(self) -> None:
         """Remove the temporary directory if one was created."""
-        if self._tmpdir is None:
+        tmpdir = self._tmpdir
+        if tmpdir is None:
             return
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
-        parent = self._tmpdir.parent
-        try:
-            parent.rmdir()
-        except OSError:
-            # Best-effort cleanup: parent may be non-empty or already removed.
-            pass
+        tmpdir.cleanup()
+        self._tmpdir = None
 
     def __enter__(self) -> RepoBuilder:
         return self

@@ -194,7 +194,7 @@ def amend_commit(
 def parent_oids(repo: pygit2.Repository) -> list[pygit2.Oid]:
     """Return parent OIDs for the next commit."""
     try:
-        return [repo.head.target]
+        return [repo.head.peel(pygit2.Commit).id]
     except pygit2.GitError:
         return []
 
@@ -233,4 +233,4 @@ def remove_from_index(index: pygit2.Index, path: str) -> None:
         index.remove(path)
     except KeyError:
         # Path is not in the index; removal is best-effort and idempotent.
-        pass
+        return

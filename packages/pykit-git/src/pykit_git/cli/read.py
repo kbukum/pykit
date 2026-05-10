@@ -4,14 +4,28 @@ from __future__ import annotations
 
 import re
 import subprocess
+from typing import NoReturn
 
+from pykit_git.cli.exec_runner import SubprocessExecutor
 from pykit_git.errors import ambiguous_ref, internal_error, operation_not_supported, ref_not_found
 from pykit_git.options import BlameOptions, DescribeOptions, GrepOptions, LogOptions
-from pykit_git.types import BlameLine, DiffEntry, DiffStats, GrepMatch, Oid, StatusEntry, TreeEntry, TreeHash
+from pykit_git.types import (
+    BlameLine,
+    Commit,
+    DiffEntry,
+    DiffStats,
+    GrepMatch,
+    Oid,
+    StatusEntry,
+    TreeEntry,
+    TreeHash,
+)
 
 
 class ReadBackend:
     """Read-side CLI backend."""
+
+    _executor: SubprocessExecutor
 
     def diff(self, from_ref: str, to_ref: str) -> list[DiffEntry]:
         del from_ref, to_ref
@@ -36,7 +50,7 @@ class ReadBackend:
         del revision, path
         raise operation_not_supported("list_entries", "cli")
 
-    def log(self, opts: LogOptions | None = None):
+    def log(self, opts: LogOptions | None = None) -> list[Commit]:
         del opts
         raise operation_not_supported("log", "cli")
 
@@ -103,11 +117,11 @@ class ReadBackend:
             )
         return matches
 
-    def show(self, object: str) -> bytes:
+    def show(self, object_spec: str) -> bytes:
         try:
-            return self._executor.exec("show", object)
+            return self._executor.exec("show", object_spec)
         except subprocess.CalledProcessError as exc:
-            _raise_git_error_from_exception(exc, "show", object)
+            _raise_git_error_from_exception(exc, "show", object_spec)
 
 
 def _parse_oid(hex_str: str) -> Oid:
@@ -121,7 +135,7 @@ def _raise_git_error(
     result: subprocess.CompletedProcess[bytes],
     *args: str,
     refname: str | None = None,
-) -> None:
+) -> NoReturn:
     stderr = result.stderr.decode(errors="replace")
     exc = subprocess.CalledProcessError(
         result.returncode, ["git", *args], output=result.stdout, stderr=result.stderr
@@ -138,7 +152,7 @@ def _raise_git_error(
 
 def _raise_git_error_from_exception(
     exc: subprocess.CalledProcessError, *args: str, refname: str | None = None
-) -> None:
+) -> NoReturn:
     result = subprocess.CompletedProcess(
         exc.cmd, exc.returncode, stdout=exc.output or b"", stderr=exc.stderr or b""
     )

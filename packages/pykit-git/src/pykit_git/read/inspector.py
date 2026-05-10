@@ -24,6 +24,6 @@ class Inspector(Protocol):
         """Search file contents at a revision."""
         ...
 
-    def show(self, object: str) -> bytes:
+    def show(self, object_spec: str) -> bytes:
         """Show a git object or revision spec."""
         ...

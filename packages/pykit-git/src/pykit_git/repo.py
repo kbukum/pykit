@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Protocol
 
+from pykit_git.core.executor import Executor
+from pykit_git.core.repository import Repository
 from pykit_git.embedded import repo as embedded_repo
+from pykit_git.manage.config import ConfigReader
+from pykit_git.manage.maintain import Maintainer
+from pykit_git.manage.refs import RefManager
+from pykit_git.manage.remote import RemoteManager
 from pykit_git.options import (
     BlameOptions,
     CheckoutOptions,
@@ -20,6 +26,11 @@ from pykit_git.options import (
     PushOptions,
     RebaseOptions,
 )
+from pykit_git.read.blame import Blamer
+from pykit_git.read.differ import Differ
+from pykit_git.read.inspector import Inspector
+from pykit_git.read.log import LogReader
+from pykit_git.read.tree import TreeReader
 from pykit_git.types import (
     BlameLine,
     Branch,
@@ -40,12 +51,45 @@ from pykit_git.types import (
     TreeEntry,
     TreeHash,
 )
+from pykit_git.write.checkout import Checker
+from pykit_git.write.cherrypick import CherryPicker
+from pykit_git.write.commit import Committer
+from pykit_git.write.index import IndexManager
+from pykit_git.write.merge import Merger
+from pykit_git.write.rebase import Rebaser
+from pykit_git.write.reset import Resetter
+from pykit_git.write.stash import Stasher
+
+
+class RepoBackend(
+    Repository,
+    Executor,
+    Differ,
+    TreeReader,
+    LogReader,
+    Blamer,
+    Inspector,
+    IndexManager,
+    Committer,
+    Merger,
+    Rebaser,
+    CherryPicker,
+    Resetter,
+    Checker,
+    Stasher,
+    RefManager,
+    RemoteManager,
+    ConfigReader,
+    Maintainer,
+    Protocol,
+):
+    """Composite protocol for git repository backends."""
 
 
 class Repo:
     """High-level repository facade that delegates to a backend."""
 
-    def __init__(self, backend: Any) -> None:
+    def __init__(self, backend: RepoBackend) -> None:
         self._backend = backend
 
     @classmethod
@@ -128,8 +172,8 @@ class Repo:
     def grep(self, pattern: str, revision: str, opts: GrepOptions | None = None) -> list[GrepMatch]:
         return self._backend.grep(pattern, revision, opts)
 
-    def show(self, object: str) -> bytes:
-        return self._backend.show(object)
+    def show(self, object_spec: str) -> bytes:
+        return self._backend.show(object_spec)
 
     def stage(self, *paths: str) -> None:
         self._backend.stage(*paths)

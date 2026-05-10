@@ -5,6 +5,7 @@ from __future__ import annotations
 import subprocess
 from datetime import datetime
 
+from pykit_git.cli.exec_runner import SubprocessExecutor
 from pykit_git.cli.read import _parse_oid
 from pykit_git.errors import config_not_found, internal_error, ref_not_found
 from pykit_git.options import CleanOptions, FetchOptions, PushOptions
@@ -13,6 +14,8 @@ from pykit_git.types import Branch, BranchFilter, Remote, Signature, Tag
 
 class ManageBackend:
     """Management-side CLI backend."""
+
+    _executor: SubprocessExecutor
 
     def list_branches(self, filter: BranchFilter = BranchFilter.LOCAL) -> list[Branch]:
         args = ["for-each-ref", "--format=%(refname:short)%00%(objectname)%00%(upstream:short)"]
@@ -36,12 +39,13 @@ class ManageBackend:
             "for-each-ref",
             "-z",
             "refs/tags",
-            "--format=%(refname:short)%x1f%(objecttype)%x1f%(objectname)%x1f%(*objectname)%x1f%(taggername)%x1f%(taggeremail)%x1f%(taggerdate:iso-strict)%x1f%(contents)",
-        ).decode()
+            "--format=%(refname:short)%x1f%(objecttype)%x1f%(objectname)%x1f%(*objectname)%x1f%(taggername)%x1f%(taggeremail)%x1f%(taggerdate:iso-strict)%x1f%(contents)%x00",
+        )
         tags: list[Tag] = []
-        for record in output.split("\x00"):
-            if not record:
+        for raw_record in output.split(b"\x00"):
+            if not raw_record:
                 continue
+            record = raw_record.decode()
             name, object_type, object_oid, peeled_oid, tagger_name, tagger_email, tagger_date, message = (
                 record.split("\x1f", 7)
             )

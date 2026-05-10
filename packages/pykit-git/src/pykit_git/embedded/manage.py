@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pygit2
+from pygit2.enums import BranchType, FetchPrune, ObjectType
 
 from pykit_git.embedded.read import commit_for_ref, signature_from_pygit2
 from pykit_git.errors import (
@@ -53,7 +54,7 @@ def create_branch(repo: pygit2.Repository, name: str, target: str) -> None:
 
 def delete_branch(repo: pygit2.Repository, name: str) -> None:
     """Delete a local branch."""
-    branch = repo.lookup_branch(name, pygit2.GIT_BRANCH_LOCAL)
+    branch = repo.lookup_branch(name, BranchType.LOCAL)
     if branch is None:
         raise ref_not_found(name)
     try:
@@ -70,7 +71,7 @@ def create_tag(repo: pygit2.Repository, name: str, target: str, message: str) ->
     except KeyError:
         tagger = commit.committer
     try:
-        repo.create_tag(name, commit.id, pygit2.GIT_OBJECT_COMMIT, tagger, message)
+        repo.create_tag(name, commit.id, ObjectType.COMMIT, tagger, message)
     except pygit2.GitError as exc:
         raise internal_error(exc) from exc
 
@@ -81,8 +82,6 @@ def delete_tag(repo: pygit2.Repository, name: str) -> None:
         ref = repo.lookup_reference(f"refs/tags/{name}")
     except KeyError as exc:
         raise ref_not_found(name) from exc
-    if ref is None:
-        raise ref_not_found(name)
     try:
         ref.delete()
     except pygit2.GitError as exc:
@@ -93,7 +92,7 @@ def list_remotes(repo: pygit2.Repository) -> list[Remote]:
     """Return configured remotes."""
     remotes = [
         Remote(
-            name=remote.name,
+            name=remote.name or "",
             url=remote.url or "",
             fetch_specs=tuple(remote.fetch_refspecs),
             push_specs=tuple(remote.push_refspecs),
@@ -107,7 +106,7 @@ def fetch(repo: pygit2.Repository, remote: str, opts: FetchOptions | None = None
     """Fetch refs from a configured remote."""
     options = opts or FetchOptions()
     remote_ref = lookup_remote(repo, remote)
-    prune = pygit2.FetchPrune.PRUNE if options.prune else pygit2.FetchPrune.UNSPECIFIED
+    prune = FetchPrune.PRUNE if options.prune else FetchPrune.UNSPECIFIED
     depth = options.depth or 0
     refspecs = list(options.refspecs) or None
     try:
@@ -134,7 +133,7 @@ def push(repo: pygit2.Repository, remote: str, opts: PushOptions | None = None) 
 
 def tracking_branch(repo: pygit2.Repository, branch: str) -> str:
     """Return the upstream branch tracked by the local branch."""
-    local_branch = repo.lookup_branch(branch, pygit2.GIT_BRANCH_LOCAL)
+    local_branch = repo.lookup_branch(branch, BranchType.LOCAL)
     if local_branch is None:
         raise ref_not_found(branch)
     try:
@@ -195,13 +194,13 @@ def clean(repo: pygit2.Repository, opts: CleanOptions | None = None) -> list[str
 def iter_branches(repo: pygit2.Repository, filter: BranchFilter) -> list[pygit2.Branch]:
     """Return pygit2 branch references for the requested filter."""
     if filter is BranchFilter.LOCAL:
-        return lookup_branches(repo, pygit2.GIT_BRANCH_LOCAL)
+        return lookup_branches(repo, BranchType.LOCAL)
     if filter is BranchFilter.REMOTE:
-        return lookup_branches(repo, pygit2.GIT_BRANCH_REMOTE)
-    return lookup_branches(repo, pygit2.GIT_BRANCH_LOCAL) + lookup_branches(repo, pygit2.GIT_BRANCH_REMOTE)
+        return lookup_branches(repo, BranchType.REMOTE)
+    return lookup_branches(repo, BranchType.LOCAL) + lookup_branches(repo, BranchType.REMOTE)
 
 
-def lookup_branches(repo: pygit2.Repository, branch_type: int) -> list[pygit2.Branch]:
+def lookup_branches(repo: pygit2.Repository, branch_type: BranchType) -> list[pygit2.Branch]:
     """Resolve branch names to pygit2 Branch objects."""
     branches: list[pygit2.Branch] = []
     for name in repo.listall_branches(branch_type):

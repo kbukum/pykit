@@ -6,6 +6,7 @@ import os
 import subprocess
 from datetime import datetime
 
+from pykit_git.cli.exec_runner import SubprocessExecutor
 from pykit_git.cli.read import _parse_oid
 from pykit_git.errors import internal_error, merge_conflict
 from pykit_git.options import CheckoutOptions, CherryPickOptions, CommitOptions, MergeOptions, RebaseOptions
@@ -24,11 +25,16 @@ from pykit_git.types import (
 class WriteBackend:
     """Write-side CLI backend."""
 
+    _executor: SubprocessExecutor
+
     def stage(self, *paths: str) -> None:
         if paths:
-            self._executor.exec("add", *paths)
+            self._executor.exec("add", "--", *paths)
             return
         self._executor.exec("add", "-A")
+
+    def rev_parse(self, revision: str) -> Oid:
+        raise NotImplementedError
 
     def unstage(self, *paths: str) -> None:
         if paths:
@@ -254,7 +260,7 @@ def _format_git_date(when: datetime) -> str:
     return when.isoformat()
 
 
-def _unmerged_paths(executor) -> tuple[str, ...]:
+def _unmerged_paths(executor: SubprocessExecutor) -> tuple[str, ...]:
     output = executor.run("diff", "--name-only", "--diff-filter=U")
     return tuple(path for path in output.stdout.decode().splitlines() if path)
 

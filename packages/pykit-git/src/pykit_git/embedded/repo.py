@@ -122,8 +122,8 @@ class Backend:
     def grep(self, pattern: str, revision: str, opts: GrepOptions | None = None) -> list[GrepMatch]:
         return read.grep(self._repo, pattern, revision, opts)
 
-    def show(self, object: str) -> bytes:
-        return read.show(self._repo, object)
+    def show(self, object_spec: str) -> bytes:
+        return read.show(self._repo, object_spec)
 
     def stage(self, *paths: str) -> None:
         write.stage(self._repo, *paths)

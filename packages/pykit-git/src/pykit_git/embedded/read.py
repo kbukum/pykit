@@ -6,6 +6,7 @@ import re
 from datetime import datetime, timedelta, timezone
 
 import pygit2
+from pygit2.enums import BlameFlag, SortMode
 
 from pykit_git.errors import path_not_found, ref_not_found
 from pykit_git.options import BlameOptions, DescribeOptions, GrepOptions, LogOptions
@@ -112,7 +113,7 @@ def list_entries(repo: pygit2.Repository, revision: str, path: str) -> list[Tree
 def log(repo: pygit2.Repository, opts: LogOptions | None = None) -> list[Commit]:
     """Return commits from the current history."""
     options = opts or LogOptions()
-    walker = repo.walk(repo.head.target, pygit2.GIT_SORT_TOPOLOGICAL | pygit2.GIT_SORT_TIME)
+    walker = repo.walk(repo.head.target, SortMode.TOPOLOGICAL | SortMode.TIME)
 
     commits: list[Commit] = []
     for raw_commit in walker:
@@ -154,9 +155,9 @@ def blame(
     content = file_at(repo, revision, path).decode("utf-8", errors="replace")
     lines = content.splitlines()
 
-    flags = pygit2.GIT_BLAME_NORMAL
+    flags = BlameFlag.NORMAL
     if options.ignore_whitespace:
-        flags |= pygit2.GIT_BLAME_IGNORE_WHITESPACE
+        flags |= BlameFlag.IGNORE_WHITESPACE
 
     try:
         blame_result = repo.blame(
@@ -178,7 +179,7 @@ def blame(
             BlameLine(
                 line=line_number,
                 commit_oid=Oid(sha=str(hunk.final_commit_id)),
-                author=signature_from_pygit2(hunk.final_committer),
+                author=signature_from_pygit2(hunk.final_committer or commit.committer),
                 content=lines[line_number - 1],
             )
         )
@@ -191,6 +192,8 @@ def describe(repo: pygit2.Repository, opts: DescribeOptions | None = None) -> st
     commit = commit_for_ref(repo, "HEAD")
     for refname in sorted(name for name in repo.references if name.startswith("refs/tags/")):
         ref = repo.lookup_reference(refname)
+        if not isinstance(ref.target, pygit2.Oid):
+            continue
         target = peel_tag_target(repo, ref.target)
         if str(target) == str(commit.id):
             return ref.shorthand
@@ -245,7 +248,7 @@ def commit_for_ref(repo: pygit2.Repository, refname: str) -> pygit2.Commit:
         raise ref_not_found(refname) from exc
 
 
-def revparse_single(repo: pygit2.Repository, revision: str):
+def revparse_single(repo: pygit2.Repository, revision: str) -> pygit2.Object:
     """Resolve a revision expression."""
     try:
         return repo.revparse_single(revision)
@@ -290,7 +293,7 @@ def commit_touches_path(repo: pygit2.Repository, commit: pygit2.Commit, path_fil
     if not commit.parents:
         return tree_contains_path(commit.tree, path_filter)
     for parent in commit.parents:
-        repo_diff = repo.diff(parent.tree, commit.tree)
+        repo_diff = repo.diff(parent, commit)
         for patch in repo_diff:
             if patch is None:
                 continue
@@ -410,5 +413,7 @@ def peel_tag_target(repo: pygit2.Repository, target: pygit2.Oid) -> pygit2.Oid:
     """Peel tag targets when necessary."""
     obj = repo.get(target)
     if isinstance(obj, pygit2.Tag):
-        return obj.target
+        if isinstance(obj.target, pygit2.Oid):
+            return obj.target
+        return obj.target.id
     return target

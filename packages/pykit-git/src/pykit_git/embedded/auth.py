@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import pygit2
 
 from pykit_git.auth.transport import BasicAuth, SSHKey, Token
@@ -13,13 +15,17 @@ def build_remote_callbacks(credential: Credential | None = None) -> pygit2.Remot
     """Build pygit2 remote callbacks for an optional credential."""
     if credential is None:
         return None
-    return pygit2.RemoteCallbacks(credentials=_credential_callback(credential))
+    return pygit2.RemoteCallbacks(
+        credentials=_credential_callback(credential)  # type: ignore[arg-type]
+    )
 
 
 def _credential_callback(
     credential: Credential,
-):
-    def callback(url: str, username_from_url: str | None, allowed_types: int):
+) -> Callable[[str, str | None, int], pygit2.Keypair | pygit2.UserPass]:
+    def callback(
+        url: str, username_from_url: str | None, allowed_types: int
+    ) -> pygit2.Keypair | pygit2.UserPass:
         del url, username_from_url, allowed_types
         if isinstance(credential, Token):
             return pygit2.UserPass(credential.username, credential.value)
