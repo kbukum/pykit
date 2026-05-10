@@ -112,7 +112,7 @@ class ReadBackend:
 
 def _parse_oid(hex_str: str) -> Oid:
     value = hex_str.strip()
-    if not re.fullmatch(r"[0-9a-f]{40}", value):
+    if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", value):
         raise ValueError(f"invalid git oid: {hex_str!r}")
     return Oid(sha=value)
 
