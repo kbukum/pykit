@@ -1,0 +1,19 @@
+[project]
+name = "pykit-git"
+description = "Composable git repository interfaces backed by pygit2"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "pykit-errors",
+    "pygit2>=1.15",
+]
+
+[project.optional-dependencies]
+cli = []  # no extra deps for CLI fallback
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pykit_git"]

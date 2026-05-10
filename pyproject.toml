@@ -40,6 +40,7 @@ dev = [
     "pykit-dag",
     "pykit-authz",
     "pykit-grpc",
+    "pykit-git",
     "pykit-observability",
     "pykit-stateful",
     "pykit-process",
@@ -118,6 +119,7 @@ pykit-embedding      = { workspace = true }
 pykit-encryption     = { workspace = true }
 pykit-errors         = { workspace = true }
 pykit-grpc           = { workspace = true }
+pykit-git            = { workspace = true }
 pykit-hook           = { workspace = true }
 pykit-httpclient     = { workspace = true }
 pykit-messaging     = { workspace = true }
