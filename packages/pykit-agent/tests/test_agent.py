@@ -6,8 +6,23 @@ from typing import Any
 
 import pytest
 
-from pykit_agent import Agent, AgentConfig, StopReason
-from pykit_ai import ToolResultBlock, ToolUseBlock
+from pykit_agent import (
+    EVENT_ON_LLM_REQUEST,
+    EVENT_ON_LLM_RESPONSE,
+    EVENT_ON_MCP_REQUEST,
+    EVENT_ON_MCP_RESULT,
+    EVENT_ON_START,
+    EVENT_ON_STEP_COMPLETE,
+    EVENT_ON_STOP,
+    EVENT_ON_TOOL_CALL,
+    EVENT_ON_TOOL_RESULT,
+    Agent,
+    AgentConfig,
+    HookRegistry,
+    StopReason,
+)
+from pykit_ai import ToolUseBlock
+from pykit_hook import Event, continue_
 from pykit_llm.provider import Capabilities
 from pykit_llm.stream_events import MessageStart, MessageStop, StreamEvent, TextDelta, UsageDelta
 from pykit_llm.types import (
@@ -21,6 +36,28 @@ from pykit_llm.types import (
 )
 from pykit_schema import ValidationResult
 from pykit_tool import Context, Definition, Registry, Result
+
+
+class RecordingHooks:
+    def __init__(self) -> None:
+        self.events: list[str] = []
+        self.registry = HookRegistry()
+        for event_type in (
+            EVENT_ON_START,
+            EVENT_ON_LLM_REQUEST,
+            EVENT_ON_LLM_RESPONSE,
+            EVENT_ON_TOOL_CALL,
+            EVENT_ON_TOOL_RESULT,
+            EVENT_ON_MCP_REQUEST,
+            EVENT_ON_MCP_RESULT,
+            EVENT_ON_STEP_COMPLETE,
+            EVENT_ON_STOP,
+        ):
+            self.registry.on(event_type, self._record)
+
+    async def _record(self, event: Event):
+        self.events.append(event.type)
+        return continue_()
 
 
 class MockProvider:
@@ -40,41 +77,6 @@ class MockProvider:
 
     def count_tokens(self, messages: list[Message]) -> int:
         return 1
-
-
-class RecordingHook:
-    def __init__(self) -> None:
-        self.events: list[str] = []
-
-    async def on_start(self, turn: int) -> None:
-        self.events.append("on_start")
-
-    async def on_llm_request(self, request: CompletionRequest) -> None:
-        self.events.append("on_llm_request")
-
-    async def on_llm_response(self, response: CompletionResponse) -> None:
-        self.events.append("on_llm_response")
-
-    async def on_tool_call(self, name: str, input_data: dict[str, object]) -> None:
-        self.events.append("on_tool_call")
-
-    async def on_tool_result(self, name: str, result: ToolResultBlock) -> None:
-        self.events.append("on_tool_result")
-
-    async def on_mcp_request(self, server: str, method: str, input_data: dict[str, object]) -> None:
-        self.events.append("on_mcp_request")
-
-    async def on_mcp_result(self, server: str, method: str, result: object) -> None:
-        self.events.append("on_mcp_result")
-
-    async def on_step_complete(self, turn: int, message: AssistantMessage) -> None:
-        self.events.append("on_step_complete")
-
-    async def on_error(self, error: Exception) -> None:
-        self.events.append("on_error")
-
-    async def on_stop(self, reason: str) -> None:
-        self.events.append("on_stop")
 
 
 class EchoMCPTool:
@@ -126,42 +128,42 @@ def test_config_defaults() -> None:
 
 @pytest.mark.asyncio
 async def test_stream_surfaces_llm_events_and_hooks() -> None:
-    hook = RecordingHook()
+    hooks = RecordingHooks()
     provider = MockProvider([response("ok")])
-    agent = Agent(AgentConfig(provider=provider, hooks=(hook,)))
+    agent = Agent(AgentConfig(provider=provider, hooks=hooks.registry))
     events = [event async for event in agent.stream([user("hi")])]
     assert [type(event) for event in events] == [MessageStart, UsageDelta, MessageStop]
-    assert "on_start" in hook.events
-    assert "on_llm_request" in hook.events
-    assert "on_llm_response" in hook.events
-    assert "on_step_complete" in hook.events
-    assert "on_stop" in hook.events
+    assert EVENT_ON_START in hooks.events
+    assert EVENT_ON_LLM_REQUEST in hooks.events
+    assert EVENT_ON_LLM_RESPONSE in hooks.events
+    assert EVENT_ON_STEP_COMPLETE in hooks.events
+    assert EVENT_ON_STOP in hooks.events
 
 
 @pytest.mark.asyncio
 async def test_complete_tool_turn_fires_canonical_hook_events() -> None:
-    hook = RecordingHook()
+    hooks = RecordingHooks()
     provider = MockProvider([tool_call_response(), response("done")])
     tools = Registry()
     tools.register(EchoMCPTool())
 
-    result = await Agent(AgentConfig(provider=provider, tools=tools, hooks=(hook,))).run([user("hi")])
+    result = await Agent(AgentConfig(provider=provider, tools=tools, hooks=hooks.registry)).run([user("hi")])
 
     assert result.stop_reason is StopReason.END_TURN
-    assert hook.events == [
-        "on_start",
-        "on_llm_request",
-        "on_llm_response",
-        "on_tool_call",
-        "on_mcp_request",
-        "on_tool_result",
-        "on_mcp_result",
-        "on_step_complete",
-        "on_start",
-        "on_llm_request",
-        "on_llm_response",
-        "on_step_complete",
-        "on_stop",
+    assert hooks.events == [
+        EVENT_ON_START,
+        EVENT_ON_LLM_REQUEST,
+        EVENT_ON_LLM_RESPONSE,
+        EVENT_ON_TOOL_CALL,
+        EVENT_ON_MCP_REQUEST,
+        EVENT_ON_TOOL_RESULT,
+        EVENT_ON_MCP_RESULT,
+        EVENT_ON_STEP_COMPLETE,
+        EVENT_ON_START,
+        EVENT_ON_LLM_REQUEST,
+        EVENT_ON_LLM_RESPONSE,
+        EVENT_ON_STEP_COMPLETE,
+        EVENT_ON_STOP,
     ]
 
 

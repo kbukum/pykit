@@ -22,6 +22,7 @@ jobs:
       pull-requests: read
     outputs:
       python-code: ${{ steps.filter.outputs.python-code }}
+      affected: ${{ steps.domains.outputs.affected || 'all' }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
@@ -36,6 +37,23 @@ jobs:
               - 'uv.lock'
               - 'Makefile'
               - '.github/workflows/ci.yml'
+      - name: Detect affected domains
+        id: domains
+        if: github.event_name == 'pull_request'
+        run: |
+          CHANGED=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.sha }} 2>/dev/null || echo "")
+          if [ -n "$CHANGED" ]; then
+            AFFECTED=$(echo "$CHANGED" | ./scripts/affected-domains.sh)
+          else
+            AFFECTED=""
+          fi
+          if [ -z "$AFFECTED" ]; then
+            AFFECTED="all"
+          fi
+          echo "affected<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$AFFECTED" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "Affected domains: $AFFECTED"
 
   # ---------------------------------------------------------------------------
   # Format check (fast gate)

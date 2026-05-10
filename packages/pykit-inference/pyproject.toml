@@ -9,6 +9,7 @@ requires-python = ">=3.13"
 dependencies = [
     "pykit-ai",
     "httpx>=0.28",
+    "pykit-httpclient",
     "pydantic>=2.12.0,<3.0",
     "pykit-authz",
     "pykit-observability",

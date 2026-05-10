@@ -2280,6 +2280,7 @@ source = { editable = "packages/pykit-agent" }
 dependencies = [
     { name = "opentelemetry-api" },
     { name = "pykit-ai" },
+    { name = "pykit-hook" },
     { name = "pykit-llm" },
     { name = "pykit-resilience" },
     { name = "pykit-tool" },
@@ -2289,6 +2290,7 @@ dependencies = [
 requires-dist = [
     { name = "opentelemetry-api" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
+    { name = "pykit-hook", editable = "packages/pykit-hook" },
     { name = "pykit-llm", editable = "packages/pykit-llm" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },
     { name = "pykit-tool", editable = "packages/pykit-tool" },
@@ -2579,6 +2581,7 @@ version = "0.1.0"
 source = { editable = "packages/pykit-embedding" }
 dependencies = [
     { name = "numpy" },
+    { name = "opentelemetry-api" },
     { name = "pydantic" },
     { name = "pykit-ai" },
     { name = "pykit-component" },
@@ -2593,6 +2596,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "numpy" },
+    { name = "opentelemetry-api" },
     { name = "pydantic", specifier = ">=2.12.0,<3.0" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-component", editable = "packages/pykit-component" },
@@ -2686,6 +2690,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pykit-ai" },
     { name = "pykit-authz" },
+    { name = "pykit-httpclient" },
     { name = "pykit-observability" },
     { name = "pykit-resilience" },
     { name = "pykit-tool" },
@@ -2697,6 +2702,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.0,<3.0" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-authz", editable = "packages/pykit-authz" },
+    { name = "pykit-httpclient", editable = "packages/pykit-httpclient" },
     { name = "pykit-observability", editable = "packages/pykit-observability" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },
     { name = "pykit-tool", editable = "packages/pykit-tool" },
@@ -2773,18 +2779,22 @@ name = "pykit-llm-providers"
 version = "0.1.0"
 source = { editable = "packages/pykit-llm-providers" }
 dependencies = [
+    { name = "opentelemetry-api" },
     { name = "pykit-ai" },
     { name = "pykit-embedding" },
     { name = "pykit-httpclient" },
     { name = "pykit-llm" },
+    { name = "pykit-resilience" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "opentelemetry-api" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-embedding", editable = "packages/pykit-embedding" },
     { name = "pykit-httpclient", editable = "packages/pykit-httpclient" },
     { name = "pykit-llm", editable = "packages/pykit-llm" },
+    { name = "pykit-resilience", editable = "packages/pykit-resilience" },
 ]
 
 [[package]]
@@ -2817,6 +2827,8 @@ version = "0.1.0"
 source = { editable = "packages/pykit-mcp" }
 dependencies = [
     { name = "mcp" },
+    { name = "opentelemetry-api" },
+    { name = "pykit-ai" },
     { name = "pykit-authz" },
     { name = "pykit-schema" },
     { name = "pykit-security" },
@@ -2826,6 +2838,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "mcp", specifier = ">=1.0" },
+    { name = "opentelemetry-api" },
+    { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-authz", editable = "packages/pykit-authz" },
     { name = "pykit-schema", editable = "packages/pykit-schema" },
     { name = "pykit-security", editable = "packages/pykit-security" },
@@ -3105,6 +3119,7 @@ name = "pykit-tool"
 version = "0.1.0"
 source = { editable = "packages/pykit-tool" }
 dependencies = [
+    { name = "opentelemetry-api" },
     { name = "pykit-ai" },
     { name = "pykit-provider" },
     { name = "pykit-resilience" },
@@ -3113,6 +3128,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "opentelemetry-api" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-provider", editable = "packages/pykit-provider" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },

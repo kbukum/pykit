@@ -1,11 +1,11 @@
 """LLM provider protocol — the universal interface for completions.
 
 The canonical ``Provider`` Protocol natively satisfies pykit-provider's
-``RequestResponse[CompletionRequest, CompletionResponse]`` and
-``Stream[CompletionRequest, StreamEvent]`` shapes via the ``execute`` and
-``execute_stream`` methods, which alias ``complete`` and ``stream``
-respectively. Implementations may inherit ``ProviderBase`` to pick up the
-default aliases and ``Component`` lifecycle, or implement the methods directly.
+``RequestResponse[CompletionRequest, CompletionResponse]`` shape via
+``execute`` and exposes streaming via the named ``stream`` /
+``execute_stream`` methods. Implementations may inherit ``ProviderBase`` to
+pick up the default aliases and ``Component`` lifecycle, or implement the
+methods directly.
 """
 
 from __future__ import annotations
@@ -18,6 +18,7 @@ from pykit_ai import Capabilities, Message, StreamEvent
 from pykit_ai import count_tokens_approx as ai_count_tokens_approx
 from pykit_component import Health, HealthStatus
 from pykit_llm.types import CompletionRequest, CompletionResponse, StreamChunk
+from pykit_provider import RequestResponse
 
 __all__ = [
     "Capabilities",
@@ -40,13 +41,13 @@ class LLMProvider(Protocol):
 
 
 @runtime_checkable
-class Provider(Protocol):
+class Provider(RequestResponse[CompletionRequest, CompletionResponse], Protocol):
     """Enhanced provider protocol with capabilities and token counting.
 
     Natively implements pykit-provider's ``RequestResponse`` shape (via
-    ``execute``) and ``Stream`` shape (via ``execute_stream``), and
-    pykit-component's ``Component`` lifecycle (``name``, ``start``, ``stop``,
-    ``health``). Drop-in compatible with dag/pipeline/chain/worker consumers.
+    ``execute``) and exposes streaming via the named ``stream`` /
+    ``execute_stream`` methods. It also carries pykit-component's
+    ``Component`` lifecycle (``name``, ``start``, ``stop``, ``health``).
     """
 
     @property

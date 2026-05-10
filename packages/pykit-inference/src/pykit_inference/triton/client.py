@@ -10,19 +10,21 @@ import uuid
 from collections.abc import Mapping
 from typing import cast
 
-import httpx
 from pydantic import BaseModel, ConfigDict
 
 from pykit_ai import Model, Provider
 from pykit_ai.semconv import Operation
 from pykit_authz import Decider
+from pykit_component import Health, HealthStatus
+from pykit_httpclient import HttpError
+from pykit_inference._http import InferenceHttpClient, build_http_client, map_http_error
 from pykit_inference._runtime import (
     ExecutePolicy,
     authorize_prediction,
     execute_with_policy,
     trace_prediction,
 )
-from pykit_inference.errors import InferenceError, InferenceHTTPError
+from pykit_inference.errors import InferenceError
 from pykit_inference.types import (
     InferenceDescriptor,
     PredictRequest,
@@ -60,17 +62,18 @@ class TritonInference:
         self,
         config: TritonConfig | None = None,
         *,
-        client: httpx.AsyncClient | None = None,
+        client: InferenceHttpClient | None = None,
         policy: ExecutePolicy | None = None,
         decider: Decider | None = None,
     ) -> None:
         self._config = config or TritonConfig()
-        if client is not None:
-            self._client = client
-            self._owns_client = False
-        else:
-            self._client = httpx.AsyncClient(base_url=self._config.base_url.rstrip("/"))
-            self._owns_client = True
+        self._started = False
+        self._client, self._owns_client = build_http_client(
+            name=self._config.name,
+            base_url=self._config.base_url.rstrip("/"),
+            timeout=self._config.timeout_seconds,
+            client=client,
+        )
         self._policy = policy
         self._decider = decider
         self._descriptor = InferenceDescriptor(
@@ -90,6 +93,39 @@ class TritonInference:
                 ),
             ),
         )
+
+    @property
+    def name(self) -> str:
+        """Return the component name."""
+        return self._descriptor.name
+
+    async def is_available(self) -> bool:
+        """Report whether the adapter can currently serve requests."""
+        try:
+            return await self.health_check()
+        except Exception:
+            return False
+
+    async def start(self) -> None:
+        """Mark the adapter ready for inference requests."""
+        self._started = True
+
+    async def stop(self) -> None:
+        """Close owned resources and mark the adapter stopped."""
+        self._started = False
+        await self.close()
+
+    async def health(self) -> Health:
+        """Return Triton adapter health using its readiness probe when started."""
+        if not self._started:
+            return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="not started")
+        try:
+            ready = await self.health_check()
+        except Exception as exc:
+            return Health(name=self.name, status=HealthStatus.UNHEALTHY, message=str(exc))
+        status = HealthStatus.HEALTHY if ready else HealthStatus.UNHEALTHY
+        message = "ready" if ready else "not ready"
+        return Health(name=self.name, status=status, message=message)
 
     def descriptor(self) -> InferenceDescriptor:
         """Return adapter descriptor and executable envelope."""
@@ -111,25 +147,31 @@ class TritonInference:
 
         return await execute_with_policy(self._policy, do_call)
 
+    async def execute(self, input: PredictRequest) -> PredictResponse:
+        """Satisfy pykit-provider RequestResponse by forwarding to ``predict``."""
+        return await self.predict(input)
+
     async def health_check(self) -> bool:
         """Return whether Triton reports ``/v2/health/ready`` successfully."""
-        response = await self._client.get("/v2/health/ready", timeout=self._config.timeout_seconds)
-        return 200 <= response.status_code < 300
+        try:
+            response = await self._client.get("/v2/health/ready")
+        except HttpError as exc:
+            if exc.status_code > 0:
+                return False
+            raise map_http_error(exc) from exc
+        return response.is_success
 
     async def close(self) -> None:
         """Close the owned HTTP client."""
         if self._owns_client:
-            await self._client.aclose()
+            await self._client.close()
 
     async def _predict_once(self, request: PredictRequest) -> PredictResponse:
         path = _infer_path(request.model_name, request.model_version)
-        response = await self._client.post(
-            path,
-            json=_encode_request(request),
-            timeout=self._config.timeout_seconds,
-        )
-        if response.status_code < 200 or response.status_code >= 300:
-            raise InferenceHTTPError(response.status_code, response.text)
+        try:
+            response = await self._client.post(path, body=_encode_request(request))
+        except HttpError as exc:
+            raise map_http_error(exc) from exc
         body = response.json()
         if not isinstance(body, dict):
             raise InferenceError("Triton response body must be a JSON object")

@@ -11,6 +11,8 @@ dependencies = [
     "pykit-llm",
     "pykit-httpclient",
     "pykit-embedding",
+    "pykit-resilience",
+    "opentelemetry-api",
 ]
 
 [build-system]

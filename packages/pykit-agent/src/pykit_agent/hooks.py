@@ -1,80 +1,108 @@
-"""Canonical observe-only agent hook Protocol."""
+"""Canonical agent hook events emitted through ``pykit_hook.Registry``."""
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from dataclasses import dataclass
+from typing import Any
 
 from pykit_ai import ToolResultBlock
-from pykit_llm.types import AssistantMessage, CompletionRequest
-from pykit_llm.types import CompletionResponse as LLMResponse
+from pykit_hook import EventType
+from pykit_llm.types import AssistantMessage, CompletionRequest, CompletionResponse
+
+EVENT_ON_START: EventType = "on_start"
+EVENT_ON_LLM_REQUEST: EventType = "on_llm_request"
+EVENT_ON_LLM_RESPONSE: EventType = "on_llm_response"
+EVENT_ON_TOOL_CALL: EventType = "on_tool_call"
+EVENT_ON_TOOL_RESULT: EventType = "on_tool_result"
+EVENT_ON_MCP_REQUEST: EventType = "on_mcp_request"
+EVENT_ON_MCP_RESULT: EventType = "on_mcp_result"
+EVENT_ON_STEP_COMPLETE: EventType = "on_step_complete"
+EVENT_ON_ERROR: EventType = "on_error"
+EVENT_ON_STOP: EventType = "on_stop"
 
 
-@runtime_checkable
-class AgentHook(Protocol):
-    """Observe-only async hook surface for the agent loop."""
+@dataclass(frozen=True)
+class StartEvent:
+    """Event emitted when a turn starts."""
 
-    async def on_start(self, turn: int) -> None:
-        """Observe the start of an agent turn."""
-
-    async def on_llm_request(self, request: CompletionRequest) -> None:
-        """Observe an outbound LLM request."""
-
-    async def on_llm_response(self, response: LLMResponse) -> None:
-        """Observe an inbound LLM response."""
-
-    async def on_tool_call(self, name: str, input_data: dict[str, object]) -> None:
-        """Observe a tool invocation before execution."""
-
-    async def on_tool_result(self, name: str, result: ToolResultBlock) -> None:
-        """Observe the result produced by a tool invocation."""
-
-    async def on_mcp_request(self, server: str, method: str, input_data: dict[str, object]) -> None:
-        """Observe an outbound MCP request."""
-
-    async def on_mcp_result(self, server: str, method: str, result: Any) -> None:
-        """Observe the result returned by an MCP server."""
-
-    # MCP server result payloads are intentionally opaque at this layer.
-
-    async def on_step_complete(self, turn: int, message: AssistantMessage) -> None:
-        """Observe completion of a turn with its final assistant message."""
-
-    async def on_error(self, error: Exception) -> None:
-        """Observe an error raised during agent execution."""
-
-    async def on_stop(self, reason: str) -> None:
-        """Observe the reason the agent loop stopped."""
+    turn: int
+    type: EventType = EVENT_ON_START
 
 
-class NoopHook:
-    """Default hook implementation."""
+@dataclass(frozen=True)
+class LLMRequestEvent:
+    """Event emitted before sending a completion request."""
 
-    async def on_start(self, turn: int) -> None:
-        return None
+    request: CompletionRequest
+    type: EventType = EVENT_ON_LLM_REQUEST
 
-    async def on_llm_request(self, request: CompletionRequest) -> None:
-        return None
 
-    async def on_llm_response(self, response: LLMResponse) -> None:
-        return None
+@dataclass(frozen=True)
+class LLMResponseEvent:
+    """Event emitted after receiving a completion response."""
 
-    async def on_tool_call(self, name: str, input_data: dict[str, object]) -> None:
-        return None
+    response: CompletionResponse
+    type: EventType = EVENT_ON_LLM_RESPONSE
 
-    async def on_tool_result(self, name: str, result: ToolResultBlock) -> None:
-        return None
 
-    async def on_mcp_request(self, server: str, method: str, input_data: dict[str, object]) -> None:
-        return None
+@dataclass(frozen=True)
+class ToolCallEvent:
+    """Event emitted before executing a tool call."""
 
-    async def on_mcp_result(self, server: str, method: str, result: Any) -> None:
-        return None
+    name: str
+    input_data: dict[str, object]
+    type: EventType = EVENT_ON_TOOL_CALL
 
-    async def on_step_complete(self, turn: int, message: AssistantMessage) -> None:
-        return None
 
-    async def on_error(self, error: Exception) -> None:
-        return None
+@dataclass(frozen=True)
+class ToolResultEvent:
+    """Event emitted after a tool call completes."""
 
-    async def on_stop(self, reason: str) -> None:
-        return None
+    name: str
+    result: ToolResultBlock
+    type: EventType = EVENT_ON_TOOL_RESULT
+
+
+@dataclass(frozen=True)
+class MCPRequestEvent:
+    """Event emitted before dispatching an MCP request."""
+
+    server: str
+    method: str
+    input_data: dict[str, object]
+    type: EventType = EVENT_ON_MCP_REQUEST
+
+
+@dataclass(frozen=True)
+class MCPResultEvent:
+    """Event emitted after receiving an MCP response."""
+
+    server: str
+    method: str
+    result: Any
+    type: EventType = EVENT_ON_MCP_RESULT
+
+
+@dataclass(frozen=True)
+class StepCompleteEvent:
+    """Event emitted after a turn finishes."""
+
+    turn: int
+    message: AssistantMessage
+    type: EventType = EVENT_ON_STEP_COMPLETE
+
+
+@dataclass(frozen=True)
+class ErrorEvent:
+    """Event emitted when agent execution raises an error."""
+
+    error: Exception
+    type: EventType = EVENT_ON_ERROR
+
+
+@dataclass(frozen=True)
+class StopEvent:
+    """Event emitted when the agent loop stops."""
+
+    reason: str
+    type: EventType = EVENT_ON_STOP

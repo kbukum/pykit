@@ -8,6 +8,7 @@ keywords = ["agent", "ai", "llm", "tool", "async"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-ai",
+    "pykit-hook",
     "pykit-llm",
     "pykit-tool",
     "pykit-resilience",

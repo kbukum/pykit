@@ -4,19 +4,21 @@ from __future__ import annotations
 
 from typing import Any
 
-import httpx
 from pydantic import BaseModel, ConfigDict
 
 from pykit_ai import Model, Provider
 from pykit_ai.semconv import Operation
 from pykit_authz import Decider
+from pykit_component import Health, HealthStatus
+from pykit_httpclient import HttpError
+from pykit_inference._http import InferenceHttpClient, build_http_client, map_http_error
 from pykit_inference._runtime import (
     ExecutePolicy,
     authorize_prediction,
     execute_with_policy,
     trace_prediction,
 )
-from pykit_inference.errors import InferenceError, InferenceHTTPError
+from pykit_inference.errors import InferenceError
 from pykit_inference.types import (
     InferenceDescriptor,
     PredictRequest,
@@ -53,17 +55,18 @@ class VLLMInference:
         self,
         config: VLLMConfig | None = None,
         *,
-        client: httpx.AsyncClient | None = None,
+        client: InferenceHttpClient | None = None,
         policy: ExecutePolicy | None = None,
         decider: Decider | None = None,
     ) -> None:
         self._config = config or VLLMConfig()
-        if client is not None:
-            self._client = client
-            self._owns_client = False
-        else:
-            self._client = httpx.AsyncClient(base_url=self._config.base_url.rstrip("/"))
-            self._owns_client = True
+        self._started = False
+        self._client, self._owns_client = build_http_client(
+            name=self._config.name,
+            base_url=self._config.base_url.rstrip("/"),
+            timeout=self._config.timeout_seconds,
+            client=client,
+        )
         self._policy = policy
         self._decider = decider
         self._descriptor = InferenceDescriptor(
@@ -84,6 +87,30 @@ class VLLMInference:
             ),
         )
 
+    @property
+    def name(self) -> str:
+        """Return the component name."""
+        return self._descriptor.name
+
+    async def is_available(self) -> bool:
+        """Report whether the adapter can currently serve requests."""
+        return not self._client.is_closed
+
+    async def start(self) -> None:
+        """Mark the adapter ready for inference requests."""
+        self._started = True
+
+    async def stop(self) -> None:
+        """Close owned resources and mark the adapter stopped."""
+        self._started = False
+        await self.close()
+
+    async def health(self) -> Health:
+        """Return vLLM adapter lifecycle health."""
+        if not self._started:
+            return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="not started")
+        return Health(name=self.name, status=HealthStatus.HEALTHY, message="ready")
+
     def descriptor(self) -> InferenceDescriptor:
         """Return adapter descriptor and executable envelope."""
         return self._descriptor
@@ -102,10 +129,14 @@ class VLLMInference:
 
         return await execute_with_policy(self._policy, do_call)
 
+    async def execute(self, input: PredictRequest) -> PredictResponse:
+        """Satisfy pykit-provider RequestResponse by forwarding to ``predict``."""
+        return await self.predict(input)
+
     async def close(self) -> None:
         """Close the owned HTTP client."""
         if self._owns_client:
-            await self._client.aclose()
+            await self._client.close()
 
     async def _predict_once(self, request: PredictRequest) -> PredictResponse:
         prompt = _extract_prompt(request)
@@ -123,13 +154,10 @@ class VLLMInference:
         if isinstance(raw_temp, (int, float, str)):
             body["temperature"] = float(raw_temp)
 
-        response = await self._client.post(
-            "/v1/completions",
-            json=body,
-            timeout=self._config.timeout_seconds,
-        )
-        if response.status_code < 200 or response.status_code >= 300:
-            raise InferenceHTTPError(response.status_code, response.text)
+        try:
+            response = await self._client.post("/v1/completions", body=body)
+        except HttpError as exc:
+            raise map_http_error(exc) from exc
 
         data = response.json()
         if not isinstance(data, dict):

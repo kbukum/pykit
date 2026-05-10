@@ -26,22 +26,40 @@ _SENSITIVE_HEADERS = frozenset({"authorization", "proxy-authorization", "cookie"
 class HttpClient:
     """Async HTTP client with auth, redirects, resilience, and error classification."""
 
-    def __init__(self, config: HttpConfig, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
+    def __init__(
+        self,
+        config: HttpConfig,
+        *,
+        transport: httpx.AsyncBaseTransport | None = None,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
         self._config = config
         self._policy = _build_policy(config.resilience)
-        kwargs: dict[str, Any] = {
-            "base_url": config.base_url,
-            "timeout": config.timeout,
-            "follow_redirects": False,
-            "headers": dict(config.headers),
-        }
-        if transport is not None:
-            kwargs["transport"] = transport
-        self._client = httpx.AsyncClient(**kwargs)
+        if client is not None and transport is not None:
+            raise ValueError("transport cannot be combined with an injected client")
+        if client is not None:
+            self._client = client
+            self._owns_client = False
+        else:
+            kwargs: dict[str, Any] = {
+                "base_url": config.base_url,
+                "timeout": config.timeout,
+                "follow_redirects": False,
+                "headers": dict(config.headers),
+            }
+            if transport is not None:
+                kwargs["transport"] = transport
+            self._client = httpx.AsyncClient(**kwargs)
+            self._owns_client = True
 
     @property
     def config(self) -> HttpConfig:
         return self._config
+
+    @property
+    def is_closed(self) -> bool:
+        """Return whether the underlying client has been closed."""
+        return self._client.is_closed
 
     async def request(self, req: Request) -> Response:
         """Execute a full HTTP request with auth, redirects, resilience, and error classification."""
@@ -146,7 +164,8 @@ class HttpClient:
 
     async def close(self) -> None:
         """Close the underlying httpx client."""
-        await self._client.aclose()
+        if self._owns_client:
+            await self._client.aclose()
 
 
 def _build_policy(config: PolicyConfig | None) -> Policy | None:

@@ -5,11 +5,18 @@ from __future__ import annotations
 import pytest
 
 from pykit_ai import Model
-from pykit_inference import InferenceDescriptor, PredictRequest, PredictResponse, Registry
+from pykit_inference import Inference, InferenceDescriptor, PredictRequest, PredictResponse, Registry
 from pykit_tool import Envelope
 
 
 class FakeInference:
+    @property
+    def name(self) -> str:
+        return "fake"
+
+    async def is_available(self) -> bool:
+        return True
+
     def descriptor(self) -> InferenceDescriptor:
         return InferenceDescriptor(
             name="fake", description="fake", serving_protocol="fake", envelope=Envelope()
@@ -17,6 +24,9 @@ class FakeInference:
 
     async def predict(self, request: PredictRequest) -> PredictResponse:
         return PredictResponse(metadata={"model": request.model_name}, model=Model(name=request.model_name))
+
+    async def execute(self, input: PredictRequest) -> PredictResponse:
+        return await self.predict(input)
 
 
 def test_register_build_and_kinds() -> None:
@@ -26,6 +36,7 @@ def test_register_build_and_kinds() -> None:
     built = registry.build("fake", {})
 
     assert isinstance(built, FakeInference)
+    assert isinstance(built, Inference)
     assert registry.kinds() == ["fake"]
 
 
