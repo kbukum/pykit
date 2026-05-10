@@ -87,11 +87,11 @@ class ReadBackend:
 
     def grep(self, pattern: str, revision: str, opts: GrepOptions | None = None) -> list[GrepMatch]:
         options = opts or GrepOptions()
-        args = ["grep", "-n"]
+        args = ["grep", "-n", "--null"]
         if options.ignore_case:
             args.append("-i")
         args.extend(options.extra_args)
-        args.extend([pattern, revision])
+        args.extend(["--", pattern, revision])
         result = self._executor.run(*args)
         if result.returncode not in (0, 1):
             _raise_git_error(result, *args, refname=revision)
@@ -101,19 +101,20 @@ class ReadBackend:
         for raw_line in result.stdout.decode(errors="replace").splitlines():
             if not raw_line:
                 continue
-            match = re.match(
-                r"(?:(?P<revision>[^:]+):)?(?P<path>.+?):(?P<line>\d+):(?P<content>.*)", raw_line
-            )
-            if match is None:
+            # With --null, git grep outputs: <rev>\0<path>\0<lineno>\0<content>
+            # or without revision: <path>\0<lineno>\0<content>
+            parts = raw_line.split("\0")
+            if len(parts) == 4:
+                # revision:path:lineno:content
+                path, lineno, content = parts[1], parts[2], parts[3]
+            elif len(parts) == 3:
+                path, lineno, content = parts[0], parts[1], parts[2]
+            else:
                 continue
-            content = match.group("content")
             found = regex.search(content)
             column = found.start() + 1 if found is not None else 1
-            path = match.group("path")
-            if match.group("revision") == revision and path.startswith(f"{revision}:"):
-                path = path.removeprefix(f"{revision}:")
             matches.append(
-                GrepMatch(path=path, line=int(match.group("line")), column=column, content=content)
+                GrepMatch(path=path, line=int(lineno), column=column, content=content)
             )
         return matches
 

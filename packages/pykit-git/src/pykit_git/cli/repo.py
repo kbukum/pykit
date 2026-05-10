@@ -31,7 +31,7 @@ class Backend(ReadBackend, WriteBackend, ManageBackend):
     def head(self) -> Reference:
         symbolic = self._executor.run("symbolic-ref", "HEAD")
         if symbolic.returncode != 0:
-            stderr = symbolic.stderr.decode().strip().casefold()
+            stderr = symbolic.stderr.decode(errors="replace").strip().casefold()
             exc = subprocess.CalledProcessError(
                 symbolic.returncode,
                 ["git", "symbolic-ref", "HEAD"],
@@ -41,7 +41,7 @@ class Backend(ReadBackend, WriteBackend, ManageBackend):
             if "unborn" in stderr:
                 raise unborn_head() from exc
             raise detached_head() from exc
-        name = symbolic.stdout.decode().strip()
+        name = symbolic.stdout.decode(errors="replace").strip()
         try:
             target = self.rev_parse("HEAD")
         except AppError as exc:
