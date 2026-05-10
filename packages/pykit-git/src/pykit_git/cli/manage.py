@@ -34,15 +34,16 @@ class ManageBackend:
     def list_tags(self) -> list[Tag]:
         output = self._executor.exec(
             "for-each-ref",
+            "-z",
             "refs/tags",
-            "--format=%(refname:short)%00%(objecttype)%00%(objectname)%00%(*objectname)%00%(taggername)%00%(taggeremail)%00%(taggerdate:iso-strict)%00%(contents)",
+            "--format=%(refname:short)%x1f%(objecttype)%x1f%(objectname)%x1f%(*objectname)%x1f%(taggername)%x1f%(taggeremail)%x1f%(taggerdate:iso-strict)%x1f%(contents)",
         ).decode()
         tags: list[Tag] = []
-        for line in output.splitlines():
-            if not line:
+        for record in output.split("\x00"):
+            if not record:
                 continue
             name, object_type, object_oid, peeled_oid, tagger_name, tagger_email, tagger_date, message = (
-                line.split("\x00", 7)
+                record.split("\x1f", 7)
             )
             tagger = None
             if object_type == "tag" and tagger_name and tagger_date:
