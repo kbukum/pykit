@@ -61,8 +61,8 @@ class Oid:
     sha: str
 
     def is_zero(self) -> bool:
-        """Report whether this is the zero OID."""
-        return bool(self.sha) and all(char == "0" for char in self.sha)
+        """Report whether this is the zero OID (all-zero hex string of exactly 40 or 64 chars)."""
+        return len(self.sha) in (40, 64) and all(char == "0" for char in self.sha)
 
     def __str__(self) -> str:
         return self.sha
