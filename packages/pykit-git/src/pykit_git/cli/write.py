@@ -181,11 +181,11 @@ class WriteBackend(abc.ABC):
             args.append("-f")
         if options.detach:
             args.append("--detach")
+        args.extend(options.extra_args)
         if options.create:
             args.extend(["-b", ref_name])
         else:
             args.append(ref_name)
-        args.extend(options.extra_args)
         self._executor.exec(*args)
 
     def checkout_files(self, *paths: str) -> None:
