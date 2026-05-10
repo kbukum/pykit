@@ -19,7 +19,3 @@ class Merger(Protocol):
     def abort_merge(self) -> None:
         """Abort an in-progress merge."""
         ...
-
-    def merge_abort(self) -> None:
-        """Abort an in-progress merge."""
-        ...

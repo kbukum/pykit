@@ -143,23 +143,14 @@ class Backend:
     def abort_merge(self) -> None:
         write.abort_merge(self._repo)
 
-    def merge_abort(self) -> None:
-        self.abort_merge()
-
     def rebase(self, onto: str, opts: RebaseOptions | None = None) -> RebaseResult:
         return write.rebase(self._repo, onto, opts)
 
     def abort_rebase(self) -> None:
         write.abort_rebase(self._repo)
 
-    def rebase_abort(self) -> None:
-        self.abort_rebase()
-
     def continue_rebase(self) -> RebaseResult:
         return write.continue_rebase(self._repo)
-
-    def rebase_continue(self) -> RebaseResult:
-        return self.continue_rebase()
 
     def cherry_pick(self, commit: str, opts: CherryPickOptions | None = None) -> Oid:
         return write.cherry_pick(self._repo, commit, opts)

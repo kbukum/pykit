@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 import pygit2
 from pygit2.enums import BlameFlag, SortMode
 
-from pykit_git.errors import path_not_found, ref_not_found
+from pykit_git.errors import invalid_line_range, path_not_found, ref_not_found
 from pykit_git.options import BlameOptions, DescribeOptions, GrepOptions, LogOptions
 from pykit_git.types import (
     BlameLine,
@@ -155,6 +155,11 @@ def blame(
     content = file_at(repo, revision, path).decode("utf-8", errors="replace")
     lines = content.splitlines()
 
+    start = options.start_line or 1
+    end = options.end_line or len(lines)
+    if start < 1 or end < start:
+        raise invalid_line_range(start, end)
+
     flags = BlameFlag.NORMAL
     if options.ignore_whitespace:
         flags |= BlameFlag.IGNORE_WHITESPACE
@@ -164,14 +169,12 @@ def blame(
             path,
             flags=flags,
             newest_commit=commit.id,
-            min_line=options.start_line,
-            max_line=options.end_line,
+            min_line=start,
+            max_line=end,
         )
     except pygit2.GitError as exc:
         raise path_not_found(f"{revision}:{path}") from exc
 
-    start = options.start_line or 1
-    end = options.end_line or len(lines)
     result: list[BlameLine] = []
     for line_number in range(start, min(end, len(lines)) + 1):
         hunk = blame_result.for_line(line_number)

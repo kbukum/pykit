@@ -104,9 +104,6 @@ class WriteBackend(abc.ABC):
     def abort_merge(self) -> None:
         self._executor.exec("merge", "--abort")
 
-    def merge_abort(self) -> None:
-        self.abort_merge()
-
     def rebase(self, onto: str, opts: RebaseOptions | None = None) -> RebaseResult:
         options = opts or RebaseOptions()
         args = ["rebase"]
@@ -131,9 +128,6 @@ class WriteBackend(abc.ABC):
     def abort_rebase(self) -> None:
         self._executor.exec("rebase", "--abort")
 
-    def rebase_abort(self) -> None:
-        self.abort_rebase()
-
     def continue_rebase(self) -> RebaseResult:
         result = self._executor.run("rebase", "--continue")
         head = self.rev_parse("HEAD")
@@ -149,9 +143,6 @@ class WriteBackend(abc.ABC):
             stderr=result.stderr,
         )
         raise internal_error(exc) from exc
-
-    def rebase_continue(self) -> RebaseResult:
-        return self.continue_rebase()
 
     def cherry_pick(self, commit: str, opts: CherryPickOptions | None = None) -> Oid:
         options = opts or CherryPickOptions()

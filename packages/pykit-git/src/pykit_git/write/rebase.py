@@ -23,11 +23,3 @@ class Rebaser(Protocol):
     def continue_rebase(self) -> RebaseResult:
         """Continue an in-progress rebase."""
         ...
-
-    def rebase_abort(self) -> None:
-        """Abort an in-progress rebase."""
-        ...
-
-    def rebase_continue(self) -> RebaseResult:
-        """Continue an in-progress rebase."""
-        ...
