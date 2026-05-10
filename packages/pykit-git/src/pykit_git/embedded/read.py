@@ -114,7 +114,11 @@ def list_entries(repo: pygit2.Repository, revision: str, path: str) -> list[Tree
 def log(repo: pygit2.Repository, opts: LogOptions | None = None) -> list[Commit]:
     """Return commits from the current history."""
     options = opts or LogOptions()
-    walker = repo.walk(repo.head.target, SortMode.TOPOLOGICAL | SortMode.TIME)
+    try:
+        head_target = repo.head.target
+    except pygit2.GitError:
+        return []
+    walker = repo.walk(head_target, SortMode.TOPOLOGICAL | SortMode.TIME)
 
     commits: list[Commit] = []
     for raw_commit in walker:

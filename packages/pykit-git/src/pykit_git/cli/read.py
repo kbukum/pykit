@@ -91,7 +91,9 @@ class ReadBackend:
         if options.ignore_case:
             args.append("-i")
         args.extend(options.extra_args)
-        args.extend(["--", pattern, revision])
+        args.append(pattern)
+        if revision:
+            args.append(revision)
         result = self._executor.run(*args)
         if result.returncode not in (0, 1):
             _raise_git_error(result, *args, refname=revision)

@@ -26,11 +26,18 @@ def _credential_callback(
     def callback(
         url: str, username_from_url: str | None, allowed_types: int
     ) -> pygit2.Keypair | pygit2.UserPass:
-        del url, username_from_url, allowed_types
-        if isinstance(credential, Token):
-            return pygit2.UserPass(credential.username, credential.value)
-        if isinstance(credential, BasicAuth):
+        del url, username_from_url
+        if isinstance(credential, (Token, BasicAuth)):
+            if not (allowed_types & pygit2.enums.CredentialType.USERPASS_PLAINTEXT):
+                msg = "server does not accept username/password credentials"
+                raise ValueError(msg)
+            if isinstance(credential, Token):
+                return pygit2.UserPass(credential.username, credential.value)
             return pygit2.UserPass(credential.username, credential.password)
+        # SSHKey
+        if not (allowed_types & pygit2.enums.CredentialType.SSH_KEY):
+            msg = "server does not accept SSH key credentials"
+            raise ValueError(msg)
         public_key = credential.public_key_path or ""
         passphrase = credential.passphrase or ""
         return pygit2.Keypair(credential.username, public_key, credential.private_key_path, passphrase)
