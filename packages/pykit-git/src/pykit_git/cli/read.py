@@ -113,9 +113,7 @@ class ReadBackend:
                 continue
             found = regex.search(content)
             column = found.start() + 1 if found is not None else 1
-            matches.append(
-                GrepMatch(path=path, line=int(lineno), column=column, content=content)
-            )
+            matches.append(GrepMatch(path=path, line=int(lineno), column=column, content=content))
         return matches
 
     def show(self, object_spec: str) -> bytes:

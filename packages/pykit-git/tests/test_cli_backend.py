@@ -36,7 +36,7 @@ def test_cli_build_env_uses_private_key_for_identity() -> None:
         SSHKey(username="git", private_key_path="/keys/id_ed25519", public_key_path="/keys/id_ed25519.pub")
     )
 
-    assert env["GIT_SSH_COMMAND"] == ("ssh -i /keys/id_ed25519 -o CertificateFile=/keys/id_ed25519.pub")
+    assert env["GIT_SSH_COMMAND"] == "ssh -i /keys/id_ed25519"
 
 
 def test_cli_head_unborn_branch_raises_invalid_input(tmp_path: Path) -> None:
