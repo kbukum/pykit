@@ -51,11 +51,11 @@ def test_repo_init_bare_classmethod(tmp_path: Path) -> None:
 
 def test_open_nonexistent() -> None:
     with pytest.raises(AppError):
-        open('/nonexistent/path')
+        open("/nonexistent/path")
 
 
 def test_discover(tmp_repo: Path) -> None:
-    subdir = tmp_repo / 'sub' / 'deep'
+    subdir = tmp_repo / "sub" / "deep"
     subdir.mkdir(parents=True)
     repo = discover(subdir)
     assert repo.root == tmp_repo.resolve()
@@ -68,21 +68,21 @@ def test_head(tmp_repo: Path) -> None:
 
 
 def test_resolve_ref(tmp_repo: Path, create_branch: Callable[[Path, str], None]) -> None:
-    create_branch(tmp_repo, 'feature')
+    create_branch(tmp_repo, "feature")
     repo = open(tmp_repo)
-    oid = repo.resolve_ref('feature')
+    oid = repo.resolve_ref("feature")
     assert not oid.is_zero()
 
 
 def test_rev_parse(tmp_repo: Path) -> None:
     repo = open(tmp_repo)
-    assert repo.rev_parse('HEAD') == repo.resolve_ref('HEAD')
+    assert repo.rev_parse("HEAD") == repo.resolve_ref("HEAD")
 
 
 def test_resolve_ref_not_found(tmp_repo: Path) -> None:
     repo = open(tmp_repo)
     with pytest.raises(AppError):
-        repo.resolve_ref('nonexistent')
+        repo.resolve_ref("nonexistent")
 
 
 def test_is_dirty_clean(tmp_repo: Path) -> None:
@@ -91,12 +91,12 @@ def test_is_dirty_clean(tmp_repo: Path) -> None:
 
 
 def test_is_dirty_modified(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
-    make_dirty(tmp_repo, 'README.md')
+    make_dirty(tmp_repo, "README.md")
     repo = open(tmp_repo)
     assert repo.is_dirty()
 
 
 def test_is_dirty_untracked(tmp_repo: Path, make_untracked: Callable[[Path, str], None]) -> None:
-    make_untracked(tmp_repo, 'new.txt')
+    make_untracked(tmp_repo, "new.txt")
     repo = open(tmp_repo)
     assert repo.is_dirty()

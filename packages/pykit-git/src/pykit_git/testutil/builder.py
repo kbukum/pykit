@@ -59,7 +59,9 @@ class RepoBuilder:
 
     def with_checkout(self, branch: str) -> RepoBuilder:
         """Switch to the named branch."""
-        subprocess.run(["git", "checkout", branch], cwd=self._root, capture_output=True, check=True, text=True)
+        subprocess.run(
+            ["git", "checkout", branch], cwd=self._root, capture_output=True, check=True, text=True
+        )
         return self
 
     def with_tag(self, name: str, message: str = "") -> RepoBuilder:
