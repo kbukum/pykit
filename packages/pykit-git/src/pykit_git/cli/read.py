@@ -116,10 +116,10 @@ class ReadBackend:
         return matches
 
     def show(self, object_spec: str) -> bytes:
-        try:
-            return self._executor.exec("show", object_spec)
-        except subprocess.CalledProcessError as exc:
-            _raise_git_error_from_exception(exc, "show", object_spec)
+        result = self._executor.run("show", object_spec)
+        if result.returncode != 0:
+            _raise_git_error(result, "show", object_spec, refname=object_spec)
+        return result.stdout
 
 
 def _parse_oid(hex_str: str) -> Oid:

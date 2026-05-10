@@ -9,6 +9,7 @@ from pykit_git.embedded.read import commit_for_ref, signature_from_pygit2
 from pykit_git.errors import (
     config_not_found,
     internal_error,
+    network_error,
     operation_not_supported,
     ref_not_found,
     remote_not_found,
@@ -118,7 +119,7 @@ def fetch(repo: pygit2.Repository, remote: str, opts: FetchOptions | None = None
     try:
         remote_ref.fetch(refspecs=refspecs, prune=prune, depth=depth)
     except pygit2.GitError as exc:
-        raise internal_error(exc) from exc
+        raise network_error(exc) from exc
 
 
 def push(repo: pygit2.Repository, remote: str, opts: PushOptions | None = None) -> None:
@@ -134,7 +135,7 @@ def push(repo: pygit2.Repository, remote: str, opts: PushOptions | None = None) 
     try:
         remote_ref.push(refspecs)
     except pygit2.GitError as exc:
-        raise internal_error(exc) from exc
+        raise network_error(exc) from exc
 
 
 def tracking_branch(repo: pygit2.Repository, branch: str) -> str:

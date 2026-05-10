@@ -194,9 +194,10 @@ class WriteBackend(abc.ABC):
     def stash(self, message: str) -> Oid:
         result = self._executor.run("stash", "push", "-m", message)
         if result.returncode != 0:
-            stderr = result.stderr.decode(errors="replace").strip()
             raise internal_error(
-                subprocess.CalledProcessError(result.returncode, ["git", "stash", "push"], stderr=result.stderr)
+                subprocess.CalledProcessError(
+                    result.returncode, ["git", "stash", "push"], stderr=result.stderr
+                )
             )
         stdout = result.stdout.decode(errors="replace")
         if "No local changes to save" in stdout:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pygit2
 from pygit2.enums import BlameFlag, SortMode
@@ -285,10 +285,14 @@ def matches_log_options(
 ) -> bool:
     """Report whether a commit matches log filtering options."""
     committed_at = commit.committer.when
-    if opts.since is not None and committed_at < opts.since:
-        return False
-    if opts.until is not None and committed_at > opts.until:
-        return False
+    if opts.since is not None:
+        since = opts.since if opts.since.tzinfo is not None else opts.since.replace(tzinfo=UTC)
+        if committed_at < since:
+            return False
+    if opts.until is not None:
+        until = opts.until if opts.until.tzinfo is not None else opts.until.replace(tzinfo=UTC)
+        if committed_at > until:
+            return False
     if opts.author_filter is not None:
         author = f"{commit.author.name} <{commit.author.email}>".casefold()
         if opts.author_filter.casefold() not in author:
