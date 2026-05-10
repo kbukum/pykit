@@ -175,17 +175,8 @@ class Agent:
                     async_messages, _last_assistant(async_messages), Usage(), 0, StopReason.ERROR
                 )
             )
-            async for event in self._stream(async_messages, holder):
-                if isinstance(event, MessageStop):
-                    response = cast("CompletionResponse | None", event.response)
-                    if response is not None:
-                        holder.value = AgentResult(
-                            messages=[*async_messages, response.message],
-                            final_message=response.message,
-                            total_usage=response.usage,
-                            turn_count=1,
-                            stop_reason=_stop_reason(response.stop_reason),
-                        )
+            async for _event in self._stream(async_messages, holder):
+                pass
             return holder.value
 
     async def stream(self, messages: list[Message]) -> AsyncIterator[AgentEvent]:
@@ -396,6 +387,8 @@ class Agent:
             raise HookError(str(result.error)) from result.error
         if result.action == Action.ABORT:
             raise HookError(result.reason or "hook execution aborted")
+        if result.action == Action.MODIFY:
+            raise HookError("agent hooks are observe-only; MODIFY is not supported")
 
 
 def _check_wall_clock(started: float, budget_seconds: float) -> None:
