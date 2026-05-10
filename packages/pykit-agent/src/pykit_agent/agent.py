@@ -140,7 +140,7 @@ class Agent:
     def __init__(self, config: AgentConfig) -> None:
         self._config = config
         self._started = False
-        self._last_run_at = 0.0
+        self._last_run_at: float | None = None
 
     @property
     def name(self) -> str:
@@ -160,8 +160,9 @@ class Agent:
         if not self._started:
             return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="not started")
         message = "ready"
-        if self._last_run_at > 0:
-            message = f"last_run_at={self._last_run_at:.3f}"
+        if self._last_run_at is not None:
+            age_s = time.monotonic() - self._last_run_at
+            message = f"last_run_age_seconds={age_s:.1f}"
         return Health(name=self.name, status=HealthStatus.HEALTHY, message=message)
 
     async def run(self, messages: list[Message]) -> AgentResult:

@@ -2755,6 +2755,7 @@ dependencies = [
     { name = "pykit-ai" },
     { name = "pykit-component" },
     { name = "pykit-errors" },
+    { name = "pykit-provider" },
     { name = "pykit-tool" },
 ]
 
@@ -2770,6 +2771,7 @@ requires-dist = [
     { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-errors", editable = "packages/pykit-errors" },
+    { name = "pykit-provider", editable = "packages/pykit-provider" },
     { name = "pykit-tool", editable = "packages/pykit-tool" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },

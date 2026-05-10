@@ -5,10 +5,32 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
 export ROOT_DIR
 
-python3 <<'PY'
+if [[ -n "${PYTHON:-}" ]] && command -v "$PYTHON" >/dev/null 2>&1; then
+  PYTHON_BIN="$PYTHON"
+else
+  PYTHON_BIN=""
+  for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      PYTHON_BIN="$candidate"
+      break
+    fi
+  done
+fi
+
+if [ -z "$PYTHON_BIN" ] || ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  echo "Python 3.11+ is required (tomllib)" >&2
+  exit 1
+fi
+
+"$PYTHON_BIN" <<'PY'
 from __future__ import annotations
 
 import os
+import sys
+
+if sys.version_info < (3, 11):
+    raise SystemExit("Python 3.11+ is required")
+
 import tomllib
 from pathlib import Path
 

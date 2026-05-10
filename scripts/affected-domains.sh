@@ -3,17 +3,21 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DOMAINS_FILE="${ROOT_DIR}/domains.toml"
-PYTHON_BIN=""
 
-for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
-  if command -v "$candidate" >/dev/null 2>&1; then
-    PYTHON_BIN="$candidate"
-    break
-  fi
-done
+if [[ -n "${PYTHON:-}" ]] && command -v "$PYTHON" >/dev/null 2>&1; then
+  PYTHON_BIN="$PYTHON"
+else
+  PYTHON_BIN=""
+  for candidate in python3.14 python3.13 python3.12 python3.11 python3; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      PYTHON_BIN="$candidate"
+      break
+    fi
+  done
+fi
 
-if [ -z "$PYTHON_BIN" ]; then
-  echo "python3.11+ is required (tomllib)" >&2
+if [ -z "$PYTHON_BIN" ] || ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  echo "Python 3.11+ is required (tomllib)" >&2
   exit 1
 fi
 
@@ -30,12 +34,13 @@ from __future__ import annotations
 
 import os
 import sys
-from collections import deque
-from pathlib import PurePosixPath
-import tomllib
 
 if sys.version_info < (3, 11):
     raise SystemExit("python3.11+ is required (tomllib)")
+
+import tomllib
+from collections import deque
+from pathlib import PurePosixPath
 
 
 with open(os.environ["DOMAINS_FILE"], "rb") as fh:
@@ -53,17 +58,19 @@ def domains_for_file(path_str: str) -> set[str]:
     if not path_str:
         return set()
 
+    global_files = {"Makefile", "README.md", "domains.toml", "pyproject.toml", "uv.lock"}
+    if path_str in global_files:
+        return set(all_domains)
+
     parts = PurePosixPath(path_str).parts
     if not parts:
         return set()
 
     global_dirs = {".github", "docs", "scripts"}
-    global_files = {"Makefile", "README.md", "domains.toml", "pyproject.toml", "uv.lock"}
-
-    if len(parts) == 1:
+    if parts[0] in global_dirs:
         return set(all_domains)
 
-    if parts[0] in global_dirs or parts[0] in global_files:
+    if len(parts) == 1:
         return set(all_domains)
 
     if parts[0] == "packages" and len(parts) >= 2:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from pykit_ai import ToolResultBlock
@@ -26,7 +26,7 @@ class StartEvent:
     """Event emitted when a turn starts."""
 
     turn: int
-    type: EventType = EVENT_ON_START
+    type: EventType = field(init=False, default=EVENT_ON_START)
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ class LLMRequestEvent:
     """Event emitted before sending a completion request."""
 
     request: CompletionRequest
-    type: EventType = EVENT_ON_LLM_REQUEST
+    type: EventType = field(init=False, default=EVENT_ON_LLM_REQUEST)
 
 
 @dataclass(frozen=True)
@@ -42,7 +42,7 @@ class LLMResponseEvent:
     """Event emitted after receiving a completion response."""
 
     response: CompletionResponse
-    type: EventType = EVENT_ON_LLM_RESPONSE
+    type: EventType = field(init=False, default=EVENT_ON_LLM_RESPONSE)
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ class ToolCallEvent:
 
     name: str
     input_data: dict[str, object]
-    type: EventType = EVENT_ON_TOOL_CALL
+    type: EventType = field(init=False, default=EVENT_ON_TOOL_CALL)
 
 
 @dataclass(frozen=True)
@@ -60,7 +60,7 @@ class ToolResultEvent:
 
     name: str
     result: ToolResultBlock
-    type: EventType = EVENT_ON_TOOL_RESULT
+    type: EventType = field(init=False, default=EVENT_ON_TOOL_RESULT)
 
 
 @dataclass(frozen=True)
@@ -70,7 +70,7 @@ class MCPRequestEvent:
     server: str
     method: str
     input_data: dict[str, object]
-    type: EventType = EVENT_ON_MCP_REQUEST
+    type: EventType = field(init=False, default=EVENT_ON_MCP_REQUEST)
 
 
 @dataclass(frozen=True)
@@ -80,7 +80,7 @@ class MCPResultEvent:
     server: str
     method: str
     result: Any
-    type: EventType = EVENT_ON_MCP_RESULT
+    type: EventType = field(init=False, default=EVENT_ON_MCP_RESULT)
 
 
 @dataclass(frozen=True)
@@ -89,7 +89,7 @@ class StepCompleteEvent:
 
     turn: int
     message: AssistantMessage
-    type: EventType = EVENT_ON_STEP_COMPLETE
+    type: EventType = field(init=False, default=EVENT_ON_STEP_COMPLETE)
 
 
 @dataclass(frozen=True)
@@ -97,7 +97,7 @@ class ErrorEvent:
     """Event emitted when agent execution raises an error."""
 
     error: Exception
-    type: EventType = EVENT_ON_ERROR
+    type: EventType = field(init=False, default=EVENT_ON_ERROR)
 
 
 @dataclass(frozen=True)
@@ -105,4 +105,4 @@ class StopEvent:
     """Event emitted when the agent loop stops."""
 
     reason: str
-    type: EventType = EVENT_ON_STOP
+    type: EventType = field(init=False, default=EVENT_ON_STOP)
