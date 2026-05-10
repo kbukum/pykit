@@ -77,7 +77,10 @@ def create_tag(repo: pygit2.Repository, name: str, target: str, message: str) ->
 
 def delete_tag(repo: pygit2.Repository, name: str) -> None:
     """Delete a tag."""
-    ref = repo.lookup_reference(f"refs/tags/{name}")
+    try:
+        ref = repo.lookup_reference(f"refs/tags/{name}")
+    except KeyError as exc:
+        raise ref_not_found(name) from exc
     if ref is None:
         raise ref_not_found(name)
     try:
