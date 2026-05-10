@@ -232,4 +232,5 @@ def remove_from_index(index: pygit2.Index, path: str) -> None:
     try:
         index.remove(path)
     except KeyError:
+        # Path is not in the index; removal is best-effort and idempotent.
         pass
