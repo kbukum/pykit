@@ -67,19 +67,31 @@ class ManageBackend:
         return tags
 
     def create_branch(self, name: str, target: str) -> None:
-        self._executor.exec("branch", name, target)
+        try:
+            self._executor.exec("branch", name, target)
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def delete_branch(self, name: str) -> None:
-        self._executor.exec("branch", "-d", name)
+        try:
+            self._executor.exec("branch", "-d", name)
+        except subprocess.CalledProcessError as exc:
+            raise ref_not_found(name) from exc
 
     def create_tag(self, name: str, target: str, message: str) -> None:
-        if message:
-            self._executor.exec("tag", "-a", name, target, "-m", message)
-            return
-        self._executor.exec("tag", name, target)
+        try:
+            if message:
+                self._executor.exec("tag", "-a", name, target, "-m", message)
+                return
+            self._executor.exec("tag", name, target)
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def delete_tag(self, name: str) -> None:
-        self._executor.exec("tag", "-d", name)
+        try:
+            self._executor.exec("tag", "-d", name)
+        except subprocess.CalledProcessError as exc:
+            raise ref_not_found(name) from exc
 
     def list_remotes(self) -> list[Remote]:
         output = self._executor.exec("remote", "-v").decode(errors="replace")
@@ -111,7 +123,10 @@ class ManageBackend:
         args.extend(options.extra_args)
         args.append(remote)
         args.extend(options.refspecs)
-        self._executor.exec(*args)
+        try:
+            self._executor.exec(*args)
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def push(self, remote: str, opts: PushOptions | None = None) -> None:
         options = opts or PushOptions()
@@ -121,7 +136,10 @@ class ManageBackend:
         args.extend(options.extra_args)
         args.append(remote)
         args.extend(options.refspecs)
-        self._executor.exec(*args)
+        try:
+            self._executor.exec(*args)
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def tracking_branch(self, branch: str) -> str:
         remote = self.config_get(f"branch.{branch}.remote")
@@ -144,16 +162,28 @@ class ManageBackend:
         return [line for line in result.stdout.decode(errors="replace").splitlines() if line]
 
     def config_set(self, key: str, value: str) -> None:
-        self._executor.exec("config", key, value)
+        try:
+            self._executor.exec("config", key, value)
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def gc(self) -> None:
-        self._executor.exec("gc")
+        try:
+            self._executor.exec("gc")
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def prune(self) -> None:
-        self._executor.exec("prune")
+        try:
+            self._executor.exec("prune")
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def fsck(self) -> None:
-        self._executor.exec("fsck")
+        try:
+            self._executor.exec("fsck")
+        except subprocess.CalledProcessError as exc:
+            raise internal_error(exc) from exc
 
     def clean(self, opts: CleanOptions | None = None) -> list[str]:
         options = opts or CleanOptions()

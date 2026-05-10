@@ -97,8 +97,6 @@ class ReadBackend:
         result = self._executor.run(*args)
         if result.returncode not in (0, 1):
             _raise_git_error(result, *args, refname=revision)
-        regex_flags = re.IGNORECASE if options.ignore_case else 0
-        regex = re.compile(pattern, regex_flags)
         matches: list[GrepMatch] = []
         for raw_line in result.stdout.decode(errors="replace").splitlines():
             if not raw_line:
@@ -113,8 +111,7 @@ class ReadBackend:
                 path, lineno, content = parts[0], parts[1], parts[2]
             else:
                 continue
-            found = regex.search(content)
-            column = found.start() + 1 if found is not None else 1
+            column = content.find(pattern) + 1 if pattern in content else 1
             matches.append(GrepMatch(path=path, line=int(lineno), column=column, content=content))
         return matches
 

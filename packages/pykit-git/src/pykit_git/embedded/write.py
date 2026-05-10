@@ -63,10 +63,14 @@ def staged_entries(repo: pygit2.Repository) -> list[StatusEntry]:
     """Return files staged in the index."""
     try:
         head_commit = repo.head.peel(pygit2.Commit)
-    except pygit2.GitError as exc:
-        raise internal_error(exc) from exc
+    except pygit2.GitError:
+        # Unborn HEAD (no commits yet): diff index against empty tree.
+        entries: list[StatusEntry] = []
+        for entry in repo.index:
+            entries.append(StatusEntry(path=entry.path, state=EntryState.STAGED))
+        return sorted(entries, key=lambda e: e.path)
 
-    entries: list[StatusEntry] = []
+    entries = []
     for patch in repo.index.diff_to_tree(head_commit.tree):
         if patch is None:
             continue
