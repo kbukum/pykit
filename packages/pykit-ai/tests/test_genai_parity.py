@@ -44,15 +44,16 @@ def test_semconv_key_set_and_operation_values_are_canonical() -> None:
         "gen_ai.usage.reasoning_tokens",
     }
     assert {operation.value for operation in Operation} == {
-        "chat",
-        "text_completion",
-        "embedding",
+        "agent.run",
         "agent.turn",
+        "chat",
+        "embedding",
+        "inference.request",
         "llm.call",
-        "tool.call",
         "mcp.request",
         "stream",
-        "inference.request",
+        "text_completion",
+        "tool.call",
     }
     assert all(not operation.value.startswith("gen_ai.") for operation in Operation)
 
