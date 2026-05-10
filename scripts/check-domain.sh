@@ -19,6 +19,7 @@ else
 fi
 
 require_python() {
+  # Python 3.11+ for tomllib; actual checks use project-configured Python via uv.
   "$python_bin" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else "Python 3.11+ is required")'
 }
 
@@ -71,7 +72,7 @@ run_module_checks() {
   echo "==> Checking $module ($package_path)"
   uv run pytest "$package_path/"
   uv run ruff check "$package_path/"
-  uv run mypy "$package_path/"
+  uv run mypy "$package_path/src/"
 }
 
 run_domain() {

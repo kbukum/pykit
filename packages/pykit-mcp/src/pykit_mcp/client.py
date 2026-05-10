@@ -34,7 +34,7 @@ class RemoteCallable:
         self._definition = mcp_tool_to_definition(mcp_tool, prefix)
         self._mcp_name = mcp_tool.name
         self._mcp_server = server
-        self._tracer = tracer or trace.NoOpTracer()
+        self._tracer = tracer or trace.get_tracer("pykit_mcp")
 
     @property
     def definition(self) -> Definition:

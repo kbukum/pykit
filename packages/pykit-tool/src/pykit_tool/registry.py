@@ -69,7 +69,7 @@ class Registry:
         self._sensitivity = sensitivity_evaluator or DenyOnSensitiveEvaluator()
         self._approval = human_approval or DenyHumanApproval()
         self._policy = policy
-        self._tracer = tracer or trace.NoOpTracer()
+        self._tracer = tracer or trace.get_tracer("pykit_tool")
         self._started = False
 
     @property

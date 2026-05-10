@@ -33,6 +33,11 @@ class HttpClient:
         transport: httpx.AsyncBaseTransport | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
+        """Initialize the HTTP client.
+
+        When ``client`` is provided, it is used as-is and the caller is responsible for
+        applying any desired base URL, timeout, and default header configuration.
+        """
         self._config = config
         self._policy = _build_policy(config.resilience)
         if client is not None and transport is not None:

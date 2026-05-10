@@ -2585,6 +2585,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pykit-ai" },
     { name = "pykit-component" },
+    { name = "pykit-provider" },
 ]
 
 [package.optional-dependencies]
@@ -2600,6 +2601,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.12.0,<3.0" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
     { name = "pykit-component", editable = "packages/pykit-component" },
+    { name = "pykit-provider", editable = "packages/pykit-provider" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
 ]
@@ -3121,6 +3123,7 @@ source = { editable = "packages/pykit-tool" }
 dependencies = [
     { name = "opentelemetry-api" },
     { name = "pykit-ai" },
+    { name = "pykit-component" },
     { name = "pykit-provider" },
     { name = "pykit-resilience" },
     { name = "pykit-schema" },
@@ -3130,6 +3133,7 @@ dependencies = [
 requires-dist = [
     { name = "opentelemetry-api" },
     { name = "pykit-ai", editable = "packages/pykit-ai" },
+    { name = "pykit-component", editable = "packages/pykit-component" },
     { name = "pykit-provider", editable = "packages/pykit-provider" },
     { name = "pykit-resilience", editable = "packages/pykit-resilience" },
     { name = "pykit-schema", editable = "packages/pykit-schema" },

@@ -151,7 +151,7 @@ def create_server(
     if max_result_bytes < 0:
         raise ValueError("max_result_bytes must be >= 0")
     prompt_entries = tuple(prompts or ())
-    otel_tracer = tracer or trace.NoOpTracer()
+    otel_tracer = tracer or trace.get_tracer("pykit_mcp")
     resource_entries = tuple(resources or ())
     resource_template_entries = tuple(resource_templates or ())
     prompt_map = {entry.prompt.name: entry for entry in prompt_entries}

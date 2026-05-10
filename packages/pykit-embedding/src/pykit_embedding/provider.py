@@ -72,7 +72,7 @@ class ProviderBase:
     def __init__(self, *, tracer: Tracer | None = None) -> None:
         self._last_call_at: float = 0.0
         self._started: bool = False
-        self._tracer = tracer or trace.NoOpTracer()
+        self._tracer = tracer or trace.get_tracer("pykit_embedding")
 
     @property
     def name(self) -> str:

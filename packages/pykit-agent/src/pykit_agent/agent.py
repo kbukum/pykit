@@ -99,7 +99,7 @@ class AgentConfig:
     tool_concurrency: int = 4
     tool_timeout_seconds: float = 30.0
     context_strategy: ContextStrategy | None = None
-    tracer: Tracer = field(default_factory=lambda: trace.NoOpTracer())
+    tracer: Tracer = field(default_factory=lambda: trace.get_tracer("pykit_agent"))
     policy: Policy | None = None
 
     def __post_init__(self) -> None:
