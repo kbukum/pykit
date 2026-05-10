@@ -19,7 +19,7 @@ from pykit_git.options import (
     RebaseOptions,
 )
 from pykit_git.read import Blamer, Differ, Inspector, LogReader, TreeReader
-from pykit_git.repo import Repo, clone, discover, init, init_bare, open
+from pykit_git.repo import Repo, clone, discover, init, init_bare, open_repo
 from pykit_git.types import (
     BlameLine,
     Branch,
@@ -112,5 +112,5 @@ __all__ = [
     "TreeReader",
     "clone",
     "discover",
-    "open",
+    "open_repo",
 ]

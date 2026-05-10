@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from pykit_errors import AppError
-from pykit_git import BlameOptions, EntryKind, EntryState, FileStatus, LogOptions, open
+from pykit_git import BlameOptions, EntryKind, EntryState, FileStatus, LogOptions, open_repo
 
 
 def test_diff_added(
@@ -22,7 +22,7 @@ def test_diff_added(
 ) -> None:
     create_tag(tmp_repo, "v1")
     commit_file(tmp_repo, "new.txt", "hello", "add new file")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     entries = repo.diff("v1", "HEAD")
     assert entries
@@ -36,7 +36,7 @@ def test_diff_modified(
 ) -> None:
     create_tag(tmp_repo, "v1")
     commit_file(tmp_repo, "README.md", "updated", "update readme")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     entries = repo.diff("v1", "HEAD")
     assert any(entry.path == "README.md" and entry.status == FileStatus.MODIFIED for entry in entries)
@@ -50,7 +50,7 @@ def test_diff_stats(
     create_tag(tmp_repo, "v1")
     commit_file(tmp_repo, "a.txt", "line1\nline2\n", "add a")
     commit_file(tmp_repo, "b.txt", "line1\n", "add b")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     stats = repo.diff_stats("v1", "HEAD")
     assert stats.files_changed >= 2
@@ -58,7 +58,7 @@ def test_diff_stats(
 
 
 def test_status_clean(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.status() == []
 
 
@@ -69,7 +69,7 @@ def test_status_dirty(
 ) -> None:
     make_untracked(tmp_repo, "untracked.txt")
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     entries = repo.status()
     assert len(entries) >= 2
@@ -84,7 +84,7 @@ def test_status_entries_are_sorted(
     make_untracked(tmp_repo, "z-last.txt")
     make_dirty(tmp_repo, "README.md")
     make_untracked(tmp_repo, "a-first.txt")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     entries = repo.status()
 
@@ -93,18 +93,18 @@ def test_status_entries_are_sorted(
 
 def test_file_at(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "hello.txt", "hello world", "add hello")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.file_at("HEAD", "hello.txt") == b"hello world"
 
 
 def test_show_file(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "hello.txt", "hello world", "add hello")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.show("HEAD:hello.txt") == b"hello world"
 
 
 def test_file_at_not_found(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     with pytest.raises(AppError):
         repo.file_at("HEAD", "nonexistent.txt")
 
@@ -112,7 +112,7 @@ def test_file_at_not_found(tmp_repo: Path) -> None:
 def test_list_entries(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "a.txt", "a", "add a")
     commit_file(tmp_repo, "sub/b.txt", "b", "add b")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     entries = repo.list_entries("HEAD", "")
     assert len(entries) >= 2
@@ -122,7 +122,7 @@ def test_list_entries(tmp_repo: Path, commit_file: Callable[[Path, str, str, str
 
 def test_list_entries_subdir(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "sub/file.txt", "content", "add sub/file")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     entries = repo.list_entries("HEAD", "sub")
     assert len(entries) == 1
@@ -130,7 +130,7 @@ def test_list_entries_subdir(tmp_repo: Path, commit_file: Callable[[Path, str, s
 
 
 def test_tree_hash(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert not repo.tree_hash("HEAD", "").is_zero()
 
 
@@ -140,11 +140,11 @@ def test_tree_hash_changes(
     commit_file: Callable[[Path, str, str, str], None],
 ) -> None:
     create_tag(tmp_repo, "v1")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     hash1 = repo.tree_hash("v1", "")
 
     commit_file(tmp_repo, "new.txt", "content", "add file")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     hash2 = repo.tree_hash("HEAD", "")
 
     assert hash1 != hash2
@@ -153,7 +153,7 @@ def test_tree_hash_changes(
 def test_log_with_options(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "alpha.txt", "alpha\n", "add alpha")
     commit_file(tmp_repo, "notes/beta.txt", "beta\n", "add beta")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     commits = repo.log(LogOptions(max_count=1, path_filter="notes", author_filter="Test User"))
 
@@ -166,11 +166,11 @@ def test_log_since_and_until(tmp_repo: Path) -> None:
     newer_when = datetime.fromisoformat("2024-01-02T00:00:00+00:00")
 
     commit_with_date(tmp_repo, "alpha.txt", "alpha\n", "add alpha", older_when)
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     older_commit = repo.log(LogOptions(max_count=1))[0]
 
     commit_with_date(tmp_repo, "beta.txt", "beta\n", "add beta", newer_when)
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     newer_commit = repo.log(LogOptions(max_count=1))[0]
 
     since_commits = repo.log(
@@ -184,28 +184,28 @@ def test_log_since_and_until(tmp_repo: Path) -> None:
 
 def test_merge_base(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "shared.txt", "base\n", "base change")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     base = repo.resolve_ref("HEAD")
 
     repo.create_branch("feature", "HEAD")
     commit_file(tmp_repo, "main.txt", "main\n", "main change")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     main_head = repo.resolve_ref("HEAD")
 
     checkout(tmp_repo, "feature")
     commit_file(tmp_repo, "feature.txt", "feature\n", "feature change")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     assert repo.merge_base("HEAD", str(main_head)) == base
 
 
 def test_is_ancestor(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "base.txt", "base\n", "base change")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     ancestor = repo.resolve_ref("HEAD")
 
     commit_file(tmp_repo, "desc.txt", "desc\n", "desc change")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     descendant = repo.resolve_ref("HEAD")
 
     assert repo.is_ancestor(str(ancestor), str(descendant))
@@ -215,7 +215,7 @@ def test_is_ancestor(tmp_repo: Path, commit_file: Callable[[Path, str, str, str]
 def test_blame(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "story.txt", "line one\n", "add first line")
     commit_file(tmp_repo, "story.txt", "line one\nline two\n", "add second line")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     lines = repo.blame("HEAD", "story.txt")
 
@@ -227,7 +227,7 @@ def test_blame(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None
 def test_blame_with_options(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "story.txt", "line one\n", "add first line")
     commit_file(tmp_repo, "story.txt", "line one\nline two\n", "add second line")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     lines = repo.blame("HEAD", "story.txt", BlameOptions(start_line=2, end_line=2))
 
@@ -237,7 +237,7 @@ def test_blame_with_options(tmp_repo: Path, commit_file: Callable[[Path, str, st
 
 
 def test_blame_invalid_line_range_reports_snake_case_detail(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     with pytest.raises(AppError) as exc_info:
         repo.blame("HEAD", "README.md", BlameOptions(start_line=2, end_line=1))
@@ -247,13 +247,13 @@ def test_blame_invalid_line_range_reports_snake_case_detail(tmp_repo: Path) -> N
 
 def test_describe_exact_tag(tmp_repo: Path, create_tag: Callable[[Path, str], None]) -> None:
     create_tag(tmp_repo, "v1")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.describe() == "v1"
 
 
 def test_grep(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "notes.txt", "alpha\nbeta\n", "add notes")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     matches = repo.grep("beta", "HEAD")
     assert len(matches) == 1
     assert matches[0].path == "notes.txt"

@@ -6,12 +6,12 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pykit_git import CommitOptions, EntryState, Signature, open
+from pykit_git import CommitOptions, EntryState, Signature, open_repo
 
 
 def test_stage_files(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     repo.stage("README.md")
 
@@ -22,7 +22,7 @@ def test_stage_files(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) ->
 
 def test_unstage(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     repo.stage("README.md")
 
     repo.unstage("README.md")
@@ -32,7 +32,7 @@ def test_unstage(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> Non
 
 def test_staged_entries(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     repo.stage("README.md")
 
     entries = repo.staged_entries()
@@ -44,7 +44,7 @@ def test_staged_entries(tmp_repo: Path, make_dirty: Callable[[Path, str], None])
 
 def test_commit_with_message(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     repo.stage("README.md")
 
     oid = repo.commit("update readme")
@@ -56,7 +56,7 @@ def test_commit_with_message(tmp_repo: Path, make_dirty: Callable[[Path, str], N
 
 def test_commit_with_options(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     repo.stage("README.md")
 
     when = datetime(2024, 1, 2, 3, 4, 5, tzinfo=UTC)

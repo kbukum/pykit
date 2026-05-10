@@ -72,7 +72,14 @@ class ManageBackend:
     def delete_branch(self, name: str) -> None:
         result = self._executor.run("branch", "-d", name)
         if result.returncode != 0:
-            raise ref_not_found(name)
+            stderr = result.stderr.decode(errors="replace")
+            if "not found" in stderr or "not a valid" in stderr:
+                raise ref_not_found(name)
+            raise internal_error(
+                subprocess.CalledProcessError(
+                    result.returncode, ["git", "branch", "-d", name], stderr=result.stderr
+                )
+            )
 
     def create_tag(self, name: str, target: str, message: str) -> None:
         if message:

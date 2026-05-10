@@ -6,12 +6,12 @@ import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
-from pykit_git import BranchFilter, open
+from pykit_git import BranchFilter, open_repo
 
 
 def test_list_branches(tmp_repo: Path, create_branch: Callable[[Path, str], None]) -> None:
     create_branch(tmp_repo, "feature")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     branches = repo.list_branches(BranchFilter.LOCAL)
 
@@ -22,7 +22,7 @@ def test_list_branches(tmp_repo: Path, create_branch: Callable[[Path, str], None
 
 def test_list_tags(tmp_repo: Path, create_tag: Callable[[Path, str], None]) -> None:
     create_tag(tmp_repo, "v1.0.0")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     tags = repo.list_tags()
 
@@ -30,7 +30,7 @@ def test_list_tags(tmp_repo: Path, create_tag: Callable[[Path, str], None]) -> N
 
 
 def test_create_and_delete_branch(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     repo.create_branch("feature", "HEAD")
     assert any(branch.name == "feature" for branch in repo.list_branches())
@@ -40,7 +40,7 @@ def test_create_and_delete_branch(tmp_repo: Path) -> None:
 
 
 def test_create_and_delete_tag(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     repo.create_tag("v1.0.0", "HEAD", "release v1.0.0")
     tags = repo.list_tags()
@@ -54,7 +54,7 @@ def test_list_remotes(tmp_repo: Path) -> None:
     bare_remote = init_bare_remote(tmp_repo.parent / "origin.git")
     run_git(tmp_repo, "remote", "add", "origin", str(bare_remote))
     run_git(tmp_repo, "remote", "add", "backup", str(init_bare_remote(tmp_repo.parent / "backup.git")))
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     remotes = repo.list_remotes()
 
@@ -67,21 +67,21 @@ def test_tracking_branch(tmp_repo: Path) -> None:
     bare_remote = init_bare_remote(tmp_repo.parent / "origin.git")
     run_git(tmp_repo, "remote", "add", "origin", str(bare_remote))
     run_git(tmp_repo, "push", "-u", "origin", "HEAD")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     branch = run_git(tmp_repo, "branch", "--show-current").strip()
 
     assert repo.tracking_branch(branch) == f"origin/{branch}"
 
 
 def test_config_get(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.config_get("user.name") == "Test User"
 
 
 def test_config_get_all(tmp_repo: Path) -> None:
     run_git(tmp_repo, "config", "--add", "remote.origin.fetch", "+refs/heads/main:refs/remotes/origin/main")
     run_git(tmp_repo, "config", "--add", "remote.origin.fetch", "+refs/heads/dev:refs/remotes/origin/dev")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
 
     assert repo.config_get_all("remote.origin.fetch") == [
         "+refs/heads/main:refs/remotes/origin/main",
@@ -90,7 +90,7 @@ def test_config_get_all(tmp_repo: Path) -> None:
 
 
 def test_config_set(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     repo.config_set("demo.answer", "42")
     assert repo.config_get("demo.answer") == "42"
 

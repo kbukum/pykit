@@ -221,7 +221,11 @@ def grep(
 ) -> list[GrepMatch]:
     """Search file contents at a revision."""
     options = opts or GrepOptions()
-    regex = re.compile(pattern, re.IGNORECASE if options.ignore_case else 0)
+    try:
+        regex = re.compile(pattern, re.IGNORECASE if options.ignore_case else 0)
+    except re.error as exc:
+        msg = f"invalid grep pattern: {pattern!r}"
+        raise ValueError(msg) from exc
     tree = commit_for_ref(repo, revision).tree
     matches: list[GrepMatch] = []
     for path, blob in walk_blobs(repo, tree):

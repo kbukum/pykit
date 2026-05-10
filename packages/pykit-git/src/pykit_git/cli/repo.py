@@ -106,5 +106,13 @@ def discover(path: str | Path) -> Backend:
 def clone(url: str, path: str | Path) -> Backend:
     """Clone a repository using git CLI."""
     abs_path = Path(path).resolve()
-    subprocess.run(["git", "clone", url, str(abs_path)], capture_output=True, check=True, text=True)
+    try:
+        subprocess.run(["git", "clone", url, str(abs_path)], capture_output=True, check=True, text=True)
+    except subprocess.CalledProcessError as exc:
+        from pykit_git.errors import internal_error
+
+        raise internal_error(exc) from exc
+    except FileNotFoundError as exc:
+        msg = "git executable not found"
+        raise RuntimeError(msg) from exc
     return Backend(abs_path, executor=SubprocessExecutor(abs_path))

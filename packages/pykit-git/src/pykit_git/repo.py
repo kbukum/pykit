@@ -284,7 +284,7 @@ class Repo:
         return self._backend.clean(opts)
 
 
-def open(path: str | Path) -> Repo:
+def open_repo(path: str | Path) -> Repo:
     """Open a repository using the default backend."""
     return Repo.open(path)
 

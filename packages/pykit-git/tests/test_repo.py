@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 
 from pykit_errors import AppError
-from pykit_git import Repo, discover, init, init_bare, open
+from pykit_git import Repo, discover, init, init_bare, open_repo
 
 
 def test_open(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert isinstance(repo, Repo)
     assert repo.root == tmp_repo.resolve()
 
@@ -51,7 +51,7 @@ def test_repo_init_bare_classmethod(tmp_path: Path) -> None:
 
 def test_open_nonexistent() -> None:
     with pytest.raises(AppError):
-        open("/nonexistent/path")
+        open_repo("/nonexistent/path")
 
 
 def test_discover(tmp_repo: Path) -> None:
@@ -62,7 +62,7 @@ def test_discover(tmp_repo: Path) -> None:
 
 
 def test_head(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     ref = repo.head()
     assert not ref.target.is_zero()
 
@@ -79,34 +79,34 @@ def test_head_unborn_branch_raises_invalid_input(tmp_path: Path) -> None:
 
 def test_resolve_ref(tmp_repo: Path, create_branch: Callable[[Path, str], None]) -> None:
     create_branch(tmp_repo, "feature")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     oid = repo.resolve_ref("feature")
     assert not oid.is_zero()
 
 
 def test_rev_parse(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.rev_parse("HEAD") == repo.resolve_ref("HEAD")
 
 
 def test_resolve_ref_not_found(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     with pytest.raises(AppError):
         repo.resolve_ref("nonexistent")
 
 
 def test_is_dirty_clean(tmp_repo: Path) -> None:
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert not repo.is_dirty()
 
 
 def test_is_dirty_modified(tmp_repo: Path, make_dirty: Callable[[Path, str], None]) -> None:
     make_dirty(tmp_repo, "README.md")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.is_dirty()
 
 
 def test_is_dirty_untracked(tmp_repo: Path, make_untracked: Callable[[Path, str], None]) -> None:
     make_untracked(tmp_repo, "new.txt")
-    repo = open(tmp_repo)
+    repo = open_repo(tmp_repo)
     assert repo.is_dirty()
