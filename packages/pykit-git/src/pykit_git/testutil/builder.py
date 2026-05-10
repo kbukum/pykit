@@ -86,6 +86,7 @@ class RepoBuilder:
         try:
             parent.rmdir()
         except OSError:
+            # Best-effort cleanup: parent may be non-empty or already removed.
             pass
 
     def __enter__(self) -> RepoBuilder:
