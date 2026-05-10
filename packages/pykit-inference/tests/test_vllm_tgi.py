@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from pykit_authz import Decision, DecisionRequest
+from pykit_httpclient import HttpClient, HttpConfig
 from pykit_inference import PredictRequest, PredictStatus, Value, ValueKind
 from pykit_inference.errors import InferenceAuthorizationError, InferenceHTTPError
 from pykit_inference.registry import Registry
@@ -48,7 +49,7 @@ async def test_vllm_predict_happy_path() -> None:
             },
         )
 
-    client = httpx.AsyncClient(base_url="http://vllm.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://vllm.test"), transport=httpx.MockTransport(handler))
     adapter = VLLMInference(VLLMConfig(base_url="http://vllm.test", model="llama3"), client=client)
 
     response = await adapter.predict(
@@ -64,19 +65,19 @@ async def test_vllm_predict_happy_path() -> None:
     assert response.model.name == "llama3"
     assert response.metadata.get("finish_reason") == "stop"
     assert response.status is PredictStatus.SUCCESS
-    await client.aclose()
+    await client.close()
 
 
 async def test_vllm_predict_http_error() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(503, text="service unavailable")
 
-    client = httpx.AsyncClient(base_url="http://vllm.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://vllm.test"), transport=httpx.MockTransport(handler))
     adapter = VLLMInference(VLLMConfig(base_url="http://vllm.test"), client=client)
 
     with pytest.raises(InferenceHTTPError, match="HTTP 503"):
         await adapter.predict(PredictRequest(model_name="llama3"))
-    await client.aclose()
+    await client.close()
 
 
 async def test_vllm_denied_by_decider() -> None:
@@ -112,7 +113,18 @@ def test_vllm_descriptor() -> None:
 
 
 @pytest.mark.asyncio
-async def test_vllm_close_only_closes_owned_client() -> None:
+async def test_vllm_close_only_closes_injected_canonical_client() -> None:
+    injected = HttpClient(HttpConfig(base_url="http://vllm.test"))
+    adapter = VLLMInference(VLLMConfig(base_url="http://vllm.test"), client=injected)
+
+    await adapter.close()
+
+    assert injected.is_closed is False
+    await injected.close()
+
+
+@pytest.mark.asyncio
+async def test_vllm_accepts_raw_async_client_for_backward_compatibility() -> None:
     injected = httpx.AsyncClient(base_url="http://vllm.test")
     adapter = VLLMInference(VLLMConfig(base_url="http://vllm.test"), client=injected)
 
@@ -155,7 +167,7 @@ async def test_tgi_predict_happy_path() -> None:
             },
         )
 
-    client = httpx.AsyncClient(base_url="http://tgi.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://tgi.test"), transport=httpx.MockTransport(handler))
     adapter = TGIInference(TGIConfig(base_url="http://tgi.test", model="mistral-7b"), client=client)
 
     response = await adapter.predict(
@@ -171,19 +183,19 @@ async def test_tgi_predict_happy_path() -> None:
     assert response.model.name == "mistral-7b"
     assert response.metadata.get("finish_reason") == "stop"
     assert response.status is PredictStatus.SUCCESS
-    await client.aclose()
+    await client.close()
 
 
 async def test_tgi_predict_http_error() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(502, text="bad gateway")
 
-    client = httpx.AsyncClient(base_url="http://tgi.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://tgi.test"), transport=httpx.MockTransport(handler))
     adapter = TGIInference(TGIConfig(base_url="http://tgi.test"), client=client)
 
     with pytest.raises(InferenceHTTPError, match="HTTP 502"):
         await adapter.predict(PredictRequest(model_name="mistral-7b"))
-    await client.aclose()
+    await client.close()
 
 
 async def test_tgi_denied_by_decider() -> None:
@@ -219,7 +231,18 @@ def test_tgi_descriptor() -> None:
 
 
 @pytest.mark.asyncio
-async def test_tgi_close_only_closes_owned_client() -> None:
+async def test_tgi_close_only_closes_injected_canonical_client() -> None:
+    injected = HttpClient(HttpConfig(base_url="http://tgi.test"))
+    adapter = TGIInference(TGIConfig(base_url="http://tgi.test"), client=injected)
+
+    await adapter.close()
+
+    assert injected.is_closed is False
+    await injected.close()
+
+
+@pytest.mark.asyncio
+async def test_tgi_accepts_raw_async_client_for_backward_compatibility() -> None:
     injected = httpx.AsyncClient(base_url="http://tgi.test")
     adapter = TGIInference(TGIConfig(base_url="http://tgi.test"), client=injected)
 

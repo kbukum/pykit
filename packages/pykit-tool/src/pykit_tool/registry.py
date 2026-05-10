@@ -7,7 +7,12 @@ import builtins
 import threading
 from dataclasses import dataclass
 
+from opentelemetry import trace
+from opentelemetry.trace import Tracer
+
 from pykit_ai import JsonValue
+from pykit_ai.semconv import GENAI_OPERATION_NAME, GENAI_OPERATION_TOOL_CALL, GENAI_TOOL_NAME
+from pykit_component import Health, HealthStatus
 from pykit_resilience import Policy
 from pykit_tool.callable import Callable
 from pykit_tool.context import Context
@@ -56,6 +61,7 @@ class Registry:
         sensitivity_evaluator: SensitivityEvaluator | None = None,
         human_approval: HumanApproval | None = None,
         policy: Policy | None = None,
+        tracer: Tracer | None = None,
     ) -> None:
         self._tools: dict[str, Callable] = {}
         self._tool_policies: dict[str, Policy] = {}
@@ -63,6 +69,29 @@ class Registry:
         self._sensitivity = sensitivity_evaluator or DenyOnSensitiveEvaluator()
         self._approval = human_approval or DenyHumanApproval()
         self._policy = policy
+        self._tracer = tracer or trace.get_tracer("pykit_tool")
+        self._started = False
+
+    @property
+    def name(self) -> str:
+        """Return the registry component name."""
+        return "tool-registry"
+
+    async def start(self) -> None:
+        """Mark the registry ready for tool calls."""
+        self._started = True
+
+    async def stop(self) -> None:
+        """Mark the registry stopped."""
+        self._started = False
+
+    async def health(self) -> Health:
+        """Return the registry lifecycle health."""
+        if not self._started:
+            return Health(name=self.name, status=HealthStatus.UNHEALTHY, message="not started")
+        with self._lock:
+            count = len(self._tools)
+        return Health(name=self.name, status=HealthStatus.HEALTHY, message=f"tools={count}")
 
     def register(self, tool: Callable) -> None:
         """Register a tool. Raises ValueError on duplicate names."""
@@ -120,27 +149,33 @@ class Registry:
         resilience policy → invoke. Authz is the caller's responsibility (e.g.,
         the MCP server applies it before calling here).
         """
-        tool = self.get(name)
-        if tool is None:
-            msg = f"tool not found: {name!r}"
-            raise KeyError(msg)
+        with self._tracer.start_as_current_span("tool.call") as span:
+            span.set_attribute(GENAI_OPERATION_NAME, GENAI_OPERATION_TOOL_CALL)
+            span.set_attribute(GENAI_TOOL_NAME, name)
+            if ctx.tool_use_id:
+                span.set_attribute("tool.use_id", ctx.tool_use_id)
 
-        call = ToolCall(tool_name=name, arguments=input_data, envelope=tool.definition.envelope)
-        decision = await evaluate_envelope(self._sensitivity, call)
-        if decision is Decision.DENY:
-            raise SensitivityDeniedError(f"sensitive invocation denied: {name!r}")
-        if decision is Decision.REQUIRE_APPROVAL and not await self._approval.approve(call):
-            raise HumanApprovalDeniedError(f"human approval denied: {name!r}")
+            tool = self.get(name)
+            if tool is None:
+                msg = f"tool not found: {name!r}"
+                raise KeyError(msg)
 
-        with self._lock:
-            policy = self._tool_policies.get(name, self._policy)
+            call = ToolCall(tool_name=name, arguments=input_data, envelope=tool.definition.envelope)
+            decision = await evaluate_envelope(self._sensitivity, call)
+            if decision is Decision.DENY:
+                raise SensitivityDeniedError(f"sensitive invocation denied: {name!r}")
+            if decision is Decision.REQUIRE_APPROVAL and not await self._approval.approve(call):
+                raise HumanApprovalDeniedError(f"human approval denied: {name!r}")
 
-        async def _invoke() -> Result:
-            return await tool.call(ctx, input_data)
+            with self._lock:
+                policy = self._tool_policies.get(name, self._policy)
 
-        if policy is None:
-            return await _invoke()
-        return await policy.execute(_invoke)
+            async def _invoke() -> Result:
+                return await tool.call(ctx, input_data)
+
+            if policy is None:
+                return await _invoke()
+            return await policy.execute(_invoke)
 
     async def call_batch(
         self,

@@ -1,5 +1,6 @@
-.PHONY: all build test test-coverage test-affected test-unit lint typecheck fmt fmt-check sync update check check-fast clean help \
-       ci ci-test ci-lint ensure-act
+.PHONY: all build test test-coverage test-affected test-unit lint typecheck fmt fmt-check sync update check check-fast \
+       check-core check-patterns check-crosscutting check-composition check-transport check-auth check-data check-ai \
+       check-media check-infra clean help ci ci-test ci-lint ensure-act
 
 # Package flag: pass package name when P is set
 _P = $(if $(P),packages/$(P))
@@ -75,6 +76,46 @@ update:
 
 ## Run all checks (fmt-check + lint + typecheck + test)
 check: fmt-check lint typecheck test
+
+## Check only core domain modules
+check-core:
+	@./scripts/check-domain.sh core
+
+## Check only patterns domain modules
+check-patterns:
+	@./scripts/check-domain.sh patterns
+
+## Check only crosscutting domain modules
+check-crosscutting:
+	@./scripts/check-domain.sh crosscutting
+
+## Check only composition domain modules
+check-composition:
+	@./scripts/check-domain.sh composition
+
+## Check only transport domain modules
+check-transport:
+	@./scripts/check-domain.sh transport
+
+## Check only auth domain modules
+check-auth:
+	@./scripts/check-domain.sh auth
+
+## Check only data domain modules
+check-data:
+	@./scripts/check-domain.sh data
+
+## Check only ai domain modules
+check-ai:
+	@./scripts/check-domain.sh ai
+
+## Check only media domain modules
+check-media:
+	@./scripts/check-domain.sh media
+
+## Check only infra domain modules
+check-infra:
+	@./scripts/check-domain.sh infra
 
 ## Fast check: format + lint + typecheck only (no tests) — for rapid iteration
 check-fast: fmt-check lint typecheck
@@ -156,6 +197,16 @@ help:
 	@echo "  make update                         Update lockfile"
 	@echo "  make check-fast                     fmt-check + lint + typecheck"
 	@echo "  make check              [P=]       fmt-check + lint + typecheck + test"
+	@echo "  make check-core                    Check only core domain modules"
+	@echo "  make check-patterns                Check only patterns domain modules"
+	@echo "  make check-crosscutting            Check only crosscutting domain modules"
+	@echo "  make check-composition             Check only composition domain modules"
+	@echo "  make check-transport               Check only transport domain modules"
+	@echo "  make check-auth                    Check only auth domain modules"
+	@echo "  make check-data                    Check only data domain modules"
+	@echo "  make check-ai                      Check only ai domain modules"
+	@echo "  make check-media                   Check only media domain modules"
+	@echo "  make check-infra                   Check only infra domain modules"
 	@echo "  make clean                          Remove build artifacts"
 	@echo ""
 	@echo "Local CI (GitHub Actions via act + Docker):"

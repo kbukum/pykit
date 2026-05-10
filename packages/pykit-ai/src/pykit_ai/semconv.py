@@ -11,6 +11,7 @@ class Operation(StrEnum):
     CHAT = "chat"
     TEXT_COMPLETION = "text_completion"
     EMBEDDING = "embedding"
+    AGENT_RUN = "agent.run"
     AGENT_TURN = "agent.turn"
     LLM_CALL = "llm.call"
     TOOL_CALL = "tool.call"
@@ -23,6 +24,7 @@ GENAI_OPERATION_NAME = "gen_ai.operation.name"
 GENAI_OPERATION_CHAT = Operation.CHAT.value
 GENAI_OPERATION_TEXT_COMPLETION = Operation.TEXT_COMPLETION.value
 GENAI_OPERATION_EMBEDDING = Operation.EMBEDDING.value
+GENAI_OPERATION_AGENT_RUN = Operation.AGENT_RUN.value
 GENAI_OPERATION_AGENT_TURN = Operation.AGENT_TURN.value
 GENAI_OPERATION_LLM_CALL = Operation.LLM_CALL.value
 GENAI_OPERATION_TOOL_CALL = Operation.TOOL_CALL.value
@@ -45,6 +47,7 @@ GENAI_USAGE_REASONING_TOKENS = "gen_ai.usage.reasoning_tokens"
 
 __all__ = [
     "GENAI_OPERATION_AGENT_TURN",
+    "GENAI_OPERATION_AGENT_RUN",
     "GENAI_OPERATION_CHAT",
     "GENAI_OPERATION_EMBEDDING",
     "GENAI_OPERATION_INFERENCE",

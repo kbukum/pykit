@@ -18,6 +18,7 @@ from pykit_llm import (
 )
 from pykit_llm.errors import LLMError, LLMErrorCode
 from pykit_llm_providers.openai import OpenAIConfig, OpenAIEmbeddingProvider, OpenAIProvider
+from pykit_resilience import Policy, PolicyConfig, RetryConfig
 
 
 def _mock_transport(handler):
@@ -461,6 +462,38 @@ class TestOpenAIEmbeddingProvider:
                     EmbedRequest(model=Model(name="text-embedding-3-small"), inputs=[Text(text="hello")])
                 )
             assert exc_info.value.retryable is False
+        finally:
+            await provider.close()
+
+    async def test_embed_uses_resilience_policy(self, config: OpenAIConfig) -> None:
+        attempts = 0
+
+        def handler(_request: httpx.Request) -> httpx.Response:
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1:
+                return httpx.Response(500, text="try again")
+            return httpx.Response(200, json=_embedding_response([[0.1, 0.2, 0.3]]))
+
+        from pykit_ai import Model
+        from pykit_embedding import EmbedRequest, Text
+        from pykit_httpclient import AuthConfig, HttpClient, HttpConfig
+
+        http_config = HttpConfig(
+            name="test-embedding",
+            base_url="https://api.openai.com/v1",
+            timeout=30.0,
+            auth=AuthConfig(type="bearer", token="sk-test"),
+        )
+        client = HttpClient(http_config, transport=_mock_transport(handler))
+        policy = Policy(PolicyConfig(retry=RetryConfig(max_attempts=2, initial_backoff=0.001)))
+        provider = OpenAIEmbeddingProvider(config, client=client, policy=policy)
+        try:
+            result = await provider.embed(
+                EmbedRequest(model=Model(name="text-embedding-3-small"), inputs=[Text(text="hello")])
+            )
+            assert len(result.embeddings) == 1
+            assert attempts == 2
         finally:
             await provider.close()
 

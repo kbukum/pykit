@@ -23,6 +23,7 @@ from pykit_ai import (
     Usage,
     UsageDelta,
 )
+from pykit_provider import RequestResponse
 from pykit_tool import Envelope
 
 
@@ -132,14 +133,17 @@ class ChunkEvent(BaseModel):
 
 
 @runtime_checkable
-class Inference(Protocol):
-    """Async model-serving inference adapter."""
+class Inference(RequestResponse[PredictRequest, PredictResponse], Protocol):
+    """Async model-serving inference adapter with native request/response shape."""
 
     def descriptor(self) -> InferenceDescriptor:
         """Return metadata describing the inference backend."""
 
     async def predict(self, request: PredictRequest) -> PredictResponse:
         """Run inference for a single prediction request."""
+
+    async def execute(self, input: PredictRequest) -> PredictResponse:
+        """Execute a single prediction request and return its response."""
 
 
 @runtime_checkable

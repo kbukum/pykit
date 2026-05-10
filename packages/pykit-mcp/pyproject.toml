@@ -7,11 +7,13 @@ license = { text = "MIT" }
 keywords = ["mcp", "model-context-protocol", "ai", "tools"]
 requires-python = ">=3.13"
 dependencies = [
+    "pykit-ai",
     "pykit-tool",
     "pykit-schema",
     "pykit-authz",
     "pykit-security",
     "mcp>=1.0",
+    "opentelemetry-api",
 ]
 
 [build-system]

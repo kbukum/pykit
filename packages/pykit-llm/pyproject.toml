@@ -12,6 +12,7 @@ dependencies = [
     "pykit-errors",
     "pykit-tool",
     "pykit-component",
+    "pykit-provider",
 ]
 
 [build-system]

@@ -6,9 +6,19 @@ import hashlib
 import time
 from typing import Protocol, runtime_checkable
 
+from opentelemetry import trace
+from opentelemetry.trace import Tracer
+
 from pykit_ai import Usage
+from pykit_ai.semconv import (
+    GENAI_OPERATION_EMBEDDING,
+    GENAI_OPERATION_NAME,
+    GENAI_REQUEST_MODEL,
+    GENAI_SYSTEM,
+)
 from pykit_component import Health, HealthStatus
 from pykit_embedding.types import Audio, Embedding, EmbedRequest, EmbedResponse, Image, Text, Video
+from pykit_provider import RequestResponse
 
 
 class EmbeddingError(Exception):
@@ -20,7 +30,7 @@ class EmbeddingError(Exception):
 
 
 @runtime_checkable
-class Provider(Protocol):
+class Provider(RequestResponse[EmbedRequest, EmbedResponse], Protocol):
     """Canonical embedding provider.
 
     Natively satisfies pykit-provider ``RequestResponse[EmbedRequest,
@@ -59,9 +69,10 @@ class ProviderBase:
 
     _name: str = "embedding"
 
-    def __init__(self) -> None:
+    def __init__(self, *, tracer: Tracer | None = None) -> None:
         self._last_call_at: float = 0.0
         self._started: bool = False
+        self._tracer = tracer or trace.get_tracer("pykit_embedding")
 
     @property
     def name(self) -> str:
@@ -89,21 +100,28 @@ class InMemoryProvider(ProviderBase):
 
     _name = "in-memory"
 
-    def __init__(self, *, dimensions: int = 8) -> None:
-        super().__init__()
+    def __init__(self, *, dimensions: int = 8, tracer: Tracer | None = None) -> None:
+        super().__init__(tracer=tracer)
         if dimensions <= 0:
             raise ValueError("dimensions must be positive")
         self._dimensions = dimensions
 
     async def embed(self, req: EmbedRequest) -> EmbedResponse:
-        self._touch()
-        embeddings = [
-            Embedding(
-                vector=_vector_for_input(input_, self._dimensions), dimensions=self._dimensions, index=index
-            )
-            for index, input_ in enumerate(req.inputs)
-        ]
-        return EmbedResponse(embeddings=embeddings, model=req.model, usage=Usage())
+        with self._tracer.start_as_current_span("embedding.embed") as span:
+            span.set_attribute(GENAI_SYSTEM, "in_memory")
+            span.set_attribute(GENAI_OPERATION_NAME, GENAI_OPERATION_EMBEDDING)
+            span.set_attribute(GENAI_REQUEST_MODEL, req.model.name)
+            span.set_attribute("embedding.input_count", len(req.inputs))
+            self._touch()
+            embeddings = [
+                Embedding(
+                    vector=_vector_for_input(input_, self._dimensions),
+                    dimensions=self._dimensions,
+                    index=index,
+                )
+                for index, input_ in enumerate(req.inputs)
+            ]
+            return EmbedResponse(embeddings=embeddings, model=req.model, usage=Usage())
 
     async def embed_batch(self, reqs: list[EmbedRequest]) -> list[EmbedResponse]:
         return [await self.embed(req) for req in reqs]

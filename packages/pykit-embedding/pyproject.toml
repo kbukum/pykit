@@ -11,6 +11,8 @@ dependencies = [
     "pydantic>=2.12.0,<3.0",
     "pykit-ai",
     "pykit-component",
+    "pykit-provider",
+    "opentelemetry-api",
 ]
 
 [build-system]

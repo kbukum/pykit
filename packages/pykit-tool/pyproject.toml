@@ -8,9 +8,11 @@ keywords = ["tools", "agent", "registry", "ai"]
 requires-python = ">=3.13"
 dependencies = [
     "pykit-ai",
+    "pykit-component",
     "pykit-schema",
     "pykit-provider",
     "pykit-resilience",
+    "opentelemetry-api",
 ]
 
 [build-system]

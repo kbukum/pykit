@@ -8,6 +8,7 @@ import httpx
 import pytest
 
 from pykit_authz import Decision, DecisionRequest
+from pykit_httpclient import HttpClient, HttpConfig
 from pykit_inference import PredictRequest, PredictStatus, Tensor, Value, ValueKind
 from pykit_inference.errors import InferenceAuthorizationError, InferenceHTTPError
 from pykit_inference.registry import Registry
@@ -59,7 +60,7 @@ async def test_triton_predict_happy_path() -> None:
             },
         )
 
-    client = httpx.AsyncClient(base_url="http://triton.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://triton.test"), transport=httpx.MockTransport(handler))
     adapter = TritonInference(
         TritonConfig(base_url="http://triton.test"), client=client, decider=AllowDecider()
     )
@@ -87,19 +88,19 @@ async def test_triton_predict_happy_path() -> None:
     assert response.model.name == "classifier"
     assert response.model.version == "v2"
     assert response.status is PredictStatus.SUCCESS
-    await client.aclose()
+    await client.close()
 
 
 async def test_triton_predict_error_response() -> None:
     async def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(503, text="not ready")
 
-    client = httpx.AsyncClient(base_url="http://triton.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://triton.test"), transport=httpx.MockTransport(handler))
     adapter = TritonInference(TritonConfig(base_url="http://triton.test"), client=client)
 
     with pytest.raises(InferenceHTTPError, match="HTTP 503"):
         await adapter.predict(PredictRequest(model_name="classifier"))
-    await client.aclose()
+    await client.close()
 
 
 async def test_triton_generates_request_id() -> None:
@@ -110,14 +111,14 @@ async def test_triton_generates_request_id() -> None:
         seen["id"] = payload["id"]
         return httpx.Response(200, json={"model_name": "classifier", "outputs": []})
 
-    client = httpx.AsyncClient(base_url="http://triton.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://triton.test"), transport=httpx.MockTransport(handler))
     adapter = TritonInference(TritonConfig(base_url="http://triton.test"), client=client)
 
     await adapter.predict(PredictRequest(model_name="classifier"))
 
     assert seen["id"]
     assert len(seen["id"].split("-")) == 5
-    await client.aclose()
+    await client.close()
 
 
 async def test_triton_health_probe() -> None:
@@ -125,11 +126,11 @@ async def test_triton_health_probe() -> None:
         assert request.url.path == "/v2/health/ready"
         return httpx.Response(200)
 
-    client = httpx.AsyncClient(base_url="http://triton.test", transport=httpx.MockTransport(handler))
+    client = HttpClient(HttpConfig(base_url="http://triton.test"), transport=httpx.MockTransport(handler))
     adapter = TritonInference(TritonConfig(base_url="http://triton.test"), client=client)
 
     assert await adapter.health_check() is True
-    await client.aclose()
+    await client.close()
 
 
 async def test_triton_denied_by_decider() -> None:
@@ -157,7 +158,18 @@ async def test_triton_register_factory() -> None:
 
 
 @pytest.mark.asyncio
-async def test_triton_close_only_closes_owned_client() -> None:
+async def test_triton_close_only_closes_injected_canonical_client() -> None:
+    injected = HttpClient(HttpConfig(base_url="http://triton.test"))
+    adapter = TritonInference(TritonConfig(base_url="http://triton.test"), client=injected)
+
+    await adapter.close()
+
+    assert injected.is_closed is False
+    await injected.close()
+
+
+@pytest.mark.asyncio
+async def test_triton_accepts_raw_async_client_for_backward_compatibility() -> None:
     injected = httpx.AsyncClient(base_url="http://triton.test")
     adapter = TritonInference(TritonConfig(base_url="http://triton.test"), client=injected)
 

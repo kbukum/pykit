@@ -24,8 +24,11 @@ from mcp.types import (
     TextContent,
     Tool,
 )
+from opentelemetry import trace
+from opentelemetry.trace import Tracer
 
 from pykit_ai import JsonValue
+from pykit_ai.semconv import GENAI_OPERATION_MCP_REQUEST, GENAI_OPERATION_NAME, GENAI_TOOL_NAME
 from pykit_authz import Decider, DecisionRequest
 from pykit_mcp.convert import definition_to_mcp_tool, result_to_mcp_result
 from pykit_schema import ValidationResult, validate
@@ -117,6 +120,7 @@ def create_server(
     prompts: Iterable[PromptEntry] | None = None,
     resources: Iterable[ResourceEntry] | None = None,
     resource_templates: Iterable[ResourceTemplateEntry] | None = None,
+    tracer: Tracer | None = None,
 ) -> Server:
     """Create an MCP Server backed by a pykit tool registry.
 
@@ -147,6 +151,7 @@ def create_server(
     if max_result_bytes < 0:
         raise ValueError("max_result_bytes must be >= 0")
     prompt_entries = tuple(prompts or ())
+    otel_tracer = tracer or trace.get_tracer("pykit_mcp")
     resource_entries = tuple(resources or ())
     resource_template_entries = tuple(resource_templates or ())
     prompt_map = {entry.prompt.name: entry for entry in prompt_entries}
@@ -220,126 +225,133 @@ def create_server(
 
     @server.call_tool()  # type: ignore[untyped-decorator]  # untyped decorator from mcp library
     async def _call_tool(name: str, arguments: JsonObject | None) -> CallToolResult:
-        # Strip prefix to get the registry tool name.
-        tool_name = name
-        if prefix and tool_name.startswith(prefix):
-            tool_name = tool_name[len(prefix) :]
-        input_data = arguments or {}
-        outcome = "success"
-        reason = ""
-        error = ""
+        with otel_tracer.start_as_current_span("mcp.request") as span:
+            # Strip prefix to get the registry tool name.
+            tool_name = name
+            if prefix and tool_name.startswith(prefix):
+                tool_name = tool_name[len(prefix) :]
+            span.set_attribute(GENAI_OPERATION_NAME, GENAI_OPERATION_MCP_REQUEST)
+            span.set_attribute(GENAI_TOOL_NAME, tool_name)
+            span.set_attribute("mcp.method", "tools/call")
+            span.set_attribute("mcp.tool_name", name)
+            input_data = arguments or {}
+            outcome = "success"
+            reason = ""
+            error = ""
 
-        try:
-            if not is_allowed(tool_name):
-                outcome = "denied"
-                reason = "not in allow-list"
-                return CallToolResult(
-                    content=[TextContent(type="text", text=f"tool not allowed: {tool_name!r}")],
-                    isError=True,
-                )
-
-            tool = registry.get(tool_name)
-            if tool is None:
-                outcome = "not_found"
-                error = f"tool not found: {tool_name!r}"
-                return CallToolResult(
-                    content=[TextContent(type="text", text=error)],
-                    isError=True,
-                )
-
-            decision = await _authorize_tool_call(
-                tool_authorizer,
-                ToolAuthorizationRequest(tool_name=tool_name, mcp_name=name, arguments=input_data),
-            )
-            if decision.allowed and decider is not None:
-                authz_decision = await decider.decide(
-                    DecisionRequest(
-                        principal="mcp",
-                        action="tool:invoke",
-                        resource=tool_name,
-                        scopes=tuple(tool.definition.envelope.scopes),
-                        context={"mcp_name": name},
-                    )
-                )
-                decision = ToolAuthorizationDecision(authz_decision.allowed, authz_decision.reason)
-            reason = decision.reason
-            if not decision.allowed:
-                outcome = "denied"
-                return CallToolResult(
-                    content=[TextContent(type="text", text=_denied_message(decision.reason))],
-                    isError=True,
-                )
-
-            if max_input_bytes > 0 and _json_size_bytes(input_data) > max_input_bytes:
-                outcome = "input_too_large"
-                error = f"input size exceeds {max_input_bytes} bytes"
-                return CallToolResult(
-                    content=[
-                        TextContent(
-                            type="text",
-                            text=f"input too large: exceeds {max_input_bytes} bytes",
-                        )
-                    ],
-                    isError=True,
-                )
-
-            # Validate input.
-            validation = tool.validate(input_data)
-            if not validation.valid:
-                error_text = "; ".join(str(e) for e in validation.errors)
-                outcome = "validation_error"
-                error = error_text
-                return CallToolResult(
-                    content=[TextContent(type="text", text=f"validation error: {error_text}")],
-                    isError=True,
-                )
-
-            ctx = Context()
-            limit = max_result_bytes
-            if limit > 0:
-                ctx.max_result_size = limit
-            result = await registry.call(tool_name, ctx, input_data)
-            if result.is_error:
-                outcome = "tool_error"
-                error = result.text()
-            else:
-                if limit > 0 and _result_size_bytes(result) > limit:
-                    outcome = "result_too_large"
-                    error = f"result size exceeds {limit} bytes"
+            try:
+                if not is_allowed(tool_name):
+                    outcome = "denied"
+                    reason = "not in allow-list"
                     return CallToolResult(
-                        content=[TextContent(type="text", text=f"result too large: exceeds {limit} bytes")],
+                        content=[TextContent(type="text", text=f"tool not allowed: {tool_name!r}")],
                         isError=True,
                     )
-                output_validation = _validate_tool_output(tool.definition, result)
-                if not output_validation.valid:
-                    output_error = "; ".join(str(e.message) for e in output_validation.errors)
-                    outcome = "output_validation_error"
-                    error = output_error
+
+                tool = registry.get(tool_name)
+                if tool is None:
+                    outcome = "not_found"
+                    error = f"tool not found: {tool_name!r}"
+                    return CallToolResult(
+                        content=[TextContent(type="text", text=error)],
+                        isError=True,
+                    )
+
+                decision = await _authorize_tool_call(
+                    tool_authorizer,
+                    ToolAuthorizationRequest(tool_name=tool_name, mcp_name=name, arguments=input_data),
+                )
+                if decision.allowed and decider is not None:
+                    authz_decision = await decider.decide(
+                        DecisionRequest(
+                            principal="mcp",
+                            action="tool:invoke",
+                            resource=tool_name,
+                            scopes=tuple(tool.definition.envelope.scopes),
+                            context={"mcp_name": name},
+                        )
+                    )
+                    decision = ToolAuthorizationDecision(authz_decision.allowed, authz_decision.reason)
+                reason = decision.reason
+                if not decision.allowed:
+                    outcome = "denied"
+                    return CallToolResult(
+                        content=[TextContent(type="text", text=_denied_message(decision.reason))],
+                        isError=True,
+                    )
+
+                if max_input_bytes > 0 and _json_size_bytes(input_data) > max_input_bytes:
+                    outcome = "input_too_large"
+                    error = f"input size exceeds {max_input_bytes} bytes"
                     return CallToolResult(
                         content=[
                             TextContent(
                                 type="text",
-                                text=f"output validation error: {output_error}",
+                                text=f"input too large: exceeds {max_input_bytes} bytes",
                             )
                         ],
                         isError=True,
                     )
-            return result_to_mcp_result(result)
-        except Exception as exc:
-            outcome = "tool_error"
-            error = str(exc)
-            raise
-        finally:
-            await _audit_tool_call(
-                tool_audit_sink,
-                ToolAuditEvent(
-                    tool_name=tool_name,
-                    mcp_name=name,
-                    outcome=outcome,
-                    reason=reason,
-                    error=error,
-                ),
-            )
+
+                # Validate input.
+                validation = tool.validate(input_data)
+                if not validation.valid:
+                    error_text = "; ".join(str(e) for e in validation.errors)
+                    outcome = "validation_error"
+                    error = error_text
+                    return CallToolResult(
+                        content=[TextContent(type="text", text=f"validation error: {error_text}")],
+                        isError=True,
+                    )
+
+                ctx = Context()
+                limit = max_result_bytes
+                if limit > 0:
+                    ctx.max_result_size = limit
+                result = await registry.call(tool_name, ctx, input_data)
+                if result.is_error:
+                    outcome = "tool_error"
+                    error = result.text()
+                else:
+                    if limit > 0 and _result_size_bytes(result) > limit:
+                        outcome = "result_too_large"
+                        error = f"result size exceeds {limit} bytes"
+                        return CallToolResult(
+                            content=[
+                                TextContent(type="text", text=f"result too large: exceeds {limit} bytes")
+                            ],
+                            isError=True,
+                        )
+                    output_validation = _validate_tool_output(tool.definition, result)
+                    if not output_validation.valid:
+                        output_error = "; ".join(str(e.message) for e in output_validation.errors)
+                        outcome = "output_validation_error"
+                        error = output_error
+                        return CallToolResult(
+                            content=[
+                                TextContent(
+                                    type="text",
+                                    text=f"output validation error: {output_error}",
+                                )
+                            ],
+                            isError=True,
+                        )
+                return result_to_mcp_result(result)
+            except Exception as exc:
+                outcome = "tool_error"
+                error = str(exc)
+                raise
+            finally:
+                await _audit_tool_call(
+                    tool_audit_sink,
+                    ToolAuditEvent(
+                        tool_name=tool_name,
+                        mcp_name=name,
+                        outcome=outcome,
+                        reason=reason,
+                        error=error,
+                    ),
+                )
 
     return server
 
