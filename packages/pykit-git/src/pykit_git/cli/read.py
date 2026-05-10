@@ -91,7 +91,7 @@ class ReadBackend:
         if options.ignore_case:
             args.append("-i")
         args.extend(options.extra_args)
-        args.append(pattern)
+        args.extend(["-e", pattern])
         if revision:
             args.append(revision)
         result = self._executor.run(*args)
@@ -111,7 +111,11 @@ class ReadBackend:
                 path, lineno, content = parts[0], parts[1], parts[2]
             else:
                 continue
-            column = content.find(pattern) + 1 if pattern in content else 1
+            if options.ignore_case:
+                idx = content.casefold().find(pattern.casefold())
+            else:
+                idx = content.find(pattern)
+            column = idx + 1 if idx >= 0 else 1
             matches.append(GrepMatch(path=path, line=int(lineno), column=column, content=content))
         return matches
 
