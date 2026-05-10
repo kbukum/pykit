@@ -40,6 +40,7 @@ dev = [
     "pykit-dag",
     "pykit-authz",
     "pykit-grpc",
+    "pykit-git",
     "pykit-observability",
     "pykit-stateful",
     "pykit-process",
@@ -118,6 +119,7 @@ pykit-embedding      = { workspace = true }
 pykit-encryption     = { workspace = true }
 pykit-errors         = { workspace = true }
 pykit-grpc           = { workspace = true }
+pykit-git            = { workspace = true }
 pykit-hook           = { workspace = true }
 pykit-httpclient     = { workspace = true }
 pykit-messaging     = { workspace = true }
@@ -389,6 +391,7 @@ packages = [
     "pykit_integration",
     "pykit_tool",
     "pykit_skill",
+    "pykit_git",
 ]
 
 [[tool.mypy.overrides]]
@@ -428,7 +431,7 @@ root_packages = [
     "pykit_llm", "pykit_ai", "pykit_inference", "pykit_bench", "pykit_dataset",
     "pykit_embedding", "pykit_vectorstore", "pykit_llm_providers",
     "pykit_transcription",
-    "pykit_agent", "pykit_discovery", "pykit_workload", "pykit_process",
+    "pykit_agent", "pykit_discovery", "pykit_git", "pykit_workload", "pykit_process",
     "pykit_testutil", "pykit_integration", "pykit_tool", "pykit_skill",
 ]
 
@@ -436,7 +439,7 @@ root_packages = [
 name = "Layer architecture"
 type = "layers"
 layers = [
-    "pykit_agent | pykit_workload | pykit_process | pykit_testutil | pykit_integration",
+    "pykit_agent | pykit_workload | pykit_process | pykit_git | pykit_testutil | pykit_integration",
     "pykit_skill",
     "pykit_inference | pykit_bench | pykit_dataset | pykit_transcription",
     "pykit_llm_providers",

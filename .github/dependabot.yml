@@ -5,6 +5,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "Etc/UTC"
     commit-message:
       prefix: "ci"
     labels:
@@ -24,6 +27,9 @@ updates:
       - "/packages/*"        # every workspace package
     schedule:
       interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "Etc/UTC"
     commit-message:
       prefix: "deps"
       include: "scope"
