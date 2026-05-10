@@ -55,9 +55,14 @@ def detached_head() -> AppError:
     return AppError.invalid_input("HEAD", "detached HEAD")
 
 
+def unborn_head() -> AppError:
+    """HEAD points to an unborn branch."""
+    return AppError.invalid_input("HEAD", "unborn HEAD")
+
+
 def invalid_line_range(start: int, end: int) -> AppError:
     """Invalid blame line range."""
-    return AppError.invalid_input("lineRange", f"invalid line range: start={start} end={end}")
+    return AppError.invalid_input("line_range", f"invalid line range: start={start} end={end}")
 
 
 def invalid_path(path: str) -> AppError:

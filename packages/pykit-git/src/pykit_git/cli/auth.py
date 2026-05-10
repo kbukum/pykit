@@ -26,5 +26,5 @@ def build_env(transport: BasicAuth | SSHKey | Token | None = None) -> Mapping[st
         }
     command = ["ssh", "-i", transport.private_key_path]
     if transport.public_key_path:
-        command.extend(["-o", f"IdentityFile={transport.public_key_path}"])
+        command.extend(["-o", f"CertificateFile={transport.public_key_path}"])
     return {"GIT_SSH_COMMAND": " ".join(shlex.quote(part) for part in command)}

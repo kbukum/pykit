@@ -67,6 +67,16 @@ def test_head(tmp_repo: Path) -> None:
     assert not ref.target.is_zero()
 
 
+def test_head_unborn_branch_raises_invalid_input(tmp_path: Path) -> None:
+    repo = init(tmp_path / "repo")
+
+    with pytest.raises(AppError) as exc_info:
+        repo.head()
+
+    assert exc_info.value.details["field"] == "HEAD"
+    assert "unborn HEAD" in exc_info.value.message
+
+
 def test_resolve_ref(tmp_repo: Path, create_branch: Callable[[Path, str], None]) -> None:
     create_branch(tmp_repo, "feature")
     repo = open(tmp_repo)

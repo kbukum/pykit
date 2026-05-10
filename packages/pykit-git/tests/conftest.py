@@ -12,7 +12,7 @@ import pytest
 @pytest.fixture
 def tmp_repo(tmp_path: Path) -> Path:
     """Create a new git repo with an initial commit."""
-    run_git(tmp_path, "init")
+    run_git(tmp_path, "init", "-b", "main")
     run_git(tmp_path, "config", "user.email", "test@test.com")
     run_git(tmp_path, "config", "user.name", "Test User")
     write_file(tmp_path, "README.md", "# test repo")

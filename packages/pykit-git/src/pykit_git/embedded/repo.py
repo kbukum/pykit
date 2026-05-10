@@ -13,6 +13,7 @@ from pykit_git.errors import (
     operation_not_supported,
     ref_not_found,
     repo_not_found,
+    unborn_head,
 )
 from pykit_git.options import (
     BlameOptions,
@@ -64,10 +65,14 @@ class Backend:
 
     def head(self) -> Reference:
         """Return the reference that HEAD points to."""
+        if self._repo.head_is_unborn:
+            raise unborn_head()
+        if self._repo.head_is_detached:
+            raise detached_head()
         try:
             head = self._repo.head
         except pygit2.GitError as exc:
-            raise detached_head() from exc
+            raise ref_not_found("HEAD") from exc
         return reference_from_pygit2(head)
 
     def resolve_ref(self, refname: str) -> Oid:

@@ -71,7 +71,8 @@ def diff_stats(repo: pygit2.Repository, from_ref: str, to_ref: str) -> DiffStats
 def status(repo: pygit2.Repository) -> list[StatusEntry]:
     """Return working tree status entries."""
     return [
-        StatusEntry(path=path, state=entry_state_from_flags(flags)) for path, flags in repo.status().items()
+        StatusEntry(path=path, state=entry_state_from_flags(flags))
+        for path, flags in sorted(repo.status().items(), key=lambda item: item[0])
     ]
 
 

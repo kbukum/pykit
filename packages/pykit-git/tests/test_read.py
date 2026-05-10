@@ -76,6 +76,21 @@ def test_status_dirty(
     assert any(entry.path == "untracked.txt" and entry.state == EntryState.UNTRACKED for entry in entries)
 
 
+def test_status_entries_are_sorted(
+    tmp_repo: Path,
+    make_untracked: Callable[[Path, str], None],
+    make_dirty: Callable[[Path, str], None],
+) -> None:
+    make_untracked(tmp_repo, "z-last.txt")
+    make_dirty(tmp_repo, "README.md")
+    make_untracked(tmp_repo, "a-first.txt")
+    repo = open(tmp_repo)
+
+    entries = repo.status()
+
+    assert [entry.path for entry in entries] == sorted(entry.path for entry in entries)
+
+
 def test_file_at(tmp_repo: Path, commit_file: Callable[[Path, str, str, str], None]) -> None:
     commit_file(tmp_repo, "hello.txt", "hello world", "add hello")
     repo = open(tmp_repo)
@@ -219,6 +234,15 @@ def test_blame_with_options(tmp_repo: Path, commit_file: Callable[[Path, str, st
     assert len(lines) == 1
     assert lines[0].line == 2
     assert lines[0].content == "line two"
+
+
+def test_blame_invalid_line_range_reports_snake_case_detail(tmp_repo: Path) -> None:
+    repo = open(tmp_repo)
+
+    with pytest.raises(AppError) as exc_info:
+        repo.blame("HEAD", "README.md", BlameOptions(start_line=2, end_line=1))
+
+    assert exc_info.value.details["field"] == "line_range"
 
 
 def test_describe_exact_tag(tmp_repo: Path, create_tag: Callable[[Path, str], None]) -> None:

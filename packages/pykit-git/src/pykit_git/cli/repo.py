@@ -5,11 +5,12 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+from pykit_errors import AppError
 from pykit_git.cli.exec_runner import SubprocessExecutor
 from pykit_git.cli.manage import ManageBackend
 from pykit_git.cli.read import ReadBackend
 from pykit_git.cli.write import WriteBackend
-from pykit_git.errors import detached_head, ref_not_found, repo_not_found
+from pykit_git.errors import detached_head, ref_not_found, repo_not_found, unborn_head
 from pykit_git.types import Oid, Reference
 
 
@@ -30,15 +31,23 @@ class Backend(ReadBackend, WriteBackend, ManageBackend):
     def head(self) -> Reference:
         symbolic = self._executor.run("symbolic-ref", "HEAD")
         if symbolic.returncode != 0:
+            stderr = symbolic.stderr.decode().strip().casefold()
             exc = subprocess.CalledProcessError(
                 symbolic.returncode,
                 ["git", "symbolic-ref", "HEAD"],
                 output=symbolic.stdout,
                 stderr=symbolic.stderr,
             )
+            if "unborn" in stderr:
+                raise unborn_head() from exc
             raise detached_head() from exc
-        target = self.rev_parse("HEAD")
         name = symbolic.stdout.decode().strip()
+        try:
+            target = self.rev_parse("HEAD")
+        except AppError as exc:
+            if exc.details.get("resource") == "ref":
+                raise unborn_head() from exc
+            raise
         return Reference(
             name=name,
             target=target,

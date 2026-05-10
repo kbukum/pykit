@@ -5,10 +5,15 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+import pytest
+
+from pykit_errors import AppError
 from pykit_git import CleanOptions, DescribeOptions, ResetMode
+from pykit_git.auth.transport import SSHKey
 from pykit_git.cli import init as cli_init
 from pykit_git.cli import init_bare as cli_init_bare
 from pykit_git.cli import open as cli_open
+from pykit_git.cli.auth import build_env
 
 
 def test_cli_init(tmp_path: Path) -> None:
@@ -24,6 +29,24 @@ def test_cli_init_bare(tmp_path: Path) -> None:
     assert repo.root == (tmp_path / "repo.git").resolve()
     assert (repo.root / "HEAD").is_file()
     assert not (repo.root / ".git").exists()
+
+
+def test_cli_build_env_uses_private_key_for_identity() -> None:
+    env = build_env(SSHKey(username="git", private_key_path="/keys/id_ed25519", public_key_path="/keys/id_ed25519.pub"))
+
+    assert env["GIT_SSH_COMMAND"] == (
+        "ssh -i /keys/id_ed25519 -o CertificateFile=/keys/id_ed25519.pub"
+    )
+
+
+def test_cli_head_unborn_branch_raises_invalid_input(tmp_path: Path) -> None:
+    repo = cli_init(tmp_path / "repo")
+
+    with pytest.raises(AppError) as exc_info:
+        repo.head()
+
+    assert exc_info.value.details["field"] == "HEAD"
+    assert "unborn HEAD" in exc_info.value.message
 
 
 def test_cli_rev_parse_and_describe(tmp_repo: Path, create_tag: Callable[[Path, str], None]) -> None:
