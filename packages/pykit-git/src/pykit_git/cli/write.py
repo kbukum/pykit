@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import abc
 import os
 import subprocess
 from datetime import datetime
@@ -22,10 +23,17 @@ from pykit_git.types import (
 )
 
 
-class WriteBackend:
-    """Write-side CLI backend."""
+class WriteBackend(abc.ABC):
+    """Write-side CLI backend mixin.
+
+    Concrete subclasses must also inherit ReadBackend, which provides rev_parse().
+    """
 
     _executor: SubprocessExecutor
+
+    @abc.abstractmethod
+    def rev_parse(self, revision: str) -> Oid:
+        """Resolve a revision to an Oid. Provided by ReadBackend via MRO."""
 
     def stage(self, *paths: str) -> None:
         if paths:
