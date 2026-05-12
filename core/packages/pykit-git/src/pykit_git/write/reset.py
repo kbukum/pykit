@@ -13,4 +13,4 @@ class Resetter(Protocol):
 
     def reset(self, target: str, mode: ResetMode) -> None:
         """Reset repository state to a target revision."""
-        ...
+        raise NotImplementedError

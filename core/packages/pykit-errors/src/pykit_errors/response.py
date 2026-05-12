@@ -12,24 +12,30 @@ _TYPE_BASE_URI = "https://pykit.dev/errors/"
 
 class _CodeLike(Protocol):
     @property
-    def value(self) -> str: ...
+    def value(self) -> str:
+        raise NotImplementedError
 
 
 class _AppErrorLike(Protocol):
     @property
-    def code(self) -> _CodeLike: ...
+    def code(self) -> _CodeLike:
+        raise NotImplementedError
 
     @property
-    def http_status(self) -> int: ...
+    def http_status(self) -> int:
+        raise NotImplementedError
 
     @property
-    def message(self) -> str: ...
+    def message(self) -> str:
+        raise NotImplementedError
 
     @property
-    def retryable(self) -> bool: ...
+    def retryable(self) -> bool:
+        raise NotImplementedError
 
     @property
-    def details(self) -> Mapping[str, Any]: ...
+    def details(self) -> Mapping[str, Any]:
+        raise NotImplementedError
 
 
 def set_type_base_uri(uri: str) -> None:

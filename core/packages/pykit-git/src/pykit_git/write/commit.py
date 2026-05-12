@@ -14,4 +14,4 @@ class Committer(Protocol):
 
     def commit(self, message: str, opts: CommitOptions | None = None) -> Oid:
         """Create a commit from the current index."""
-        ...
+        raise NotImplementedError

@@ -13,12 +13,12 @@ class IndexManager(Protocol):
 
     def stage(self, *paths: str) -> None:
         """Stage one or more paths."""
-        ...
+        raise NotImplementedError
 
     def unstage(self, *paths: str) -> None:
         """Unstage one or more paths."""
-        ...
+        raise NotImplementedError
 
     def staged_entries(self) -> list[StatusEntry]:
         """Return files staged in the index."""
-        ...
+        raise NotImplementedError

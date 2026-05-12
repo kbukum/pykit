@@ -450,11 +450,10 @@ class TestAsyncSafety:
             await asyncio.sleep(0.01)
             results[name] = correlation_id_var.get()
 
-        async def main():
+        async def main() -> None:
             t1 = asyncio.create_task(set_and_read("task1", "id-1"))
             t2 = asyncio.create_task(set_and_read("task2", "id-2"))
-            await t1
-            await t2
+            await asyncio.gather(t1, t2)
 
         asyncio.run(main())
         assert results["task1"] == "id-1"

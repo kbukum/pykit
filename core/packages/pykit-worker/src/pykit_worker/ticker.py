@@ -7,7 +7,7 @@ bootstrap lifecycle via the :class:`~pykit_component.Component` protocol.
 Example::
 
     async def cleanup() -> None:
-        ...
+        return None
 
     ticker = TickerWorker("cache-cleanup", interval=30.0, handler=cleanup)
     await ticker.start()

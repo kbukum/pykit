@@ -13,8 +13,8 @@ class Checker(Protocol):
 
     def checkout(self, ref_name: str, opts: CheckoutOptions | None = None) -> None:
         """Checkout a branch, tag, or revision."""
-        ...
+        raise NotImplementedError
 
     def checkout_files(self, *paths: str) -> None:
         """Restore paths from HEAD."""
-        ...
+        raise NotImplementedError

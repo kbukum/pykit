@@ -13,16 +13,16 @@ class Stasher(Protocol):
 
     def stash(self, message: str) -> Oid:
         """Create a stash entry."""
-        ...
+        raise NotImplementedError
 
     def stash_push(self, message: str) -> Oid:
         """Create a stash entry."""
-        ...
+        raise NotImplementedError
 
     def stash_pop(self, index: int = 0) -> None:
         """Pop a stash entry."""
-        ...
+        raise NotImplementedError
 
     def stash_list(self) -> list[StashEntry]:
         """List available stash entries."""
-        ...
+        raise NotImplementedError

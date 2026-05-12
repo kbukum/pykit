@@ -19,7 +19,8 @@ class Event(Protocol):
     """Any object with a ``type`` attribute is a valid hook event."""
 
     @property
-    def type(self) -> EventType: ...
+    def type(self) -> EventType:
+        raise NotImplementedError
 
 
 class Action(enum.Enum):

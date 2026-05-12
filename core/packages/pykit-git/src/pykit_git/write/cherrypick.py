@@ -14,12 +14,12 @@ class CherryPicker(Protocol):
 
     def cherry_pick(self, commit: str, opts: CherryPickOptions | None = None) -> Oid:
         """Cherry-pick a commit."""
-        ...
+        raise NotImplementedError
 
     def cherry_pick_continue(self) -> Oid:
         """Continue an in-progress cherry-pick."""
-        ...
+        raise NotImplementedError
 
     def cherry_pick_abort(self) -> None:
         """Abort an in-progress cherry-pick."""
-        ...
+        raise NotImplementedError

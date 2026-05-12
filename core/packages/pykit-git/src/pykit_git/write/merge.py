@@ -14,8 +14,8 @@ class Merger(Protocol):
 
     def merge(self, branch: str, opts: MergeOptions | None = None) -> MergeResult:
         """Merge a branch into the current HEAD."""
-        ...
+        raise NotImplementedError
 
     def abort_merge(self) -> None:
         """Abort an in-progress merge."""
-        ...
+        raise NotImplementedError
