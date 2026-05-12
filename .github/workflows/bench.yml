@@ -9,7 +9,8 @@ on:
     paths:
       - '**/*.py'
       - '**/pyproject.toml'
-      - 'uv.lock'
+      - 'core/uv.lock'
+      - 'contrib/uv.lock'
       - '.github/workflows/bench.yml'
   workflow_dispatch:
 
@@ -31,34 +32,70 @@ jobs:
 
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
 
-      - name: Install dependencies
+      - name: Install core dependencies
         run: uv sync --all-packages
+        working-directory: core
 
-      - name: Run benchmarks
+      - name: Install contrib dependencies
+        run: uv sync --all-packages
+        working-directory: contrib
+
+      - name: Run core benchmarks
         run: |
           uv run pytest -m benchmark -p no:xdist \
             -o "addopts=--tb=short -q --import-mode=importlib" \
             --no-header \
-            --benchmark-json=output.json \
+            --benchmark-json=../core-output.json \
             --benchmark-disable-gc \
             --benchmark-min-rounds=5 || status=$?
           if [ "${status:-0}" -eq 5 ]; then
-            echo "No benchmark markers found — skipping"
-            echo '{"benchmarks": []}' > output.json
+            echo "No benchmark markers found in core — skipping"
+            echo '{"benchmarks": []}' > ../core-output.json
           elif [ "${status:-0}" -ne 0 ]; then
             exit "$status"
           fi
+        working-directory: core
 
-      - name: Store benchmark result
-        if: hashFiles('output.json') != ''
+      - name: Run contrib benchmarks
+        run: |
+          uv run pytest -m benchmark -p no:xdist \
+            -o "addopts=--tb=short -q --import-mode=importlib" \
+            --no-header \
+            --benchmark-json=../contrib-output.json \
+            --benchmark-disable-gc \
+            --benchmark-min-rounds=5 || status=$?
+          if [ "${status:-0}" -eq 5 ]; then
+            echo "No benchmark markers found in contrib — skipping"
+            echo '{"benchmarks": []}' > ../contrib-output.json
+          elif [ "${status:-0}" -ne 0 ]; then
+            exit "$status"
+          fi
+        working-directory: contrib
+
+      - name: Store core benchmark result
+        if: hashFiles('core-output.json') != ''
         uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba  # v1.22.1
         with:
           tool: 'pytest'
-          output-file-path: output.json
+          output-file-path: core-output.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: true
           alert-threshold: '150%'
           summary-always: true
           comment-always: true
           fail-on-alert: false
-          external-data-json-path: ./benchmark-data.json
+          external-data-json-path: ./benchmark-data-core.json
+
+      - name: Store contrib benchmark result
+        if: hashFiles('contrib-output.json') != ''
+        uses: benchmark-action/github-action-benchmark@52576c92bccf6ac60c8223ec7eb2565637cae9ba  # v1.22.1
+        with:
+          tool: 'pytest'
+          output-file-path: contrib-output.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-on-alert: true
+          alert-threshold: '150%'
+          summary-always: true
+          comment-always: true
+          fail-on-alert: false
+          external-data-json-path: ./benchmark-data-contrib.json

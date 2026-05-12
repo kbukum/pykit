@@ -34,7 +34,8 @@ jobs:
             python-code:
               - '**/*.py'
               - '**/pyproject.toml'
-              - 'uv.lock'
+              - 'core/uv.lock'
+              - 'contrib/uv.lock'
               - 'Makefile'
               - '.github/workflows/ci.yml'
       - name: Detect affected domains
@@ -69,9 +70,21 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --all-packages --no-progress
-      - run: uv run ruff format --check core/packages/ contrib/
+          cache-dependency-glob: |
+            core/uv.lock
+            contrib/uv.lock
+      - name: Sync core
+        run: uv sync --all-packages --no-progress
+        working-directory: core
+      - name: Sync contrib
+        run: uv sync --all-packages --no-progress
+        working-directory: contrib
+      - name: Format check core
+        run: uv run ruff format --check .
+        working-directory: core
+      - name: Format check contrib
+        run: uv run ruff format --check .
+        working-directory: contrib
 
   # ---------------------------------------------------------------------------
   # Lint — code quality
@@ -87,9 +100,21 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --all-packages --no-progress
-      - run: uv run ruff check core/packages/ contrib/
+          cache-dependency-glob: |
+            core/uv.lock
+            contrib/uv.lock
+      - name: Sync core
+        run: uv sync --all-packages --no-progress
+        working-directory: core
+      - name: Sync contrib
+        run: uv sync --all-packages --no-progress
+        working-directory: contrib
+      - name: Lint core
+        run: uv run ruff check .
+        working-directory: core
+      - name: Lint contrib
+        run: uv run ruff check .
+        working-directory: contrib
 
   # ---------------------------------------------------------------------------
   # Type check — strict mypy on opted-in packages
@@ -105,9 +130,21 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --all-packages --no-progress
-      - run: uv run mypy
+          cache-dependency-glob: |
+            core/uv.lock
+            contrib/uv.lock
+      - name: Sync core
+        run: uv sync --all-packages --no-progress
+        working-directory: core
+      - name: Sync contrib
+        run: uv sync --all-packages --no-progress
+        working-directory: contrib
+      - name: Type check core
+        run: uv run mypy
+        working-directory: core
+      - name: Type check contrib
+        run: uv run mypy
+        working-directory: contrib
 
   # ---------------------------------------------------------------------------
   # Test — pytest with coverage (fail_under = 85 configured in pyproject.toml)
@@ -128,16 +165,33 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --all-packages --no-progress
-      - name: Verify lockfile is up-to-date
+          cache-dependency-glob: |
+            core/uv.lock
+            contrib/uv.lock
+      - name: Sync core
+        run: uv sync --all-packages --no-progress
+        working-directory: core
+      - name: Sync contrib
+        run: uv sync --all-packages --no-progress
+        working-directory: contrib
+      - name: Verify core lockfile is up-to-date
         run: uv lock --check
+        working-directory: core
         continue-on-error: true
-      - run: uv run pytest --cov --cov-report=xml --cov-report=term-missing
+      - name: Verify contrib lockfile is up-to-date
+        run: uv lock --check
+        working-directory: contrib
+        continue-on-error: true
+      - name: Test core
+        run: uv run pytest --cov --cov-report=xml:../core-coverage.xml --cov-report=term-missing
+        working-directory: core
+      - name: Test contrib
+        run: uv run pytest --cov --cov-report=xml:../contrib-coverage.xml --cov-report=term-missing
+        working-directory: contrib
       - name: Upload coverage
         uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2  # v5
         with:
-          files: coverage.xml
+          files: core-coverage.xml,contrib-coverage.xml
           flags: python-${{ matrix.python-version }}
           fail_ci_if_error: false
         env:
@@ -157,9 +211,21 @@ jobs:
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
         with:
           enable-cache: true
-          cache-dependency-glob: "uv.lock"
-      - run: uv sync --all-packages --no-progress
-      - run: uv run import-linter
+          cache-dependency-glob: |
+            core/uv.lock
+            contrib/uv.lock
+      - name: Sync core
+        run: uv sync --all-packages --no-progress
+        working-directory: core
+      - name: Sync contrib
+        run: uv sync --all-packages --no-progress
+        working-directory: contrib
+      - name: Architecture check core
+        run: uv run import-linter
+        working-directory: core
+      - name: Architecture check contrib
+        run: uv run import-linter
+        working-directory: contrib
 
   # ---------------------------------------------------------------------------
   # Gate: Aggregate status for branch protection
