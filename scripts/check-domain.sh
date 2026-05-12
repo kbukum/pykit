@@ -56,17 +56,23 @@ for module in entry["modules"]:
 
 resolve_package_path() {
   local module="$1"
-  local package_path="packages/pykit-$module"
+  local core_path="core/packages/pykit-$module"
   if [[ "$module" == "pykit" ]]; then
-    package_path="packages/pykit"
+    core_path="core/packages/pykit"
+  fi
+  if [[ -d "$core_path" ]]; then
+    printf '%s\n' "$core_path"
+    return 0
   fi
 
-  if [[ ! -d "$package_path" ]]; then
-    echo "Unable to resolve package for '$module' (expected $package_path)" >&2
-    return 1
+  local contrib_path="contrib/pykit-$module"
+  if [[ -d "$contrib_path" ]]; then
+    printf '%s\n' "$contrib_path"
+    return 0
   fi
 
-  printf '%s\n' "$package_path"
+  echo "Unable to resolve package for '$module' (expected $core_path or $contrib_path)" >&2
+  return 1
 }
 
 run_module_checks() {
@@ -75,9 +81,14 @@ run_module_checks() {
   package_path="$(resolve_package_path "$module")"
 
   echo "==> Checking $module ($package_path)"
-  uv run pytest "$package_path/"
-  uv run ruff check "$package_path/"
-  uv run mypy "$package_path/src/"
+
+  if [[ "$package_path" == core/* ]]; then
+    local rel="${package_path#core/}"
+    (cd core && uv run pytest "$rel/" && uv run ruff check "$rel/" && uv run mypy "$rel/src/")
+  elif [[ "$package_path" == contrib/* ]]; then
+    local rel="${package_path#contrib/}"
+    (cd contrib && uv run pytest "$rel/" && uv run ruff check "$rel/" && uv run mypy "$rel/src/")
+  fi
 }
 
 run_domain() {

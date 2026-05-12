@@ -1,0 +1,19 @@
+[project]
+name = "pykit-cache-redis"
+description = "Redis adapter for pykit-cache"
+version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.13"
+dependencies = [
+    "pykit-cache",
+    "pykit-errors",
+    "redis",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pykit_cache_redis"]

@@ -46,7 +46,7 @@ jobs:
             uv build --package "$PKG" --out-dir dist/
           else
             # Workspace-wide: build every package
-            for pkg_dir in packages/*/; do
+            for pkg_dir in core/packages/*/ contrib/pykit-*/; do
               pkg=$(basename "$pkg_dir")
               uv build --package "$pkg" --out-dir dist/
             done

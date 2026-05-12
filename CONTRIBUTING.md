@@ -63,9 +63,10 @@ uv sync
 uv run pytest
 ```
 
-The workspace is structured as a **uv workspace monorepo** with 55 independent
-packages under `packages/`. Each package has its own `pyproject.toml`,
-`src/<package_name>/` layout, and `tests/` directory.
+The workspace is structured as a **uv workspace monorepo** with foundation
+packages under `core/packages/` and flat contrib adapter packages under
+`contrib/`. Each package has its own `pyproject.toml`, `src/<package_name>/`
+layout, and `tests/` directory.
 
 ## Quick Development Workflow
 
@@ -117,7 +118,9 @@ Every public function and protocol implementation should have at least one test.
 uv run pytest
 
 # Run tests for a specific package
-uv run pytest packages/pykit-errors/
+uv run pytest core/packages/pykit-errors/
+# or
+uv run pytest contrib/pykit-llm-openai/
 
 # Run with coverage
 uv run pytest --cov
@@ -141,20 +144,20 @@ All checks must pass before submitting a PR:
 
 ```sh
 # Lint check
-uv run ruff check packages/
+uv run ruff check core/packages/ contrib/
 
 # Format check
-uv run ruff format packages/ --check
+uv run ruff format core/packages/ contrib/ --check
 
 # Type check
-uv run mypy packages/
+uv run mypy
 ```
 
 To auto-fix lint and formatting issues:
 
 ```sh
-uv run ruff check packages/ --fix
-uv run ruff format packages/
+uv run ruff check core/packages/ contrib/ --fix
+uv run ruff format core/packages/ contrib/
 ```
 
 ---
@@ -197,12 +200,18 @@ importing from a higher layer.
 
 1. Create the package directory:
 
+   - Foundation packages live under `core/packages/pykit-<name>/`
+   - Contrib adapter packages live under `contrib/pykit-<name>/`
+
    ```sh
-   mkdir -p packages/pykit-<name>/src/pykit_<name>
-   mkdir -p packages/pykit-<name>/tests
+   mkdir -p core/packages/pykit-<name>/src/pykit_<name>
+   mkdir -p core/packages/pykit-<name>/tests
+   # or for a contrib adapter:
+   mkdir -p contrib/pykit-<name>/src/pykit_<name>
+   mkdir -p contrib/pykit-<name>/tests
    ```
 
-2. Create `packages/pykit-<name>/pyproject.toml`:
+2. Create `core/packages/pykit-<name>/pyproject.toml` or `contrib/pykit-<name>/pyproject.toml`:
 
    ```toml
    [project]
@@ -220,7 +229,7 @@ importing from a higher layer.
    packages = ["src/pykit_<name>"]
    ```
 
-3. Create `packages/pykit-<name>/src/pykit_<name>/__init__.py`:
+3. Create `core/packages/pykit-<name>/src/pykit_<name>/__init__.py` or `contrib/pykit-<name>/src/pykit_<name>/__init__.py`:
 
    ```python
    from __future__ import annotations
@@ -256,9 +265,9 @@ importing from a higher layer.
 3. Ensure all checks pass:
 
    ```sh
-   uv run ruff check packages/
-   uv run ruff format packages/ --check
-   uv run mypy packages/
+   uv run ruff check core/packages/ contrib/
+   uv run ruff format core/packages/ contrib/ --check
+   uv run mypy
    uv run pytest
    uv run lint-imports
    ```

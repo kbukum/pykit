@@ -58,7 +58,17 @@ def domains_for_file(path_str: str) -> set[str]:
     if not path_str:
         return set()
 
-    global_files = {"Makefile", "README.md", "domains.toml", "pyproject.toml", "uv.lock"}
+    global_files = {
+        "Makefile",
+        "README.md",
+        "domains.toml",
+        "pyproject.toml",
+        "uv.lock",
+        "core/pyproject.toml",
+        "core/uv.lock",
+        "contrib/pyproject.toml",
+        "contrib/uv.lock",
+    }
     if path_str in global_files:
         return set(all_domains)
 
@@ -73,10 +83,17 @@ def domains_for_file(path_str: str) -> set[str]:
     if len(parts) == 1:
         return set(all_domains)
 
-    if parts[0] == "packages" and len(parts) >= 2:
-        if parts[1] == "pykit":
-            return set(all_domains)
-        if parts[1].startswith("pykit-"):
+    if parts[0] == "core":
+        if len(parts) >= 3 and parts[1] == "packages":
+            if parts[2] == "pykit":
+                return set(all_domains)
+            if parts[2].startswith("pykit-"):
+                module = parts[2][len("pykit-") :]
+                return set(module_to_domains.get(module, all_domains))
+        return set(all_domains)
+
+    if parts[0] == "contrib":
+        if len(parts) >= 2 and parts[1].startswith("pykit-"):
             module = parts[1][len("pykit-") :]
             return set(module_to_domains.get(module, all_domains))
         return set(all_domains)

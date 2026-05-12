@@ -71,7 +71,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
-      - run: uv run ruff format --check packages/
+      - run: uv run ruff format --check core/packages/ contrib/
 
   # ---------------------------------------------------------------------------
   # Lint — code quality
@@ -89,7 +89,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
       - run: uv sync --all-packages --no-progress
-      - run: uv run ruff check packages/
+      - run: uv run ruff check core/packages/ contrib/
 
   # ---------------------------------------------------------------------------
   # Type check — strict mypy on opted-in packages

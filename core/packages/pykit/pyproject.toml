@@ -1,0 +1,72 @@
+[project]
+name = "pykit"
+description = "Lazy-loading facade that re-exports all sub-packages"
+version = "0.1.0"
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["python", "monorepo", "infrastructure", "toolkit"]
+requires-python = ">=3.13"
+dependencies = [
+    # Layer 0 — zero internal deps
+    "pykit-errors",
+    "pykit-config",
+    "pykit-logging",
+    # Layer 1 — foundational
+    "pykit-validation",
+    "pykit-encryption",
+    "pykit-util",
+    "pykit-version",
+    "pykit-media",
+    # Layer 2 — patterns
+    "pykit-provider",
+    "pykit-component",
+    "pykit-resilience",
+    # Layer 3 — frameworks
+    "pykit-di",
+    "pykit-bootstrap",
+    "pykit-observability",
+    "pykit-security",
+    # Layer 4 — infrastructure
+    "pykit-database",
+    "pykit-cache",
+    "pykit-storage",
+    "pykit-messaging",
+    "pykit-httpclient",
+    # Layer 5 — protocols
+    "pykit-server",
+    "pykit-grpc",
+    # Layer 6 — security
+    "pykit-auth",
+    "pykit-authz",
+    # Layer 7 — advanced
+    "pykit-pipeline",
+    "pykit-dag",
+    "pykit-worker",
+    "pykit-sse",
+    "pykit-stateful",
+    "pykit-process",
+    "pykit-workload",
+    # Layer 8 — AI/ML
+    "pykit-llm",
+    "pykit-ai",
+    "pykit-inference",
+    "pykit-dataset",
+    "pykit-embedding",
+    "pykit-tool",
+    "pykit-agent",
+    "pykit-mcp",
+    "pykit-skill",
+    "pykit-hook",
+    "pykit-schema",
+    # Layer 9 — tools
+    "pykit-bench",
+    "pykit-testutil",
+    "pykit-discovery",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pykit"]

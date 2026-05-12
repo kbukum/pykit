@@ -1,0 +1,578 @@
+[project]
+name = "pykit-core-workspace"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[dependency-groups]
+dev = [
+    "pykit",
+    "pykit-auth",
+    "pykit-chain",
+    "pykit-errors",
+    "pykit-config",
+    "pykit-integration",
+    "pykit-logging",
+    "pykit-provider",
+    "pykit-pipeline",
+    "pykit-server",
+    "pykit-testutil",
+    "pykit-tool",
+    "pykit-inference",
+    "pykit-dataset",
+    "pykit-bench",
+    "pykit-validation",
+    "pykit-encryption",
+    "pykit-util",
+    "pykit-version",
+    "pykit-component",
+    "pykit-resilience",
+    "pykit-schema",
+    "pykit-di",
+    "pykit-bootstrap",
+    "pykit-messaging",
+    "pykit-httpclient",
+    "pykit-llm",
+    "pykit-ai",
+    "pykit-storage",
+    "pykit-cache",
+    "pykit-database",
+    "pykit-dag",
+    "pykit-authz",
+    "pykit-grpc",
+    "pykit-git",
+    "pykit-observability",
+    "pykit-stateful",
+    "pykit-process",
+    "pykit-sse",
+    "pykit-worker",
+    "pykit-workload",
+    "pykit-discovery",
+    "pykit-media",
+    "pykit-security",
+    "pykit-embedding",
+    "pykit-vectorstore",
+    "pykit-hook",
+    "pykit-agent",
+    "pykit-mcp",
+    "pykit-skill",
+    "pykit-transcription",
+    "pykit-llm-common",
+    "pykit-llm-openai",
+    "pykit-llm-anthropic",
+    "pykit-llm-gemini",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-benchmark",
+    "pytest-cov",
+    "pytest-xdist>=3.8.0",
+    "pytest-timeout>=2.4.0",
+    "ruff",
+    "mypy",
+    "import-linter",
+    "aiosqlite",
+    "argon2-cffi>=25.1.0",
+]
+
+[tool.uv]
+constraint-dependencies = [
+    "pydantic>=2.12.0,<3.0",
+    "pydantic-settings>=2.7",
+    "structlog>=25.1.0",
+    "grpcio>=1.70",
+    "grpcio-health-checking>=1.70",
+    "grpcio-reflection>=1.70",
+    "prometheus-client>=0.22",
+    "httpx>=0.28",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "redis>=5.2",
+    "aiokafka>=0.12",
+    "opentelemetry-api>=1.30",
+    "opentelemetry-sdk>=1.30",
+    "pyjwt>=2.10",
+    "cryptography>=44.0",
+]
+
+[tool.uv.sources]
+"pykit" = { workspace = true }
+"pykit-ai" = { workspace = true }
+"pykit-agent" = { workspace = true }
+"pykit-auth" = { workspace = true }
+"pykit-chain" = { workspace = true }
+"pykit-authz" = { workspace = true }
+"pykit-integration" = { workspace = true }
+"pykit-bench" = { workspace = true }
+"pykit-bootstrap" = { workspace = true }
+"pykit-component" = { workspace = true }
+"pykit-config" = { workspace = true }
+"pykit-dag" = { workspace = true }
+"pykit-database" = { workspace = true }
+"pykit-dataset" = { workspace = true }
+"pykit-di" = { workspace = true }
+"pykit-discovery" = { workspace = true }
+"pykit-embedding" = { workspace = true }
+"pykit-encryption" = { workspace = true }
+"pykit-errors" = { workspace = true }
+"pykit-grpc" = { workspace = true }
+"pykit-git" = { workspace = true }
+"pykit-hook" = { workspace = true }
+"pykit-httpclient" = { workspace = true }
+"pykit-messaging" = { workspace = true }
+"pykit-llm" = { workspace = true }
+"pykit-logging" = { workspace = true }
+"pykit-mcp" = { workspace = true }
+"pykit-skill" = { workspace = true }
+"pykit-media" = { workspace = true }
+"pykit-observability" = { workspace = true }
+"pykit-pipeline" = { workspace = true }
+"pykit-process" = { workspace = true }
+"pykit-provider" = { workspace = true }
+"pykit-cache" = { workspace = true }
+"pykit-resilience" = { workspace = true }
+"pykit-schema" = { workspace = true }
+"pykit-security" = { workspace = true }
+"pykit-server" = { workspace = true }
+"pykit-sse" = { workspace = true }
+"pykit-stateful" = { workspace = true }
+"pykit-storage" = { workspace = true }
+"pykit-testutil" = { workspace = true }
+"pykit-tool" = { workspace = true }
+"pykit-inference" = { workspace = true }
+"pykit-util" = { workspace = true }
+"pykit-validation" = { workspace = true }
+"pykit-vectorstore" = { workspace = true }
+"pykit-version" = { workspace = true }
+"pykit-worker" = { workspace = true }
+"pykit-workload" = { workspace = true }
+"pykit-transcription" = { workspace = true }
+"pykit-llm-common" = { path = "../contrib/pykit-llm-common", editable = true }
+"pykit-llm-openai" = { path = "../contrib/pykit-llm-openai", editable = true }
+"pykit-llm-anthropic" = { path = "../contrib/pykit-llm-anthropic", editable = true }
+"pykit-llm-gemini" = { path = "../contrib/pykit-llm-gemini", editable = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["packages"]
+addopts = "--tb=short -q --import-mode=importlib -n auto --dist worksteal -m 'not integration and not e2e and not benchmark'"
+markers = [
+    "unit: Fast isolated unit tests (no I/O, no network)",
+    "integration: Integration tests requiring external services",
+    "e2e: End-to-end tests (full stack, slow)",
+    "benchmark: Performance benchmarks",
+    "slow: mark test as slow-running",
+]
+
+[tool.coverage.run]
+source_pkgs = [
+    "pykit_errors",
+    "pykit_config",
+    "pykit_logging",
+    "pykit_provider",
+    "pykit_pipeline",
+    "pykit_server",
+    "pykit_observability",
+    "pykit_testutil",
+    "pykit_inference",
+    "pykit_dataset",
+    "pykit_bench",
+    "pykit_validation",
+    "pykit_encryption",
+    "pykit_util",
+    "pykit_version",
+    "pykit_component",
+    "pykit_resilience",
+    "pykit_di",
+    "pykit_bootstrap",
+    "pykit_database",
+    "pykit_cache",
+    "pykit_storage",
+    "pykit_messaging",
+    "pykit_httpclient",
+    "pykit_grpc",
+    "pykit_auth",
+    "pykit_authz",
+    "pykit_dag",
+    "pykit_worker",
+    "pykit_sse",
+    "pykit_stateful",
+    "pykit_llm",
+    "pykit_ai",
+    "pykit_discovery",
+    "pykit_process",
+    "pykit_media",
+    "pykit_security",
+    "pykit_workload",
+    "pykit_embedding",
+    "pykit_vectorstore",
+    "pykit_transcription",
+    "pykit_skill",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+]
+branch = true
+data_file = ".cache/coverage/.coverage"
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 85
+
+[tool.ruff]
+target-version = "py313"
+line-length = 110
+src = ["packages/*/src"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "B9",
+    "C4",
+    "SIM",
+    "TCH",
+    "RUF",
+    "TRY",
+    "TRY200",
+    "TRY201",
+    "ASYNC",
+    "S",
+    "PT",
+    "N",
+    "PL",
+    "ERA",
+    "A",
+    "PIE",
+    "T20",
+]
+ignore = [
+    "E501",
+    "B008",
+    "UP007",
+    "TC001",
+    "TC002",
+    "TC003",
+    "S101",
+    "S108",
+    "S104",
+    "S311",
+    "S603",
+    "S607",
+    "TRY003",
+    "TRY300",
+    "TRY301",
+    "TRY400",
+    "PLR0913",
+    "PLR2004",
+    "PLR0912",
+    "PLR0911",
+    "PLR0915",
+    "PLW0603",
+    "PLW2901",
+    "PLC0415",
+    "PLW0108",
+    "PLW1510",
+    "ERA001",
+    "N818",
+    "A002",
+    "A004",
+    "A001",
+    "SIM105",
+    "ASYNC109",
+    "ASYNC240",
+    "ASYNC251",
+    "N802",
+    "N806",
+    "S105",
+    "S110",
+    "S112",
+    "S324",
+    "S608",
+    "PLC0105",
+    "PLE0643",
+    "UP046",
+    "UP047",
+    "TRY004",
+    "TRY201",
+    "RUF022",
+    "C408",
+    "PLR1714",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*.py" = ["E402", "S", "PLR", "N", "ANN", "T20", "PT"]
+"**/tests/**/*.py" = ["S", "PLR", "N", "ANN", "T20", "PT"]
+"**/benchmarks/*.py" = ["T20", "S", "PT"]
+"examples/**/*.py" = ["T20", "S"]
+"**/cli.py" = ["T20"]
+"**/sources/*.py" = ["T20"]
+"**/pykit_bench/*.py" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "pykit_errors",
+    "pykit_config",
+    "pykit_logging",
+    "pykit_provider",
+    "pykit_pipeline",
+    "pykit_server",
+    "pykit_observability",
+    "pykit_testutil",
+    "pykit_inference",
+    "pykit_dataset",
+    "pykit_bench",
+    "pykit_validation",
+    "pykit_encryption",
+    "pykit_util",
+    "pykit_version",
+    "pykit_media",
+    "pykit_component",
+    "pykit_di",
+    "pykit_bootstrap",
+    "pykit_resilience",
+    "pykit_security",
+    "pykit_dag",
+    "pykit_worker",
+    "pykit_sse",
+    "pykit_stateful",
+    "pykit_database",
+    "pykit_cache",
+    "pykit_storage",
+    "pykit_messaging",
+    "pykit_httpclient",
+    "pykit_grpc",
+    "pykit_auth",
+    "pykit_authz",
+    "pykit_llm",
+    "pykit_ai",
+    "pykit_discovery",
+    "pykit_process",
+    "pykit_workload",
+    "pykit_transcription",
+    "pykit_skill",
+    "pykit_agent",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+    "pykit_hook",
+    "pykit_mcp",
+    "pykit_chain",
+    "pykit_schema",
+    "pykit_integration",
+    "pykit_tool",
+    "pykit_git",
+    "pykit_embedding",
+    "pykit_vectorstore",
+]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_any_generics = true
+warn_redundant_casts = true
+exclude = '(^|/)(tests|__pycache__)/'
+packages = [
+    "pykit",
+    "pykit_errors",
+    "pykit_config",
+    "pykit_logging",
+    "pykit_provider",
+    "pykit_pipeline",
+    "pykit_server",
+    "pykit_testutil",
+    "pykit_inference",
+    "pykit_dataset",
+    "pykit_bench",
+    "pykit_validation",
+    "pykit_encryption",
+    "pykit_util",
+    "pykit_version",
+    "pykit_component",
+    "pykit_resilience",
+    "pykit_di",
+    "pykit_bootstrap",
+    "pykit_database",
+    "pykit_cache",
+    "pykit_storage",
+    "pykit_messaging",
+    "pykit_httpclient",
+    "pykit_grpc",
+    "pykit_auth",
+    "pykit_authz",
+    "pykit_observability",
+    "pykit_dag",
+    "pykit_worker",
+    "pykit_sse",
+    "pykit_stateful",
+    "pykit_llm",
+    "pykit_ai",
+    "pykit_discovery",
+    "pykit_process",
+    "pykit_media",
+    "pykit_security",
+    "pykit_workload",
+    "pykit_embedding",
+    "pykit_vectorstore",
+    "pykit_transcription",
+    "pykit_agent",
+    "pykit_hook",
+    "pykit_mcp",
+    "pykit_chain",
+    "pykit_schema",
+    "pykit_integration",
+    "pykit_tool",
+    "pykit_skill",
+    "pykit_git",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "grpc.*",
+    "grpc_health.*",
+    "grpc_reflection.*",
+    "prometheus_client.*",
+    "structlog.*",
+    "tritonclient.*",
+    "datasets.*",
+    "huggingface_hub.*",
+    "kagglehub.*",
+    "hypothesis.*",
+    "argon2.*",
+    "qdrant_client.*",
+    "PIL.*",
+    "opentelemetry.propagators.b3.*",
+    "mcp.*",
+    "jsonschema.*",
+    "aiofiles.*",
+]
+ignore_missing_imports = true
+
+[tool.importlinter]
+root_packages = [
+    "pykit",
+    "pykit_errors",
+    "pykit_config",
+    "pykit_logging",
+    "pykit_validation",
+    "pykit_encryption",
+    "pykit_util",
+    "pykit_version",
+    "pykit_media",
+    "pykit_provider",
+    "pykit_component",
+    "pykit_resilience",
+    "pykit_schema",
+    "pykit_di",
+    "pykit_bootstrap",
+    "pykit_observability",
+    "pykit_security",
+    "pykit_hook",
+    "pykit_mcp",
+    "pykit_chain",
+    "pykit_pipeline",
+    "pykit_dag",
+    "pykit_worker",
+    "pykit_sse",
+    "pykit_stateful",
+    "pykit_auth",
+    "pykit_authz",
+    "pykit_database",
+    "pykit_cache",
+    "pykit_storage",
+    "pykit_messaging",
+    "pykit_httpclient",
+    "pykit_server",
+    "pykit_grpc",
+    "pykit_llm",
+    "pykit_ai",
+    "pykit_inference",
+    "pykit_bench",
+    "pykit_dataset",
+    "pykit_embedding",
+    "pykit_vectorstore",
+    "pykit_transcription",
+    "pykit_agent",
+    "pykit_discovery",
+    "pykit_git",
+    "pykit_workload",
+    "pykit_process",
+    "pykit_testutil",
+    "pykit_integration",
+    "pykit_tool",
+    "pykit_skill",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+]
+
+[[tool.importlinter.contracts]]
+name = "Layer architecture"
+type = "layers"
+layers = [
+    "pykit_agent | pykit_workload | pykit_process | pykit_git | pykit_testutil | pykit_integration",
+    "pykit_skill",
+    "pykit_inference | pykit_bench | pykit_dataset | pykit_transcription",
+    "pykit_llm_common | pykit_llm_openai | pykit_llm_anthropic | pykit_llm_gemini",
+    "pykit_llm | pykit_embedding | pykit_vectorstore | pykit_mcp",
+    "pykit_ai",
+    "pykit_server | pykit_grpc",
+    "pykit_discovery | pykit_database | pykit_cache | pykit_storage | pykit_messaging | pykit_httpclient",
+    "pykit_auth | pykit_authz | pykit_security",
+    "pykit_pipeline | pykit_dag | pykit_worker | pykit_sse | pykit_stateful",
+    "pykit_di | pykit_bootstrap | pykit_observability | pykit_chain",
+    "pykit_hook | pykit_provider | pykit_component | pykit_resilience | pykit_schema",
+    "pykit_validation | pykit_encryption | pykit_util | pykit_version | pykit_media",
+    "pykit_errors | pykit_config | pykit_logging",
+]
+
+[[tool.importlinter.contracts]]
+name = "Data core packages do not import optional adapters"
+type = "forbidden"
+source_modules = [
+    "pykit_cache.backends",
+    "pykit_cache.client",
+    "pykit_cache.component",
+    "pykit_cache.config",
+    "pykit_cache.registry",
+    "pykit_cache.typed_store",
+    "pykit_storage.base",
+    "pykit_storage.component",
+    "pykit_storage.config",
+    "pykit_storage.local",
+    "pykit_storage.registry",
+    "pykit_vectorstore.memory",
+    "pykit_vectorstore.registry",
+    "pykit_vectorstore.store",
+]
+forbidden_modules = [
+    "pykit_cache_redis",
+    "pykit_storage_s3",
+    "pykit_vectorstore_qdrant",
+]
+
+[tool.bandit]
+targets = ["packages"]
+recursive = true
+skips = ["B101"]

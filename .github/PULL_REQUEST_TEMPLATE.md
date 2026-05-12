@@ -39,8 +39,8 @@
 
 - [ ] Added new tests for my changes
 - [ ] All existing tests pass (`uv run pytest`)
-- [ ] Linter passes (`uv run ruff check packages/`)
-- [ ] Type-check passes (`uv run mypy packages/`)
+- [ ] Linter passes (`uv run ruff check core/packages/ contrib/`)
+- [ ] Type-check passes (`uv run mypy`)
 - [ ] Import layering passes (`uv run lint-imports`)
 - [ ] Manual testing performed (describe below if applicable)
 
@@ -49,7 +49,9 @@
 <!-- Optional: show test output, screenshots, or logs demonstrating your changes work -->
 
 ```
-$ uv run pytest packages/pykit-<name>/
+$ uv run pytest core/packages/pykit-<name>/
+# or
+$ uv run pytest contrib/pykit-<name>/
 ...
 ```
 

@@ -19,12 +19,13 @@ updates:
           - "*"
 
   # ── Python (uv / pip) — workspace root + every package ──────────────────────
-  # The wildcard glob auto-discovers packages so new ones are picked up
-  # without editing this file.
+  # The wildcard globs auto-discover foundation and contrib packages so new ones
+  # are picked up without editing this file.
   - package-ecosystem: "pip"
     directories:
       - "/"                  # root pyproject.toml
-      - "/packages/*"        # every workspace package
+      - "/core/packages/*"   # foundation workspace packages
+      - "/contrib/pykit-*"   # flat contrib adapter packages
     schedule:
       interval: "weekly"
       day: "friday"

@@ -53,7 +53,7 @@ async def main() -> None:
 git clone https://github.com/kbukum/pykit.git
 cd pykit
 uv sync
-uv run pytest packages/
+uv run pytest core/packages/ contrib/
 ```
 
 ## Common Package Combinations

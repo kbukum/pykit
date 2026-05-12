@@ -27,8 +27,7 @@ repos:
     hooks:
       - id: mypy
         name: mypy (strict packages)
-        entry: uv run mypy
+        entry: bash -c 'cd core && uv run mypy'
         language: system
         types: [python]
         pass_filenames: false
-        args: [packages/pykit_errors, packages/pykit_config, packages/pykit_logging, packages/pykit_provider, packages/pykit_pipeline]
