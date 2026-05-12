@@ -50,7 +50,7 @@ jobs:
             --benchmark-min-rounds=5 || status=$?
           if [ "${status:-0}" -eq 5 ]; then
             echo "No benchmark markers found in core — skipping"
-            echo '{"benchmarks": []}' > ../core-output.json
+            rm -f ../core-output.json
           elif [ "${status:-0}" -ne 0 ]; then
             exit "$status"
           fi
@@ -66,7 +66,7 @@ jobs:
             --benchmark-min-rounds=5 || status=$?
           if [ "${status:-0}" -eq 5 ]; then
             echo "No benchmark markers found in contrib — skipping"
-            echo '{"benchmarks": []}' > ../contrib-output.json
+            rm -f ../contrib-output.json
           elif [ "${status:-0}" -ne 0 ]; then
             exit "$status"
           fi
