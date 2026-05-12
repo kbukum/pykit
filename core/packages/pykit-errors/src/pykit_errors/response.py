@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pykit_errors.base import AppError
+if TYPE_CHECKING:
+    from pykit_errors.base import AppError
 
 _TYPE_BASE_URI = "https://pykit.dev/errors/"
 

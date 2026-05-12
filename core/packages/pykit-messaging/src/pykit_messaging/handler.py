@@ -41,7 +41,7 @@ def chain_handlers(
     Returns:
         The fully wrapped handler.
     """
-    result = base
+    result: MessageHandlerProtocol = base
     for mw in middlewares:
         result = mw(result)
     return result
