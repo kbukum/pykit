@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import functools
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    from pykit_errors.base import AppError
+from typing import Any, Mapping, Protocol
 
 _TYPE_BASE_URI = "https://pykit.dev/errors/"
+
+
+class _CodeLike(Protocol):
+    value: str
+
+
+class _AppErrorLike(Protocol):
+    code: _CodeLike
+    http_status: int
+    message: str
+    retryable: bool
+    details: Mapping[str, Any]
 
 
 def set_type_base_uri(uri: str) -> None:
@@ -75,7 +84,7 @@ class ProblemDetail:
     details: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
-    def from_app_error(cls, err: AppError, instance: str = "") -> ProblemDetail:
+    def from_app_error(cls, err: _AppErrorLike, instance: str = "") -> ProblemDetail:
         """Create a ProblemDetail from an AppError.
 
         Args:
@@ -136,7 +145,7 @@ class ProblemDetailFactory:
     def type_base_uri(self) -> str:
         return self._type_base_uri
 
-    def create(self, err: AppError, instance: str = "") -> ProblemDetail:
+    def create(self, err: _AppErrorLike, instance: str = "") -> ProblemDetail:
         """Create a ProblemDetail from an AppError using this factory's base URI."""
         code_str = err.code.value
         return ProblemDetail(
