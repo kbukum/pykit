@@ -35,10 +35,16 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
-      - name: Export requirements
-        run: uv export --only-group dev --format requirements-txt --no-emit-workspace > /tmp/reqs.txt
-      - name: Run pip-audit
-        run: uvx pip-audit -r /tmp/reqs.txt --strict --vulnerability-service osv
+      - name: Export core requirements
+        run: uv export --only-group dev --format requirements-txt --no-emit-workspace | grep -v '^-e ' > requirements-dev.txt
+        working-directory: core
+      - name: Audit core requirements
+        run: uvx pip-audit -r core/requirements-dev.txt --strict --vulnerability-service osv
+      - name: Export contrib requirements
+        run: uv export --only-group dev --format requirements-txt --no-emit-workspace | grep -v '^-e ' > requirements-dev.txt
+        working-directory: contrib
+      - name: Audit contrib requirements
+        run: uvx pip-audit -r contrib/requirements-dev.txt --strict --vulnerability-service osv
 
   bandit:
     name: Bandit SAST
@@ -46,12 +52,24 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
-      - run: uv sync --only-group dev
-      - name: Run bandit
-        run: uv run bandit -lll -iii -r packages/ -f json -o bandit-report.json
+      - name: Sync core dev dependencies
+        run: uv sync --only-group dev
+        working-directory: core
+      - name: Sync contrib dev dependencies
+        run: uv sync --only-group dev
+        working-directory: contrib
+      - name: Run bandit on core
+        run: uv run bandit -lll -iii -r packages/ -f json -o ../bandit-core-report.json
+        working-directory: core
+        continue-on-error: true
+      - name: Run bandit on contrib
+        run: uv run bandit -lll -iii -r . -f json -o ../bandit-contrib-report.json
+        working-directory: contrib
         continue-on-error: true
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         if: always()
         with:
           name: bandit-report
-          path: bandit-report.json
+          path: |
+            bandit-core-report.json
+            bandit-contrib-report.json

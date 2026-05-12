@@ -2,151 +2,209 @@
        check-core check-patterns check-crosscutting check-composition check-transport check-auth check-data check-ai \
        check-media check-infra clean help ci ci-test ci-lint ensure-act
 
-# Package flag: pass package name when P is set
-_P = $(if $(P),packages/$(P))
-
-# Test filter: pass -k $(T) when T is set
+_W = $(or $(W),both)
 _T = $(if $(T),-k $(T))
 
-## Default target
 all: check
 
-## Build packages (P=<package> for specific)
 build:
-	@echo "==> Building..."
-ifdef P
-	@cd $(P) && uv build
-else
-	@for pkg in packages/*/; do \
-		echo "==> Building $${pkg}..."; \
-		cd "$${pkg}" && uv build || exit 1; \
-		cd - > /dev/null; \
-	done
-endif
-	@echo "✓ Build succeeded"
+	@echo "==> Building..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd "core/packages/$(P)" && uv build; \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd "contrib/$(P)" && uv build; \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then \
+			for pkg in core/packages/*/; do \
+				echo "==> Building $${pkg}..."; \
+				(cd "$${pkg}" && uv build) || exit 1; \
+			done; \
+		fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then \
+			for pkg in contrib/pykit-*/; do \
+				echo "==> Building $${pkg}..."; \
+				(cd "$${pkg}" && uv build) || exit 1; \
+			done; \
+		fi; \
+	fi; \
+	echo "✓ Build succeeded"
 
-## Run tests (P=<package>, T=<test pattern>)
 test:
-	@echo "==> Testing..."
-	@uv run python -m pytest $(if $(P),packages/$(P)/tests/) $(_T)
-	@echo "✓ Tests passed"
+	@echo "==> Testing..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd core && uv run python -m pytest "packages/$(P)/tests/" $(_T); \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd contrib && uv run python -m pytest "$(P)/tests/" $(_T); \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv run python -m pytest $(_T)); fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv run python -m pytest $(_T)); fi; \
+	fi; \
+	echo "✓ Tests passed"
 
-## Run tests with coverage (P=<package>, T=<test pattern>)
 test-coverage:
-	@echo "==> Testing with coverage..."
-	@uv run python -m pytest --cov --cov-report=term-missing $(if $(P),packages/$(P)/tests/) $(_T)
-	@echo "✓ Coverage report generated"
+	@echo "==> Testing with coverage..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd core && uv run python -m pytest --cov --cov-report=term-missing "packages/$(P)/tests/" $(_T); \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd contrib && uv run python -m pytest --cov --cov-report=term-missing "$(P)/tests/" $(_T); \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv run python -m pytest --cov --cov-report=term-missing $(_T)); fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv run python -m pytest --cov --cov-report=term-missing $(_T)); fi; \
+	fi; \
+	echo "✓ Coverage report generated"
 
-## Run linter (P=<package>)
 lint:
-	@echo "==> Linting..."
-	@uv run ruff check $(if $(P),packages/$(P)/,.)
-	@echo "✓ Lint passed"
+	@echo "==> Linting..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd core && uv run ruff check "packages/$(P)/"; \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd contrib && uv run ruff check "$(P)/"; \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv run ruff check .); fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv run ruff check .); fi; \
+	fi; \
+	echo "✓ Lint passed"
 
-## Run type checker (P=<package>)
 typecheck:
-	@echo "==> Type checking..."
-	@uv run mypy $(if $(P),packages/$(P)/src/,packages/*/src/)
-	@echo "✓ Type check passed"
+	@echo "==> Type checking..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd core && uv run mypy "packages/$(P)/src/"; \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd contrib && uv run mypy "$(P)/src/"; \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv run mypy); fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv run mypy); fi; \
+	fi; \
+	echo "✓ Type check passed"
 
-## Format code with ruff
 fmt:
-	@echo "==> Formatting..."
-	@uv run ruff format .
-	@uv run ruff check --fix .
-	@echo "✓ Formatted"
+	@echo "==> Formatting..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd core && uv run ruff format "packages/$(P)/" && uv run ruff check --fix "packages/$(P)/"; \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd contrib && uv run ruff format "$(P)/" && uv run ruff check --fix "$(P)/"; \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv run ruff format . && uv run ruff check --fix .); fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv run ruff format . && uv run ruff check --fix .); fi; \
+	fi; \
+	echo "✓ Formatted"
 
-## Check formatting without modifying files
 fmt-check:
-	@echo "==> Checking format..."
-	@uv run ruff format --check .
-	@echo "✓ Format OK"
+	@echo "==> Checking format..."; \
+	set -e; \
+	if [ -n "$(P)" ]; then \
+		if [ -d "core/packages/$(P)" ]; then \
+			cd core && uv run ruff format --check "packages/$(P)/"; \
+		elif [ -d "contrib/$(P)" ]; then \
+			cd contrib && uv run ruff format --check "$(P)/"; \
+		else \
+			echo "Package $(P) not found in core/packages/ or contrib/" >&2; exit 1; \
+		fi; \
+	else \
+		if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv run ruff format --check .); fi; \
+		if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv run ruff format --check .); fi; \
+	fi; \
+	echo "✓ Format OK"
 
-## Sync dependencies
 sync:
-	@echo "==> Syncing dependencies..."
-	@uv sync
-	@echo "✓ Dependencies synced"
+	@echo "==> Syncing dependencies..."; \
+	set -e; \
+	if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv sync); fi; \
+	if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv sync); fi; \
+	echo "✓ Dependencies synced"
 
-## Update lockfile
 update:
-	@echo "==> Updating lockfile..."
-	@uv lock --upgrade
-	@echo "✓ Lockfile updated"
+	@echo "==> Updating lockfile..."; \
+	set -e; \
+	if [ "$(_W)" = "core" ] || [ "$(_W)" = "both" ]; then (cd core && uv lock --upgrade); fi; \
+	if [ "$(_W)" = "contrib" ] || [ "$(_W)" = "both" ]; then (cd contrib && uv lock --upgrade); fi; \
+	echo "✓ Lockfile updated"
 
-## Run all checks (fmt-check + lint + typecheck + test)
 check: fmt-check lint typecheck test
-
-## Check only core domain modules
 check-core:
 	@./scripts/check-domain.sh core
-
-## Check only patterns domain modules
 check-patterns:
 	@./scripts/check-domain.sh patterns
-
-## Check only crosscutting domain modules
 check-crosscutting:
 	@./scripts/check-domain.sh crosscutting
-
-## Check only composition domain modules
 check-composition:
 	@./scripts/check-domain.sh composition
-
-## Check only transport domain modules
 check-transport:
 	@./scripts/check-domain.sh transport
-
-## Check only auth domain modules
 check-auth:
 	@./scripts/check-domain.sh auth
-
-## Check only data domain modules
 check-data:
 	@./scripts/check-domain.sh data
-
-## Check only ai domain modules
 check-ai:
 	@./scripts/check-domain.sh ai
-
-## Check only media domain modules
 check-media:
 	@./scripts/check-domain.sh media
-
-## Check only infra domain modules
 check-infra:
 	@./scripts/check-domain.sh infra
-
-## Fast check: format + lint + typecheck only (no tests) — for rapid iteration
 check-fast: fmt-check lint typecheck
 
-## Run tests for affected packages only (vs main branch)
 test-affected:
-	@echo "==> Detecting affected packages..."
-	@CHANGED=$$(git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~1); \
+	@echo "==> Detecting affected packages..."; \
+	set -e; \
+	CHANGED=$$(git diff --name-only origin/main...HEAD 2>/dev/null || git diff --name-only HEAD~1); \
 	if [ -z "$$CHANGED" ]; then \
 		echo "No changes detected, running all tests"; \
-		uv run pytest; \
-	elif echo "$$CHANGED" | grep -qvE '^packages/'; then \
-		echo "Root/config files changed, running all tests"; \
-		uv run pytest; \
+		(cd core && uv run pytest); \
+		(cd contrib && uv run pytest); \
+	elif echo "$$CHANGED" | grep -qvE '^(core/packages/|contrib/)'; then \
+		echo "Workspace/config files changed, running all tests"; \
+		(cd core && uv run pytest); \
+		(cd contrib && uv run pytest); \
 	else \
-		PKGS=$$(echo "$$CHANGED" | grep -E '^packages/' | cut -d/ -f2 | sort -u); \
-		if [ -z "$$PKGS" ]; then \
-			echo "No package changes detected, running all tests"; \
-			uv run pytest; \
-		else \
-			echo "Affected packages: $$PKGS"; \
-			PATHS=$$(echo "$$PKGS" | sed 's|^|packages/|' | tr '\n' ' '); \
-			uv run pytest $$PATHS; \
+		CORE_PKGS=$$(echo "$$CHANGED" | grep -E '^core/packages/' | cut -d/ -f3 | sort -u); \
+		CONTRIB_PKGS=$$(echo "$$CHANGED" | grep -E '^contrib/' | cut -d/ -f2 | sort -u); \
+		if [ -n "$$CORE_PKGS" ]; then \
+			echo "Affected core packages: $$CORE_PKGS"; \
+			PATHS=$$(echo "$$CORE_PKGS" | sed 's|^|packages/|' | tr '\n' ' '); \
+			(cd core && uv run pytest $$PATHS); \
+		fi; \
+		if [ -n "$$CONTRIB_PKGS" ]; then \
+			echo "Affected contrib packages: $$CONTRIB_PKGS"; \
+			(cd contrib && uv run pytest $$CONTRIB_PKGS); \
+		fi; \
+		if [ -z "$$CORE_PKGS" ] && [ -z "$$CONTRIB_PKGS" ]; then \
+			echo "No package changes detected"; \
 		fi; \
 	fi
 
-## Run fast tests (excludes integration/e2e/benchmark)
 test-unit:
-	@uv run pytest -m "not integration and not e2e and not benchmark" -n auto --dist worksteal
+	@cd core && uv run pytest -m "not integration and not e2e and not benchmark" -n auto --dist worksteal
 
-## Clean build artifacts and caches
 clean:
 	@echo "==> Cleaning..."
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
@@ -158,75 +216,54 @@ clean:
 	@rm -f .coverage
 	@echo "✓ Cleaned"
 
-## Ensure act is installed (for local CI)
 ensure-act:
-	@command -v act >/dev/null 2>&1 || { \
-		echo "==> act not found. Install from https://github.com/nektos/act"; \
-		exit 1; \
-	}
+	@command -v act >/dev/null 2>&1 || { echo "==> act not found. Install from https://github.com/nektos/act"; exit 1; }
 	@command -v docker >/dev/null 2>&1 || { echo "Error: Docker is required but not installed." && exit 1; }
 
-## Run full CI pipeline locally (mirrors GitHub Actions)
 ci: ensure-act
 	@act --secret GITHUB_TOKEN=$$(gh auth token 2>/dev/null) $(ACT_ARGS)
-
-## Run only the test job from CI
 ci-test: ensure-act
 	@act -j test --secret GITHUB_TOKEN=$$(gh auth token 2>/dev/null) $(ACT_ARGS)
-
-## Run only the lint job from CI
 ci-lint: ensure-act
 	@act -j lint --secret GITHUB_TOKEN=$$(gh auth token 2>/dev/null) $(ACT_ARGS)
 
-## Show help
 help:
-	@echo "Usage: make <target> [P=<package>] [T=<test>]"
+	@echo "Usage: make <target> [P=<package>] [T=<test>] [W=core|contrib|both]"
 	@echo ""
 	@echo "Development:"
-	@echo "  make help                           Show this help"
-	@echo "  make build              [P=]       Build packages"
-	@echo "  make test               [P=] [T=]  Run tests"
-	@echo "  make test-coverage      [P=] [T=]  Run tests with coverage"
-	@echo "  make test-affected                  Run tests for changed packages"
-	@echo "  make test-unit                      Run fast tests (excludes integration/e2e/benchmark)"
-	@echo "  make lint               [P=]       Run ruff check"
-	@echo "  make typecheck          [P=]       Run mypy"
-	@echo "  make fmt                            Format code"
-	@echo "  make fmt-check                      Check formatting"
-	@echo "  make sync                           Sync dependencies"
-	@echo "  make update                         Update lockfile"
-	@echo "  make check-fast                     fmt-check + lint + typecheck"
-	@echo "  make check              [P=]       fmt-check + lint + typecheck + test"
-	@echo "  make check-core                    Check only core domain modules"
-	@echo "  make check-patterns                Check only patterns domain modules"
-	@echo "  make check-crosscutting            Check only crosscutting domain modules"
-	@echo "  make check-composition             Check only composition domain modules"
-	@echo "  make check-transport               Check only transport domain modules"
-	@echo "  make check-auth                    Check only auth domain modules"
-	@echo "  make check-data                    Check only data domain modules"
-	@echo "  make check-ai                      Check only ai domain modules"
-	@echo "  make check-media                   Check only media domain modules"
-	@echo "  make check-infra                   Check only infra domain modules"
-	@echo "  make clean                          Remove build artifacts"
+	@echo "  make help                             Show this help"
+	@echo "  make build                [P=] [W=]  Build packages"
+	@echo "  make test                 [P=] [T=]  Run tests"
+	@echo "  make test-coverage        [P=] [T=]  Run tests with coverage"
+	@echo "  make test-affected                    Run tests for changed packages"
+	@echo "  make test-unit                        Run fast tests (core workspace)"
+	@echo "  make lint                 [P=] [W=]  Run ruff check"
+	@echo "  make typecheck            [P=] [W=]  Run mypy"
+	@echo "  make fmt                  [P=] [W=]  Format code"
+	@echo "  make fmt-check            [P=] [W=]  Check formatting"
+	@echo "  make sync                      [W=]  Sync dependencies"
+	@echo "  make update                    [W=]  Update lockfile"
+	@echo "  make check-fast                       fmt-check + lint + typecheck"
+	@echo "  make check                [P=] [W=]  fmt-check + lint + typecheck + test"
+	@echo "  make clean                           Remove build artifacts"
 	@echo ""
-	@echo "Local CI (GitHub Actions via act + Docker):"
-	@echo "  make ci                             Run full CI pipeline"
-	@echo "  make ci-test                        Run only test job"
-	@echo "  make ci-lint                        Run only lint job"
+	@echo "Workspace targeting (W=):"
+	@echo "  W=core                               Target only core workspace"
+	@echo "  W=contrib                            Target only contrib workspace"
+	@echo "  W=both                               Target both workspaces (default)"
 	@echo ""
 	@echo "Package targeting (P=):"
-	@echo "  P=pykit                 Target pykit package"
-	@echo "  P=pykit-auth            Target pykit-auth package"
-	@echo "  P=pykit-database        Target pykit-database package"
-	@echo "  P=pykit-messaging       Target pykit-messaging package"
-	@echo "  P=pykit-discovery       Target pykit-discovery package"
+	@echo "  P=pykit                              Target core facade package"
+	@echo "  P=pykit-auth                         Target core auth package"
+	@echo "  P=pykit-database                     Target core database package"
+	@echo "  P=pykit-messaging-kafka              Target contrib Kafka adapter"
+	@echo "  P=pykit-storage-s3                   Target contrib S3 adapter"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make test                           Test everything"
-	@echo "  make test P=pykit-auth              Test auth package"
-	@echo "  make test P=pykit-auth T=test_jwt   Test matching tests in auth"
-	@echo "  make lint P=pykit-database          Lint database package"
-	@echo "  make check P=pykit-messaging        Full check on messaging package"
-	@echo "  make test-coverage                  Coverage report for all packages"
-	@echo "  make fmt                            Format all code"
-	@echo "  make typecheck P=pykit              Type check pykit package"
+	@echo "  make test                             Test both workspaces"
+	@echo "  make test W=core                      Test core workspace only"
+	@echo "  make test P=pykit-auth T=test_jwt     Test matching tests in core auth"
+	@echo "  make lint P=pykit-storage-s3          Lint contrib storage adapter"
+	@echo "  make check P=pykit-messaging-kafka    Full check on contrib Kafka adapter"
+	@echo "  make sync W=contrib                   Sync contrib dependencies"
+	@echo "  make typecheck P=pykit                Type check core facade package"

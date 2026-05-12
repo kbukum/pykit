@@ -7,18 +7,18 @@ Python infrastructure toolkit providing foundational packages for service develo
 Requires: Python 3.13+, uv.
 
 ```bash
-uv sync                     # Install all dependencies
-uv run pytest               # Run all tests
-uv run pytest --cov         # Run tests with coverage (minimum 60%)
-uv run ruff check packages/ # Lint
-uv run ruff format packages/# Format
-uv run mypy                 # Type check (strict mode)
-uv run import-linter        # Verify layer architecture compliance
+uv sync                              # Install all dependencies
+uv run pytest                        # Run all tests
+uv run pytest --cov                  # Run tests with coverage (minimum 60%)
+uv run ruff check core/packages/ contrib/
+uv run ruff format core/packages/ contrib/
+uv run mypy                          # Type check (strict mode)
+uv run import-linter                 # Verify layer architecture compliance
 ```
 
 ## Package Structure
 
-uv workspace monorepo with 35+ packages in `packages/`. Each package has its own `pyproject.toml`.
+uv workspace monorepo with foundation packages in `core/packages/` and flat contrib adapter packages in `contrib/`. Each package has its own `pyproject.toml`.
 
 The root `pykit` package is a lazy-loading facade that re-exports all sub-packages.
 

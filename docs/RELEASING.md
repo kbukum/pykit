@@ -45,7 +45,7 @@ All packages in pykit currently share a single version (lock-step). Update
 the version in:
 
 - Root `pyproject.toml` (`[project] version`)
-- Every `packages/pykit-*/pyproject.toml` (`[project] version`)
+- Every `core/packages/pykit-*/pyproject.toml` and `contrib/pykit-*/pyproject.toml` (`[project] version`)
 
 A helper is provided:
 
@@ -57,7 +57,7 @@ Then refresh the lockfile:
 
 ```sh
 uv lock
-git add pyproject.toml packages/*/pyproject.toml uv.lock CHANGELOG.md
+git add pyproject.toml core/packages/*/pyproject.toml contrib/pykit-*/pyproject.toml uv.lock CHANGELOG.md
 git commit -S -m "chore: prepare vX.Y.Z release"
 ```
 
@@ -71,7 +71,7 @@ git push origin main vX.Y.Z
 The release workflow (`.github/workflows/release.yml`) is triggered by the
 tag push and will:
 
-- Build wheels and sdists for every `packages/pykit-*` and the facade.
+- Build wheels and sdists for every `core/packages/pykit-*`, every `contrib/pykit-*`, and the facade.
 - Run the full test suite + lint + type-check + `pip-audit`.
 - Verify `uv lock --check` passes.
 - Publish to PyPI via Trusted Publishing.

@@ -1,6 +1,6 @@
 # pykit Package Map
 
-pykit is a **uv workspace** with a facade package and 50+ independent sub-packages under `packages/`. Every package has its own `README.md` — start there for API details. This file is the bird's-eye index.
+pykit is a **uv workspace** with a facade package, foundation packages under `core/packages/`, and flat contrib adapter packages under `contrib/`. Every package has its own `README.md` — start there for API details. This file is the bird's-eye index.
 
 ## Facade
 
@@ -50,7 +50,7 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 | `pykit-database` | Async database access with SQLAlchemy and asyncpg |
 | `pykit-cache` | cache client and caching utilities |
 | `pykit-storage` | Object/file storage abstraction — local and S3 backends |
-| `pykit-messaging` | Transport-agnostic messaging registry with memory default, optional Kafka/NATS/RabbitMQ extras, DLQ, retry, metrics, and tracing |
+| `pykit-messaging` | Transport-agnostic messaging registry with memory default in `core/packages/`; Kafka, NATS, and RabbitMQ adapters live under `contrib/`, alongside DLQ, retry, metrics, and tracing support |
 | `pykit-httpclient` | Async HTTP client with bounded redirects and resilience integration |
 
 ## Servers
@@ -74,10 +74,10 @@ pykit is a **uv workspace** with a facade package and 50+ independent sub-packag
 |---------|-------------|
 | `pykit-ai` | Shared AI vocabulary, multimodal content blocks, messages, streams, and budgets |
 | `pykit-llm` | LLM request/response and streaming abstractions |
-| `pykit-llm-providers` | LLM provider adapters — OpenAI, Anthropic, Gemini |
-| `pykit-inference` | Model-serving runtime adapters — Triton, vLLM, and TGI |
+| `pykit-llm-providers` | LLM provider abstractions in core; OpenAI, Anthropic, Gemini, and common provider adapters live under `contrib/` |
+| `pykit-inference` | Model-serving abstractions in core; Triton, vLLM, and TGI adapters live under `contrib/` |
 | `pykit-embedding` | Embedding provider contracts and vector utilities |
-| `pykit-vectorstore` | Vector store abstraction for similarity search |
+| `pykit-vectorstore` | Vector store abstraction for similarity search, with the Qdrant adapter in `contrib/` |
 | `pykit-agent` | Agent orchestration built on pykit-ai, llm, and tools |
 | `pykit-tool` | Tool definitions, auto-wiring, registry, middleware |
 | `pykit-skill` | SDK-free skill manifests, registries, loaders, and verification policies |

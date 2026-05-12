@@ -43,12 +43,23 @@ jobs:
         run: |
           PKG="${{ steps.meta.outputs.package-name }}"
           if [[ -n "$PKG" ]]; then
-            uv build --package "$PKG" --out-dir dist/
+            if [[ -d "core/packages/$PKG" ]]; then
+              uv build --directory core --package "$PKG" --out-dir dist/
+            elif [[ -d "contrib/$PKG" ]]; then
+              uv build --directory contrib --package "$PKG" --out-dir dist/
+            else
+              echo "Unknown package: $PKG" >&2
+              exit 1
+            fi
           else
             # Workspace-wide: build every package
-            for pkg_dir in packages/*/; do
+            for pkg_dir in core/packages/*/; do
               pkg=$(basename "$pkg_dir")
-              uv build --package "$pkg" --out-dir dist/
+              uv build --directory core --package "$pkg" --out-dir dist/
+            done
+            for pkg_dir in contrib/pykit-*/; do
+              pkg=$(basename "$pkg_dir")
+              uv build --directory contrib --package "$pkg" --out-dir dist/
             done
           fi
 

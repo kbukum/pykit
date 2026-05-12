@@ -1,0 +1,334 @@
+[project]
+name = "pykit-contrib-workspace"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.uv.workspace]
+members = [
+    "pykit-cache-redis",
+    "pykit-storage-s3",
+    "pykit-messaging-kafka",
+    "pykit-messaging-nats",
+    "pykit-messaging-rabbitmq",
+    "pykit-inference-tgi",
+    "pykit-inference-triton",
+    "pykit-inference-vllm",
+    "pykit-llm-common",
+    "pykit-llm-openai",
+    "pykit-llm-anthropic",
+    "pykit-llm-gemini",
+    "pykit-vectorstore-qdrant",
+]
+
+[dependency-groups]
+dev = [
+    "pykit-cache-redis",
+    "pykit-storage-s3",
+    "pykit-messaging-kafka",
+    "pykit-messaging-nats",
+    "pykit-messaging-rabbitmq",
+    "pykit-inference-tgi",
+    "pykit-inference-triton",
+    "pykit-inference-vllm",
+    "pykit-llm-common",
+    "pykit-llm-openai",
+    "pykit-llm-anthropic",
+    "pykit-llm-gemini",
+    "pykit-vectorstore-qdrant",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "aiokafka>=0.14.0",
+    "cramjam>=2.11.0",
+    "pytest-benchmark",
+]
+
+[tool.uv.sources]
+"pykit-cache-redis" = { workspace = true }
+"pykit-storage-s3" = { workspace = true }
+"pykit-messaging-kafka" = { workspace = true }
+"pykit-messaging-nats" = { workspace = true }
+"pykit-messaging-rabbitmq" = { workspace = true }
+"pykit-inference-tgi" = { workspace = true }
+"pykit-inference-triton" = { workspace = true }
+"pykit-inference-vllm" = { workspace = true }
+"pykit-llm-common" = { workspace = true }
+"pykit-llm-openai" = { workspace = true }
+"pykit-llm-anthropic" = { workspace = true }
+"pykit-llm-gemini" = { workspace = true }
+"pykit-vectorstore-qdrant" = { workspace = true }
+"pykit-errors" = { path = "../core/packages/pykit-errors", editable = true }
+"pykit-cache" = { path = "../core/packages/pykit-cache", editable = true }
+"pykit-storage" = { path = "../core/packages/pykit-storage", editable = true }
+"pykit-messaging" = { path = "../core/packages/pykit-messaging", editable = true }
+"pykit-inference" = { path = "../core/packages/pykit-inference", editable = true }
+"pykit-llm" = { path = "../core/packages/pykit-llm", editable = true }
+"pykit-vectorstore" = { path = "../core/packages/pykit-vectorstore", editable = true }
+"pykit-ai" = { path = "../core/packages/pykit-ai", editable = true }
+"pykit-component" = { path = "../core/packages/pykit-component", editable = true }
+"pykit-config" = { path = "../core/packages/pykit-config", editable = true }
+"pykit-logging" = { path = "../core/packages/pykit-logging", editable = true }
+"pykit-provider" = { path = "../core/packages/pykit-provider", editable = true }
+"pykit-httpclient" = { path = "../core/packages/pykit-httpclient", editable = true }
+"pykit-resilience" = { path = "../core/packages/pykit-resilience", editable = true }
+"pykit-embedding" = { path = "../core/packages/pykit-embedding", editable = true }
+"pykit-observability" = { path = "../core/packages/pykit-observability", editable = true }
+"pykit-util" = { path = "../core/packages/pykit-util", editable = true }
+"pykit-validation" = { path = "../core/packages/pykit-validation", editable = true }
+"pykit-testutil" = { path = "../core/packages/pykit-testutil", editable = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = [
+    "pykit-cache-redis",
+    "pykit-storage-s3",
+    "pykit-messaging-kafka",
+    "pykit-messaging-nats",
+    "pykit-messaging-rabbitmq",
+    "pykit-inference-tgi",
+    "pykit-inference-triton",
+    "pykit-inference-vllm",
+    "pykit-llm-common",
+    "pykit-llm-openai",
+    "pykit-llm-anthropic",
+    "pykit-llm-gemini",
+    "pykit-vectorstore-qdrant",
+]
+addopts = "--tb=short -q --import-mode=importlib -m 'not integration and not e2e and not benchmark'"
+markers = [
+    "unit: Fast isolated unit tests (no I/O, no network)",
+    "integration: Integration tests requiring external services",
+    "e2e: End-to-end tests (full stack, slow)",
+    "benchmark: Performance benchmarks",
+    "slow: mark test as slow-running",
+]
+
+[tool.coverage.run]
+source_pkgs = [
+    "pykit_cache_redis",
+    "pykit_storage_s3",
+    "pykit_messaging_kafka",
+    "pykit_messaging_nats",
+    "pykit_messaging_rabbitmq",
+    "pykit_inference_tgi",
+    "pykit_inference_triton",
+    "pykit_inference_vllm",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+    "pykit_vectorstore_qdrant",
+]
+branch = true
+data_file = ".cache/coverage/.coverage"
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 70
+
+[tool.ruff]
+target-version = "py313"
+line-length = 110
+src = ["pykit-cache-redis/src", "pykit-storage-s3/src", "pykit-messaging-kafka/src", "pykit-messaging-nats/src", "pykit-messaging-rabbitmq/src", "pykit-inference-tgi/src", "pykit-inference-triton/src", "pykit-inference-vllm/src", "pykit-llm-common/src", "pykit-llm-openai/src", "pykit-llm-anthropic/src", "pykit-llm-gemini/src", "pykit-vectorstore-qdrant/src"]
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "UP",
+    "B",
+    "B9",
+    "C4",
+    "SIM",
+    "TCH",
+    "RUF",
+    "TRY",
+    "TRY200",
+    "TRY201",
+    "ASYNC",
+    "S",
+    "PT",
+    "N",
+    "PL",
+    "ERA",
+    "A",
+    "PIE",
+    "T20",
+]
+ignore = [
+    "E501",
+    "B008",
+    "UP007",
+    "TC001",
+    "TC002",
+    "TC003",
+    "S101",
+    "S108",
+    "S104",
+    "S311",
+    "S603",
+    "S607",
+    "TRY003",
+    "TRY300",
+    "TRY301",
+    "TRY400",
+    "PLR0913",
+    "PLR2004",
+    "PLR0912",
+    "PLR0911",
+    "PLR0915",
+    "PLW0603",
+    "PLW2901",
+    "PLC0415",
+    "PLW0108",
+    "PLW1510",
+    "ERA001",
+    "N818",
+    "A002",
+    "A004",
+    "A001",
+    "SIM105",
+    "ASYNC109",
+    "ASYNC240",
+    "ASYNC251",
+    "N802",
+    "N806",
+    "S105",
+    "S110",
+    "S112",
+    "S324",
+    "S608",
+    "PLC0105",
+    "PLE0643",
+    "UP046",
+    "UP047",
+    "TRY004",
+    "TRY201",
+    "RUF022",
+    "C408",
+    "PLR1714",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*.py" = ["E402", "S", "PLR", "N", "ANN", "T20", "PT"]
+"**/tests/**/*.py" = ["S", "PLR", "N", "ANN", "T20", "PT"]
+"**/benchmarks/*.py" = ["T20", "S", "PT"]
+"examples/**/*.py" = ["T20", "S"]
+"**/cli.py" = ["T20"]
+"**/sources/*.py" = ["T20"]
+"**/pykit_bench/*.py" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "pykit_cache_redis",
+    "pykit_storage_s3",
+    "pykit_messaging_kafka",
+    "pykit_messaging_nats",
+    "pykit_messaging_rabbitmq",
+    "pykit_inference_tgi",
+    "pykit_inference_triton",
+    "pykit_inference_vllm",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+    "pykit_vectorstore_qdrant",
+    "pykit_errors",
+    "pykit_cache",
+    "pykit_storage",
+    "pykit_messaging",
+    "pykit_inference",
+    "pykit_llm",
+    "pykit_vectorstore",
+    "pykit_ai",
+    "pykit_component",
+    "pykit_config",
+    "pykit_logging",
+    "pykit_provider",
+    "pykit_httpclient",
+    "pykit_resilience",
+    "pykit_embedding",
+    "pykit_observability",
+    "pykit_util",
+    "pykit_validation",
+    "pykit_testutil",
+]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_any_generics = true
+warn_redundant_casts = true
+exclude = '(^|/)(tests|__pycache__)/'
+packages = [
+    "pykit_cache_redis",
+    "pykit_storage_s3",
+    "pykit_messaging_kafka",
+    "pykit_messaging_nats",
+    "pykit_messaging_rabbitmq",
+    "pykit_inference_tgi",
+    "pykit_inference_triton",
+    "pykit_inference_vllm",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+    "pykit_vectorstore_qdrant",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "grpc.*",
+    "grpc_health.*",
+    "grpc_reflection.*",
+    "prometheus_client.*",
+    "structlog.*",
+    "tritonclient.*",
+    "datasets.*",
+    "huggingface_hub.*",
+    "kagglehub.*",
+    "hypothesis.*",
+    "argon2.*",
+    "qdrant_client.*",
+    "PIL.*",
+    "opentelemetry.propagators.b3.*",
+    "mcp.*",
+    "jsonschema.*",
+    "aiofiles.*",
+]
+ignore_missing_imports = true
+
+[tool.importlinter]
+root_packages = [
+    "pykit_cache_redis",
+    "pykit_storage_s3",
+    "pykit_messaging_kafka",
+    "pykit_messaging_nats",
+    "pykit_messaging_rabbitmq",
+    "pykit_inference_tgi",
+    "pykit_inference_triton",
+    "pykit_inference_vllm",
+    "pykit_llm_common",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+    "pykit_vectorstore_qdrant",
+]
+
+[tool.bandit]
+targets = ["pykit-cache-redis", "pykit-storage-s3", "pykit-messaging-kafka", "pykit-messaging-nats", "pykit-messaging-rabbitmq", "pykit-inference-tgi", "pykit-inference-triton", "pykit-inference-vllm", "pykit-llm-common", "pykit-llm-openai", "pykit-llm-anthropic", "pykit-llm-gemini", "pykit-vectorstore-qdrant"]
+recursive = true
+skips = ["B101"]
