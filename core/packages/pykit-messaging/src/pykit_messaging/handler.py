@@ -44,9 +44,7 @@ def chain_handlers(
     handler: MessageHandlerProtocol = base
     for mw in middlewares:
         if not callable(mw):
-            raise TypeError(
-                f"Middleware must be callable, got {type(mw).__name__}"
-            )
+            raise TypeError(f"Middleware must be callable, got {type(mw).__name__}")
         handler = mw(handler)
     return handler
 
