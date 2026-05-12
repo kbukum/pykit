@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import grpc
 
 from pykit_errors.codes import ErrorCode
+
+if TYPE_CHECKING:
+    from pykit_errors.response import ProblemDetail
 
 # Build reverse map from integer gRPC code to grpc.StatusCode enum member.
 _GRPC_STATUS_BY_CODE: dict[int, grpc.StatusCode] = {s.value[0]: s for s in grpc.StatusCode}

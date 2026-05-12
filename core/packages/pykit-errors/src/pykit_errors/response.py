@@ -10,15 +10,25 @@ _TYPE_BASE_URI = "https://pykit.dev/errors/"
 
 
 class _CodeLike(Protocol):
-    value: str
+    @property
+    def value(self) -> str: ...
 
 
 class _AppErrorLike(Protocol):
-    code: _CodeLike
-    http_status: int
-    message: str
-    retryable: bool
-    details: Mapping[str, Any]
+    @property
+    def code(self) -> _CodeLike: ...
+
+    @property
+    def http_status(self) -> int: ...
+
+    @property
+    def message(self) -> str: ...
+
+    @property
+    def retryable(self) -> bool: ...
+
+    @property
+    def details(self) -> Mapping[str, Any]: ...
 
 
 def set_type_base_uri(uri: str) -> None:

@@ -20,10 +20,8 @@ class MessageHandlerProtocol(Protocol):
         """
 
 
-class HandlerMiddleware(Protocol):
-    """A middleware that wraps a handler to add cross-cutting behavior."""
-
-    def __call__(self, handler: MessageHandlerProtocol) -> MessageHandlerProtocol: ...
+HandlerMiddleware = Callable[[MessageHandlerProtocol], MessageHandlerProtocol]
+"""A middleware that wraps a handler to add cross-cutting behavior."""
 
 
 def chain_handlers(
@@ -43,10 +41,10 @@ def chain_handlers(
     Returns:
         The fully wrapped handler.
     """
-    result: MessageHandlerProtocol = base
+    handler: MessageHandlerProtocol = base
     for mw in middlewares:
-        result = mw(result)
-    return result
+        handler = mw(handler)
+    return handler
 
 
 class FuncHandler:
