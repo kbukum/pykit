@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from pykit_cache import CacheConfig
-from pykit_errors import InvalidInputError
 from pykit_cache_redis import RedisCacheBackend
+from pykit_errors import InvalidInputError
 
 
 def test_redis_backend_rejects_byte_responses() -> None:

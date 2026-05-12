@@ -6,8 +6,8 @@ import importlib
 from collections.abc import Awaitable, Callable
 from typing import Protocol, cast
 
-from pykit_messaging_rabbitmq.config import RabbitMqConfig
 from pykit_messaging.types import Event, JsonValue, Message
+from pykit_messaging_rabbitmq.config import RabbitMqConfig
 from pykit_util import JsonCodec
 
 

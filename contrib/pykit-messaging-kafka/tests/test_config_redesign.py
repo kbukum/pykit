@@ -13,9 +13,9 @@ from pykit_messaging import (
     MemoryConfig,
     MessagingRegistry,
 )
+from pykit_messaging.memory import register as register_memory
 from pykit_messaging_kafka import KafkaConfig
 from pykit_messaging_kafka import register as register_kafka
-from pykit_messaging.memory import register as register_memory
 from pykit_messaging_nats import NatsConfig
 from pykit_messaging_nats import register as register_nats
 from pykit_messaging_rabbitmq import RabbitMqConfig

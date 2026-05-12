@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from pykit_messaging.types import Event, Message
 from pykit_messaging_kafka import (
     KafkaComponent,
     KafkaConfig,
@@ -18,7 +19,6 @@ from pykit_messaging_kafka import (
     is_connection_error,
     is_retryable_error,
 )
-from pykit_messaging.types import Event, Message
 
 # ---------------------------------------------------------------------------
 # Config

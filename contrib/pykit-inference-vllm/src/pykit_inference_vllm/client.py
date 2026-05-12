@@ -5,10 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+from pykit_authz import Decider
+from pykit_tool import Envelope, NetworkPolicy, NetworkRule
 
 from pykit_ai import Model, Provider
 from pykit_ai.semconv import Operation
-from pykit_authz import Decider
 from pykit_component import Health, HealthStatus
 from pykit_httpclient import HttpError
 from pykit_inference._http import InferenceHttpClient, build_http_client, map_http_error
@@ -28,7 +29,6 @@ from pykit_inference.types import (
     Value,
     ValueKind,
 )
-from pykit_tool import Envelope, NetworkPolicy, NetworkRule
 
 
 class VLLMConfig(BaseModel):

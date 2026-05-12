@@ -9,8 +9,8 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from typing import Protocol, cast
 
-from pykit_messaging_kafka.config import KafkaConfig
 from pykit_messaging.types import Event, EventHandler, Message, MessageHandler
+from pykit_messaging_kafka.config import KafkaConfig
 from pykit_resilience import RetryConfig, RetryExhaustedError, calculate_backoff, retry
 
 logger = logging.getLogger(__name__)

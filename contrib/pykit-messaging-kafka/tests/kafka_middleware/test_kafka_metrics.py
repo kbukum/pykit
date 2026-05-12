@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 from prometheus_client import REGISTRY
 
-from pykit_messaging_kafka.middleware.metrics import InstrumentHandler
 from pykit_messaging.types import Message
+from pykit_messaging_kafka.middleware.metrics import InstrumentHandler
 
 
 def _make_msg(topic: str = "test-topic") -> Message:

@@ -42,7 +42,9 @@ class TestS3ConfigValidation:
 
         assert await storage.exists("tenant/missing.bin") is False
 
-    async def test_s3_download_maps_botocore_client_error_to_not_found(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_s3_download_maps_botocore_client_error_to_not_found(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setattr("pykit_storage_s3.provider._client_error_type", lambda: _FakeClientError)
         storage = S3Storage.__new__(S3Storage)
         storage._bucket = "bucket"

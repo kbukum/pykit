@@ -9,8 +9,8 @@ from datetime import UTC, datetime
 from types import TracebackType
 from typing import Protocol, cast
 
-from pykit_messaging_rabbitmq.config import RabbitMqConfig
 from pykit_messaging.types import Message, MessageHandler
+from pykit_messaging_rabbitmq.config import RabbitMqConfig
 
 
 class _RabbitRawMessage(Protocol):

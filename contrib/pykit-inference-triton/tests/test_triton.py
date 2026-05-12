@@ -6,8 +6,8 @@ import json
 
 import httpx
 import pytest
-
 from pykit_authz import Decision, DecisionRequest
+
 from pykit_httpclient import HttpClient, HttpConfig
 from pykit_inference import PredictRequest, PredictStatus, Tensor, Value, ValueKind
 from pykit_inference.errors import InferenceAuthorizationError, InferenceHTTPError

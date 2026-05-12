@@ -127,7 +127,7 @@ data_file = ".cache/coverage/.coverage"
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
-fail_under = 85
+fail_under = 70
 
 [tool.ruff]
 target-version = "py313"

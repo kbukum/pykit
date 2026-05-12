@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from pykit_messaging_kafka.middleware.retry import RetryHandler, RetryMiddlewareConfig
 from pykit_messaging.types import Message
+from pykit_messaging_kafka.middleware.retry import RetryHandler, RetryMiddlewareConfig
 
 
 def _make_msg(topic: str = "test-topic", value: bytes = b"hello") -> Message:

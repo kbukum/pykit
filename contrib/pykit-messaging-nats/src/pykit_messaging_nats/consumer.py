@@ -9,8 +9,8 @@ from datetime import UTC, datetime
 from inspect import isawaitable
 from typing import Protocol, cast
 
-from pykit_messaging_nats.config import NatsConfig
 from pykit_messaging.types import Message, MessageHandler
+from pykit_messaging_nats.config import NatsConfig
 
 
 class _NatsRawMessage(Protocol):

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import fields
 
 from pykit_messaging.config import BrokerConfig
+from pykit_messaging.registry import MessagingRegistry
 from pykit_messaging_kafka.component import KafkaComponent
 from pykit_messaging_kafka.config import KafkaConfig
 from pykit_messaging_kafka.consumer import KafkaConsumer
@@ -18,7 +19,6 @@ from pykit_messaging_kafka.middleware import (
     TracingHandler,
 )
 from pykit_messaging_kafka.producer import KafkaProducer
-from pykit_messaging.registry import MessagingRegistry
 
 
 def register(registry: MessagingRegistry) -> None:

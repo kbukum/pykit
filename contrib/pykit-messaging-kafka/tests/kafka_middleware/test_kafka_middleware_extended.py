@@ -14,6 +14,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from prometheus_client import REGISTRY
 
+from pykit_messaging.types import Message
 from pykit_messaging_kafka.middleware.deadletter import DeadLetterEnvelope, DeadLetterProducer
 from pykit_messaging_kafka.middleware.metrics import InstrumentHandler
 from pykit_messaging_kafka.middleware.retry import (
@@ -25,7 +26,6 @@ from pykit_messaging_kafka.middleware.tracing import (
     extract_trace_context,
     inject_trace_context,
 )
-from pykit_messaging.types import Message
 from pykit_resilience import calculate_backoff
 
 # ---------------------------------------------------------------------------

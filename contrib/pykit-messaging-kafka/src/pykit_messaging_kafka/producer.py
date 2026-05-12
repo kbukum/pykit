@@ -9,8 +9,8 @@ from collections.abc import Callable
 from typing import Protocol, cast
 
 from pykit_messaging.config import validate_topic_name
-from pykit_messaging_kafka.config import KafkaConfig
 from pykit_messaging.types import Event, JsonValue, Message
+from pykit_messaging_kafka.config import KafkaConfig
 from pykit_resilience import RetryConfig, RetryExhaustedError, retry
 from pykit_util import JsonCodec
 
