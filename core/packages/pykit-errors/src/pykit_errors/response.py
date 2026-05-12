@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import functools
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 _TYPE_BASE_URI = "https://pykit.dev/errors/"
 
