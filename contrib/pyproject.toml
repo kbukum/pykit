@@ -43,6 +43,7 @@ dev = [
     "mypy",
     "aiokafka>=0.14.0",
     "cramjam>=2.11.0",
+    "pytest-benchmark",
 ]
 
 [tool.uv.sources]

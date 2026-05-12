@@ -36,12 +36,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b  # v8.1.0
       - name: Export core requirements
-        run: uv export --only-group dev --format requirements-txt --no-emit-workspace > requirements-dev.txt
+        run: uv export --only-group dev --format requirements-txt --no-emit-workspace | grep -v '^-e ' > requirements-dev.txt
         working-directory: core
       - name: Audit core requirements
         run: uvx pip-audit -r core/requirements-dev.txt --strict --vulnerability-service osv
       - name: Export contrib requirements
-        run: uv export --only-group dev --format requirements-txt --no-emit-workspace > requirements-dev.txt
+        run: uv export --only-group dev --format requirements-txt --no-emit-workspace | grep -v '^-e ' > requirements-dev.txt
         working-directory: contrib
       - name: Audit contrib requirements
         run: uvx pip-audit -r contrib/requirements-dev.txt --strict --vulnerability-service osv
