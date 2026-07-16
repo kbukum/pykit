@@ -42,3 +42,6 @@ pip-wheel-metadata/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local working scratch (plans, handoff notes) — never committed
+tmp/
