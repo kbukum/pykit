@@ -1,7 +1,4 @@
-"""Matching metrics: exact match and fuzzy match.
-
-Mirrors gokit's ``bench/metric/matching.go``.
-"""
+"""Matching metrics: exact match and fuzzy match."""
 
 from __future__ import annotations
 

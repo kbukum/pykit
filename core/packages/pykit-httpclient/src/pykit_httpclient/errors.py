@@ -1,4 +1,4 @@
-"""HTTP error classification mirroring gokit's httpclient/errors.go."""
+"""HTTP error classification mapping client failures to base error codes."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Discovery configuration — mirrors gokit's discovery.Config."""
+"""Discovery configuration — provider-agnostic config shape."""
 
 from __future__ import annotations
 
@@ -80,8 +80,8 @@ class StaticEndpoint:
 class DiscoveryConfig:
     """Top-level discovery configuration.
 
-    Mirrors gokit's ``discovery.Config`` — all three kits use the same
-    config shape so services are structurally identical regardless of language.
+    A single provider-agnostic config shape so services are structurally
+    identical regardless of the selected provider.
     """
 
     enabled: bool = False

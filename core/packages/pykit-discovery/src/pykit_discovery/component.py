@@ -1,6 +1,5 @@
 """Discovery component — lifecycle wrapper for service discovery.
 
-Mirrors gokit's ``discovery.Component`` and rskit's ``DiscoveryComponent``.
 Services create one instance from their ``DiscoveryConfig`` — the component
 handles provider creation, registration, and deregistration automatically.
 """

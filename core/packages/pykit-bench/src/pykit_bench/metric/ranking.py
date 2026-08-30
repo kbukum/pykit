@@ -1,7 +1,4 @@
-"""Ranking metrics: NDCG, MAP, Precision@K, Recall@K.
-
-Mirrors gokit's ``bench/metric/ranking.go``.
-"""
+"""Ranking metrics: NDCG, MAP, Precision@K, Recall@K."""
 
 from __future__ import annotations
 

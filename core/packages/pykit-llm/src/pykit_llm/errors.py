@@ -1,4 +1,4 @@
-"""LLM error classification mirroring gokit patterns."""
+"""LLM error classification mapping client failures to base error codes."""
 
 from __future__ import annotations
 

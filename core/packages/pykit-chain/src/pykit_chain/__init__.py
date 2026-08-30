@@ -5,8 +5,6 @@ step receives the output of the previous step.  Supports per-step progress
 reporting, cancellation via ``asyncio.Event``, and automatic cleanup of
 completed steps when a later step fails.
 
-Mirrors gokit/chain (Go) and rskit-chain (Rust).
-
 Quick start::
 
     chain = ChainBuilder().step(my_first_op).step(my_second_op).build()

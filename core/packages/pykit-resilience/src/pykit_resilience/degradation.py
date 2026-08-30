@@ -1,4 +1,4 @@
-"""Graceful degradation manager mirroring gokit/resilience/degradation.go."""
+"""Graceful degradation manager tracking service health and feature flags."""
 
 from __future__ import annotations
 
