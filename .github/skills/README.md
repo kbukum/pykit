@@ -25,7 +25,7 @@ drive tasks through the repo's `make`/`uv` gates.
 | [`review`](review/SKILL.md) | Run the eight-pass engineering-baseline review over a diff, package, or the tree. |
 | [`new-package`](new-package/SKILL.md) | Scaffold a new package — core vs contrib placement, workspace/facade wiring, package docstring, import-linter layer. |
 | [`new-backend`](new-backend/SKILL.md) | Add a storage/cache/messaging/inference/llm/vectorstore adapter as a typed-registration contrib package. |
-| [`parity`](parity/SKILL.md) | Keep pykit at parity with rskit (the reference kit) — mirror by capability, keep the parity matrix accurate. |
+| [`parity`](parity/SKILL.md) | Align a capability with its sibling kits — mirror whichever kit is strongest in that scope, keep pykit idiomatic Python, and keep the parity matrix accurate. |
 | [`release`](release/SKILL.md) | Cut a release — semver bump, CHANGELOG, lock-step version bump, full gates, PyPI Trusted Publishing. |
 
 ## Conventions
@@ -37,5 +37,6 @@ drive tasks through the repo's `make`/`uv` gates.
 - Validation is `make`/`uv`-first, scoped to the changed package(s) (`make lint P=<pkg>`,
   `make typecheck P=<pkg>`, `make test P=<pkg> T=<pattern>`, `make test-affected`); full-tree gates
   are for audits and releases.
-- pykit mirrors **rskit** (the reference kit); keep shared abstractions and naming aligned across
-  kits and the parity matrix accurate (`parity` skill).
+- pykit is a sibling kit to **rskit** and **gokit**; no kit is the canonical reference. For each
+  capability, mirror whichever kit is strongest in that scope, keep shared abstractions and naming
+  aligned where idiomatic, and keep the parity matrix accurate (`parity` skill).

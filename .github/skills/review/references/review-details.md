@@ -24,8 +24,8 @@ no diff). State the mode up front.
    dependency map (project mode). Preserve uncommitted changes; integrate on top, never discard.
 2. List the surface to review: changed packages/domains (changes mode) or chosen packages/
    workspace (project mode). Note cross-cutting touches: a core package's public surface fans out
-   to the root `pykit` facade, contrib adapters, and downstream/sibling parity (rskit reference;
-   see `docs/parity-matrix.md`). Also flag root `pyproject.toml`, `uv.lock`, `domains.toml`,
+   to the root `pykit` facade, contrib adapters, and downstream/sibling parity (aligned per
+   capability with whichever kit is strongest; see `docs/parity-matrix.md`). Also flag root `pyproject.toml`, `uv.lock`, `domains.toml`,
    import-linter config, shared error types (`AppError`), and public re-exports.
 3. Determine which passes apply via the triggers below. Skip non-applicable passes explicitly in
    the final report.

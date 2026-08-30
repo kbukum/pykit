@@ -65,8 +65,9 @@ from the diff.
   `make` (see the `validate` skill): `make test P=<pkg>`, `make lint P=<pkg>`,
   `make typecheck P=<pkg>`, `make test-affected`. Paste real evidence if useful; don't fabricate.
 - **Breaking Changes** — pre-stable, describe the redesign, not a migration shim.
-- **Sibling Parity** — rskit is the **reference** kit; pykit mirrors it. If a public abstraction
-  changed, note whether rskit/gokit need to mirror it and link the sibling item as a full URL;
+- **Sibling Parity** — no kit is the canonical reference; pykit aligns with its siblings per
+  capability. If a public abstraction changed, note whether rskit/gokit need to mirror it (or
+  whether pykit should adopt a stronger sibling version) and link the sibling item as a full URL;
   otherwise mark parity-not-required.
 - **Checklist** — tick only what is genuinely true (including `uv.lock` committed if deps changed,
   Google-style docstrings added, CHANGELOG `[Unreleased]` entry). An unchecked box is honest
