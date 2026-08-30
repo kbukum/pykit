@@ -1,4 +1,4 @@
-"""pykit-vectorstore — Vector similarity search store mirroring rskit-vectorstore."""
+"""pykit-vectorstore — Vector similarity search store with pluggable backends."""
 
 from __future__ import annotations
 

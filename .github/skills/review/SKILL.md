@@ -11,9 +11,9 @@ user-invocable: true
 
 # Reviewing pykit against its engineering baseline
 
-pykit is shared foundation infrastructure and a **sibling kit** to rskit (the reference) and gokit:
-a defect in a core package propagates to the `pykit` facade, the other core packages, every
-`contrib/` adapter, and every downstream consumer. The bar is correspondingly high — security,
+pykit is shared foundation infrastructure and a **sibling kit** to rskit and gokit (no kit is the
+canonical reference): a defect in a core package propagates to the `pykit` facade, the other core
+packages, every `contrib/` adapter, and every downstream consumer. The bar is correspondingly high — security,
 concurrency, and composition each get their own lens. This skill encodes pykit's permanent review
 baseline as eight focused passes plus three orchestrators.
 

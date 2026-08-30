@@ -9,7 +9,7 @@ Production-ready structured logging built on [structlog](https://www.structlog.o
 - Rate-based log sampling (burst + thereafter)
 - Per-module log level overrides
 - OpenTelemetry Logs bridge (OTLP export)
-- Unified log schema (consistent across gokit, pykit, rskit)
+- Unified structured log schema (stable field names)
 - Correlation ID tracking for distributed tracing
 
 ## Installation
@@ -233,7 +233,7 @@ When an active OpenTelemetry span exists, the bridge automatically attaches `tra
 
 ## Unified Schema
 
-All three kits (gokit, pykit, rskit) share the same structured field names:
+The stable structured field-name schema:
 
 | Field | Description |
 |-------|-------------|

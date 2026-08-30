@@ -9,10 +9,7 @@ _4MB = 4 * 1024 * 1024
 
 @dataclass
 class GrpcConfig:
-    """Configuration for a gRPC client channel.
-
-    Mirrors gokit ``grpc.Config`` with Python-appropriate defaults.
-    """
+    """Configuration for a gRPC client channel."""
 
     target: str = "localhost:50051"
     insecure: bool = True

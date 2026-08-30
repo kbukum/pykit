@@ -1,6 +1,6 @@
 # pykit
 
-Python infrastructure toolkit providing foundational packages for service development. Mirrors gokit (Go) and rskit (Rust) in module structure and naming.
+Python infrastructure toolkit providing foundational packages for service development. Sibling kit to gokit (Go) and rskit (Rust): aligned in capabilities and naming where idiomatic, no kit the canonical reference.
 
 ## Engineering principles
 

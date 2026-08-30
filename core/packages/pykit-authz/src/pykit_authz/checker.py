@@ -59,7 +59,7 @@ class AuthorizationDecision:
 
 @dataclass(frozen=True, slots=True)
 class Condition:
-    """Structured ABAC condition matching gokit/rskit canonical shape.
+    """Structured ABAC condition matching a canonical attribute shape.
 
     Reads an attribute from *source* at *key* and applies *operator* against
     *values*.  Optionally compares against another attribute via *compare_source*

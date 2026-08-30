@@ -20,10 +20,7 @@ L = TypeVar("L")
 
 
 class GenericDatasetLoader[L]:
-    """Generic dataset loader with label mapping and pipeline support.
-
-    Mirrors gokit's ``bench.DatasetLoader[L]``.
-    """
+    """Generic dataset loader with label mapping and pipeline support."""
 
     def __init__(
         self,

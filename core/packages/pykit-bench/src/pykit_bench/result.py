@@ -1,7 +1,8 @@
 """Result types for bench runs.
 
 These types represent the complete output of a benchmark evaluation,
-designed for cross-language compatibility with gokit and ruskit.
+serialized as the shared bench result schema — the canonical cross-language
+output format.
 """
 
 from __future__ import annotations
@@ -102,7 +103,8 @@ class BenchSampleResult(BaseModel):
 class BenchRunResult(BaseModel):
     """Complete result of a benchmark run.
 
-    This is the canonical output format, compatible across gokit, ruskit, and pykit.
+    Serializes the shared bench result schema — the canonical cross-language
+    output format.
     """
 
     id: str

@@ -26,10 +26,7 @@ class Provider(Protocol):
 
 
 class BoxIterator[T]:
-    """Async iterator providing pull-based sequential access to values.
-
-    Mirrors gokit's ``provider.Iterator[T]``.
-    """
+    """Async iterator providing pull-based sequential access to values."""
 
     @abstractmethod
     async def next(self) -> T | None:

@@ -18,10 +18,7 @@ L = TypeVar("L")
 
 @runtime_checkable
 class Evaluator(Protocol[L]):
-    """An evaluator that produces predictions from raw input bytes.
-
-    Mirrors gokit's ``bench.Evaluator[L]``.
-    """
+    """An evaluator that produces predictions from raw input bytes."""
 
     @property
     def name(self) -> str:

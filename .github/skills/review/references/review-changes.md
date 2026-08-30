@@ -29,7 +29,8 @@ produced the change.
   [`review-project.md`](./review-project.md)).
 - pykit is a Python infrastructure toolkit: a change to a core package's public surface fans out
   to every core package, every contrib adapter, the root `pykit` lazy-loading facade, and sibling
-  kit parity (rskit as the reference; see `docs/parity-matrix.md`). List that blast radius before
+  kit parity (aligned per capability with whichever kit is strongest in that scope; see
+  `docs/parity-matrix.md`). List that blast radius before
   reviewing.
 - Note whether the change belongs in **core** (`core/packages/pykit-<name>/`), a **contrib
   adapter** (`contrib/pykit-<name>/`), the root facade package (`core/packages/pykit/`), or a
