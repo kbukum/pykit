@@ -1,4 +1,4 @@
-"""pykit_workload.resources — Resource parsing utilities (ported from gokit/workload)."""
+"""pykit_workload.resources — Resource parsing utilities for memory and CPU quantities."""
 
 from __future__ import annotations
 

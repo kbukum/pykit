@@ -11,10 +11,7 @@ L = TypeVar("L")
 
 
 class Metric[L](Protocol):
-    """A pluggable evaluation metric.
-
-    Mirrors gokit's ``metric.Metric[L]`` interface.
-    """
+    """A pluggable evaluation metric."""
 
     @property
     def name(self) -> str:

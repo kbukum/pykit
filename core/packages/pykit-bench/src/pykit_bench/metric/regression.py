@@ -1,6 +1,5 @@
 """Regression metrics: MAE, MSE, RMSE, R².
 
-Mirrors gokit's ``bench/metric/regression.go``.
 Uses ``ScoredSample[float]`` where ``sample.label`` is actual and
 ``prediction.score`` is predicted.
 """

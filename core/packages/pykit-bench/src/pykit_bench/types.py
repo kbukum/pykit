@@ -1,6 +1,5 @@
 """Core data types for the bench framework.
 
-These types mirror gokit's bench core types, adapted with Python idioms.
 Uses Generic[L] for type-safe label handling and dataclasses for lightweight structs.
 """
 

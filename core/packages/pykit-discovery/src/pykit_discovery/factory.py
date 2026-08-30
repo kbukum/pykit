@@ -1,9 +1,7 @@
 """Provider factory registry — config-driven provider selection.
 
-Mirrors gokit's ``init()``-based factory registration and rskit's
-``register_provider``/``create_provider`` pattern.  Services never
-import provider packages directly — the factory resolves the correct
-implementation from ``DiscoveryConfig.provider``.
+Services never import provider packages directly — the factory resolves the
+correct implementation from ``DiscoveryConfig.provider``.
 """
 
 from __future__ import annotations

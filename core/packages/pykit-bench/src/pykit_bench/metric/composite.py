@@ -1,7 +1,4 @@
-"""Composite metrics: weighted combination.
-
-Mirrors gokit's ``bench/metric/composite.go``.
-"""
+"""Composite metrics: weighted combination."""
 
 from __future__ import annotations
 

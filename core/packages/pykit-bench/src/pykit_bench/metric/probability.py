@@ -1,7 +1,4 @@
-"""Probability metrics: AUC-ROC, Brier score, log loss, calibration.
-
-Mirrors gokit's ``bench/metric/probability.go``.
-"""
+"""Probability metrics: AUC-ROC, Brier score, log loss, calibration."""
 
 from __future__ import annotations
 

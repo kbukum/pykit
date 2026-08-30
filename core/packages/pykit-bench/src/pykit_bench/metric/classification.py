@@ -1,7 +1,4 @@
-"""Classification metrics: binary, multi-class, confusion matrix, threshold sweep.
-
-Mirrors gokit's ``bench/metric/classification.go``.
-"""
+"""Classification metrics: binary, multi-class, confusion matrix, threshold sweep."""
 
 from __future__ import annotations
 

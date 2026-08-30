@@ -2,7 +2,7 @@
 
 Sequential chain execution with per-step progress, cancellation, and cleanup.
 
-Mirrors [gokit/chain](https://github.com/skillsenselab/gokit/tree/main/chain) (Go) and [rskit-chain](https://github.com/skillsenselab/rskit/tree/main/crates/rskit-chain) (Rust).
+Each typed step receives the output of the previous step; the builder composes steps into a chain that reports per-step progress, supports cancellation, and cleans up completed steps when a later step fails.
 
 ## When to Use
 
