@@ -22,7 +22,8 @@ no diff). State the mode up front.
 
 1. `git status`, `git diff --stat`, `git diff` (changes mode) or list the package tree +
    dependency map (project mode). Preserve uncommitted changes; integrate on top, never discard.
-2. List the surface to review: changed packages/domains (changes mode) or chosen packages/
+2. List the surface to review: changed packages/domains **plus their blast radius** — the close
+   callers/callees and the rest of each touched file — (changes mode) or chosen packages/
    workspace (project mode). Note cross-cutting touches: a core package's public surface fans out
    to the root `pykit` facade, contrib adapters, and downstream/sibling parity (aligned per
    capability with whichever kit is strongest; see `docs/parity-matrix.md`). Also flag root `pyproject.toml`, `uv.lock`, `domains.toml`,
@@ -39,7 +40,8 @@ messages, or plan/ADR docs are scope hints only — never justifications.
 Run **A first** (cheap, gates the rest). Then **B–F in parallel** where independent. Then **G
 last** (cross-references everything).
 
-Each subagent receives: its scope, the pass spec below, and nothing else. Scope `uv`/`make` to
+Each subagent receives: its scope — the touched code **and its blast radius** (close callers/
+callees, not the diff lines alone) — the pass spec below, and nothing else. Scope `uv`/`make` to
 the touched package(s) with `P=<package>` or to the touched domain with `make check-<domain>`;
 the unscoped workspace gates are slow across every package and belong to sign-off/CI.
 

@@ -39,6 +39,7 @@ does not override it, and the authority is [`../../copilot-instructions.md`](../
 
 - **TDD.** For each behavior: failing test → minimal code → refactor while green, failure paths
   included. Never write the production code first and add tests after.
+- **Best-practices bar.** Deliver the *simplest* design that fully solves the step — simple, not shortsighted: keep it flexible and extensible (small typed Protocol seams over rigid or speculative abstraction) and scalable (bounded resources, no accidental O(n²) or unbounded buffering). Use current, idiomatic Python — the right implementation for today's stdlib/spec/security guidance, not folklore. Complexity must earn its place; if a simpler correct design exists, take it and delete the rest.
 - **Placement & layering.** Right package (`core/packages/pykit-<name>` vs `contrib/pykit-<name>`);
   acyclic imports (import-linter clean, lower layers never import higher); new packages have a
   package docstring and are wired into the workspace + facade.

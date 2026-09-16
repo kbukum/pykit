@@ -1,367 +1,252 @@
 # Contributing to pykit
-
-Thank you for your interest in contributing! This document explains how to get
-started, what we expect from contributors, and how the review process works.
-
----
-
-## Table of Contents
-
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Code Style](#code-style)
-- [Testing](#testing)
-- [Linting](#linting)
-- [Import Layering](#import-layering)
-- [Adding a New Package](#adding-a-new-package)
-- [Pull Request Process](#pull-request-process)
-- [Release Process](#release-process)
-
----
+Use this guide to set up the repo, make changes safely, and open a clean pull request.
 
 ## Code of Conduct
 
-Be respectful, constructive, and patient. We follow the
-[Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+Be respectful, constructive, and patient. We follow the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
 
----
-
-## Getting Started
+## Quick start
 
 1. [Fork](https://github.com/kbukum/pykit/fork) the repository.
-2. Clone your fork:
-
-   ```sh
-   git clone https://github.com/<your-username>/pykit.git
-   cd pykit
-   ```
-
-3. Set the upstream remote:
-
-   ```sh
-   git remote add upstream https://github.com/kbukum/pykit.git
-   ```
-
----
-
-## Development Setup
-
-**Minimum Python version:** 3.13+ (enforced by `.python-version`).
-
-pykit uses [uv](https://docs.astral.sh/uv/) as its package manager and
-workspace tool.
+2. Clone your fork and add the upstream remote.
+3. Sync both workspaces.
+4. Run the fast validation pass before you start editing.
 
 ```sh
-# Install uv if you haven't already
+git clone https://github.com/<your-username>/pykit.git
+cd pykit
+git remote add upstream https://github.com/kbukum/pykit.git
+
+# Install uv first if needed: https://docs.astral.sh/uv/
+make sync
+make check-fast
+```
+
+## Repository layout
+
+pykit is a uv monorepo with two workspaces:
+
+- `core/` — the main workspace, including the `pykit` facade package and core packages under `core/packages/`
+- `contrib/` — optional adapter packages under `contrib/`
+
+Each package has its own `pyproject.toml`, `src/<package_name>/` layout, and `tests/` directory.
+
+## Daily development workflow
+
+Most contributors can work from the repo root with `make`:
+
+| Task | Command |
+|---|---|
+| Show available commands | `make help` |
+| Sync dependencies | `make sync` |
+| Fast validation | `make check-fast` |
+| Run fast unit tests | `make test-unit` |
+| Test changed packages | `make test-affected` |
+| Full validation | `make check` |
+
+Useful scoped commands:
+
+```sh
+make lint P=pykit-auth
+make typecheck P=pykit-auth
+make test P=pykit-auth
+make test P=pykit-auth T=test_jwt
+make check P=pykit-messaging-kafka
+```
+
+Workspace selection is controlled with `W=core|contrib|both` and defaults to `both`.
+
+If you prefer direct `uv` commands, run them inside `core/` or `contrib/`. The repo root is not itself a uv workspace.
+
+## Development setup
+
+**Minimum Python version:** 3.13+
+
+pykit uses [uv](https://docs.astral.sh/uv/) for dependency management, virtualenv handling, and workspace operations.
+
+```sh
+# Install uv if you do not already have it
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Sync the entire workspace (installs all packages + dev dependencies)
-uv sync
+# Sync both workspaces
+make sync
 
-# Verify everything works
-uv run pytest
+# Sanity check the tree
+make check-fast
 ```
 
-The workspace is structured as a **uv workspace monorepo** with foundation
-packages under `core/packages/` and flat contrib adapter packages under
-`contrib/`. Each package has its own `pyproject.toml`, `src/<package_name>/`
-layout, and `tests/` directory.
-
-## Quick Development Workflow
-
-For rapid iteration:
-```bash
-make help                     # see available targets
-make check-fast               # format + lint + typecheck only (~15s)
-make test-unit                # fast test set (parallel)
-make test-affected            # test only packages changed vs main
-make check                    # full validation before PR
-```
-
-Test markers:
-- Tests without markers run as part of `make test-unit` (default fast set)
-- `@pytest.mark.integration` — requires external services (excluded from fast tests)
-- `@pytest.mark.e2e` — full stack, slow (excluded from fast tests)
-- `@pytest.mark.benchmark` — performance tests (excluded from fast tests)
-
----
-
-## Code Style
+## Code style
 
 | Rule | Setting |
 |---|---|
-| Formatter / Linter | [Ruff](https://docs.astral.sh/ruff/) |
+| Formatter / linter | [Ruff](https://docs.astral.sh/ruff/) |
 | Line length | 110 |
-| Type checker | [mypy](https://mypy-lang.org/) (strict mode) |
-| Docstrings | Google style |
-| Future annotations | `from __future__ import annotations` in every module |
+| Type checker | [mypy](https://mypy-lang.org/) |
 | Target version | Python 3.13 |
+| Docstrings | Google style |
 
 Key conventions:
 
-- **`from __future__ import annotations`** — required at the top of every
-  Python file for consistent type-annotation behavior.
-- **Google-style docstrings** — use `Args:`, `Returns:`, `Raises:` sections.
-- **Protocol over ABC** — prefer `typing.Protocol` for interface definitions.
-- **Pydantic models** for configuration and data transfer objects.
-- **async/await** for all I/O-bound operations.
-
----
+- Put `from __future__ import annotations` at the top of every Python module.
+- Prefer `typing.Protocol` over ABCs for interface-style contracts.
+- Use Pydantic models for configuration and typed payloads where appropriate.
+- Use `async` / `await` for I/O-bound code.
 
 ## Testing
 
 Every public function and protocol implementation should have at least one test.
 
 ```sh
-# Run the full test suite
-uv run pytest
+# Full validation
+make check
 
-# Run tests for a specific package
-uv run pytest core/packages/pykit-errors/
-# or
-uv run pytest contrib/pykit-llm-openai/
+# Coverage for both workspaces
+make test-coverage
 
-# Run with coverage
-uv run pytest --cov
+# Fast local loop
+make test-unit
 ```
 
-Coverage expectations:
+Markers used in the repo:
 
-- Minimum coverage threshold: **60%** (enforced by `pyproject.toml`).
-- Aim for higher coverage on core packages (`errors`, `config`, `provider`,
-  `resilience`, `pipeline`).
-- Time-dependent tests should use `asyncio` time mocking — never
-  `time.sleep()` in tests.
-- Tests requiring live services (databases, cache, Kafka) should be marked
-  with `@pytest.mark.integration` and documented.
+- Unmarked tests are part of the default fast path.
+- `@pytest.mark.integration` — requires external services
+- `@pytest.mark.e2e` — full-stack and slow
+- `@pytest.mark.benchmark` — performance-focused
 
----
+Coverage floors are enforced in workspace configuration:
 
-## Linting
+- `core/pyproject.toml` — `fail_under = 85`
+- `contrib/pyproject.toml` — `fail_under = 70`
 
-All checks must pass before submitting a PR:
+Treat those as minimums, not targets.
+
+## Linting and type checking
+
+The usual contributor loop is:
 
 ```sh
-# Lint check
-uv run ruff check core/packages/ contrib/
-
-# Format check
-uv run ruff format core/packages/ contrib/ --check
-
-# Type check
-uv run mypy
+make fmt-check
+make lint
+make typecheck
 ```
 
-To auto-fix lint and formatting issues:
+To apply auto-fixes:
 
 ```sh
-uv run ruff check core/packages/ contrib/ --fix
-uv run ruff format core/packages/ contrib/
+make fmt
 ```
 
----
+## Import layering
 
-## Import Layering
+pykit enforces a layered architecture with [import-linter](https://import-linter.readthedocs.io/). Lower layers must not import higher ones.
 
-pykit enforces a **strict layer architecture** using
-[import-linter](https://import-linter.readthedocs.io/). Lower layers cannot
-import from higher layers. This prevents circular dependencies and keeps the
-dependency graph clean.
+At a high level, the stack moves from foundations upward:
 
-The layers (from lowest to highest) are defined in the root `pyproject.toml`
-under `[tool.importlinter]`:
+| Layer group | Packages |
+|---|---|
+| Foundation | `pykit-errors`, `pykit-config`, `pykit-logging` |
+| Core capabilities | `pykit-validation`, `pykit-encryption`, `pykit-util`, `pykit-version`, `pykit-media` |
+| Contracts and patterns | `pykit-hook`, `pykit-provider`, `pykit-component`, `pykit-resilience`, `pykit-schema` |
+| Composition | `pykit-di`, `pykit-bootstrap`, `pykit-observability`, `pykit-chain` |
+| Runtime and flow | `pykit-pipeline`, `pykit-dag`, `pykit-worker`, `pykit-sse`, `pykit-stateful` |
+| Security and data | `pykit-auth`, `pykit-authz`, `pykit-security`, `pykit-discovery`, `pykit-database`, `pykit-cache`, `pykit-storage`, `pykit-messaging`, `pykit-httpclient` |
+| Transport and AI | `pykit-server`, `pykit-grpc`, `pykit-llm`, `pykit-embedding`, `pykit-vectorstore`, `pykit-mcp`, `pykit-ai`, `pykit-inference`, `pykit-bench`, `pykit-dataset`, `pykit-transcription` |
+| Top-level tooling and apps | `pykit-skill`, `pykit-agent`, `pykit-workload`, `pykit-process`, `pykit-git`, `pykit-testutil`, `pykit-integration`, plus contrib adapters |
 
-```
-Layer 0 (Foundation):  errors, config, logging
-Layer 1 (Utilities):   validation, encryption, util, version, media
-Layer 2 (Patterns):    provider, component, resilience
-Layer 3 (Frameworks):  di, bootstrap, observability
-Layer 4 (Data/Flow):   pipeline, dag, worker, sse, stateful
-Layer 5 (Security):    auth, authz, security
-Layer 6 (Infra):       database, cache, storage, messaging, httpclient
-Layer 7 (Servers):     server, grpc
-Layer 8 (AI/ML):       llm, inference, bench, dataset
-Layer 9 (Platform):    discovery, workload, process, testutil
-```
-
-To verify layering:
+The main layer contract lives in `core/pyproject.toml`. If your change affects imports, package boundaries, or domain ownership, also run:
 
 ```sh
-uv run lint-imports
+cd core && uv run import-linter
 ```
 
-When adding new imports, check the layer definitions to ensure you are not
-importing from a higher layer.
+If you add or move packages, update `domains.toml` so the `make check-<domain>` gates stay accurate.
 
----
+## Adding a new package
 
-## Adding a New Package
+1. Decide whether the package belongs in `core/packages/` or `contrib/`.
+2. Create the package with the usual `src/<package_name>/` and `tests/` layout.
+3. Use a nearby package in the same area as the template for `pyproject.toml`.
+4. Register the package in the matching workspace file:
+   - `core/pyproject.toml` for core packages
+   - `contrib/pyproject.toml` for contrib packages
+5. Update the matching workspace metadata as needed:
+   - dependency groups
+   - `tool.uv.sources`
+   - coverage `source_pkgs`
+   - Ruff first-party settings
+   - import-linter config when the package affects layering
+6. Update `domains.toml` if the package changes domain membership.
+7. Wire the package into the `pykit` facade when it belongs in the public facade.
+8. Update the package tables in `README.md` and the relevant docs.
+9. If the API shape needs early discussion, open an issue first. The repo includes an [engineering review issue template](.github/ISSUE_TEMPLATE/engineering_review.yml) for architecture-heavy proposals.
 
-1. Create the package directory:
+## Pull request process
 
-   - Foundation packages live under `core/packages/pykit-<name>/`
-   - Contrib adapter packages live under `contrib/pykit-<name>/`
-
-   ```sh
-   mkdir -p core/packages/pykit-<name>/src/pykit_<name>
-   mkdir -p core/packages/pykit-<name>/tests
-   # or for a contrib adapter:
-   mkdir -p contrib/pykit-<name>/src/pykit_<name>
-   mkdir -p contrib/pykit-<name>/tests
-   ```
-
-2. Create `core/packages/pykit-<name>/pyproject.toml` or `contrib/pykit-<name>/pyproject.toml`:
-
-   ```toml
-   [project]
-   name = "pykit-<name>"
-   description = "Brief description of the package"
-   version = "0.1.0"
-   requires-python = ">=3.13"
-   dependencies = []
-
-   [build-system]
-   requires = ["hatchling"]
-   build-backend = "hatchling.build"
-
-   [tool.hatch.build.targets.wheel]
-   packages = ["src/pykit_<name>"]
-   ```
-
-3. Create `core/packages/pykit-<name>/src/pykit_<name>/__init__.py` or `contrib/pykit-<name>/src/pykit_<name>/__init__.py`:
-
-   ```python
-   from __future__ import annotations
-   ```
-
-4. Add the package to the root `pyproject.toml`:
-   - Add to `[dependency-groups] dev`
-   - Add to `[tool.uv.sources]`
-   - Add to `[tool.coverage.run] source_pkgs`
-   - Add to `[tool.ruff.lint.isort] known-first-party`
-   - Add to the appropriate layer in `[tool.importlinter]`
-
-5. Wire the package into the `pykit` facade if appropriate.
-
-6. Add an entry to the package table in `README.md`.
-
-7. Open a tracking issue describing the API surface before implementing, so
-   the design can be discussed early.
-
----
-
-## Pull Request Process
-
-1. Create a feature branch from `main`:
+1. Create a feature branch from `main`.
 
    ```sh
    git checkout -b feat/my-feature
    ```
 
-2. Make the smallest change that achieves the goal. Avoid unrelated clean-up
-   in the same PR — file a separate issue/PR for it.
-
-3. Ensure all checks pass:
-
-   ```sh
-   uv run ruff check core/packages/ contrib/
-   uv run ruff format core/packages/ contrib/ --check
-   uv run mypy
-   uv run pytest
-   uv run lint-imports
-   ```
-
-4. Update `CHANGELOG.md` under `## [Unreleased]` with a brief description of
-   what you added, changed, or fixed.
-
+2. Make the smallest coherent change that solves the problem.
+3. Run the relevant checks. For most changes, `make check-fast` during development and `make check` before opening the PR are the right defaults.
+4. If the change should be called out in release notes, update `CHANGELOG.md` under `## [Unreleased]`.
 5. Push your branch and open a PR against `main`.
+6. Fill in the PR description with the problem, the change, and anything reviewers should focus on.
+7. Request review from a maintainer.
+8. Address review comments in follow-up commits.
+9. A maintainer will merge once the PR is approved.
 
-6. Fill in the PR description completely — explain **what** and **why**.
-
-7. Request a review from a maintainer.
-
-8. Address review comments in follow-up commits (do not force-push after
-   review has started unless asked).
-
-9. A maintainer will squash-merge once approved.
-
----
-
-## Commit Messages
+## Commit messages
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 | Prefix | Use for |
-|--------|---------|
+|---|---|
 | `feat:` | New features |
 | `fix:` | Bug fixes |
 | `docs:` | Documentation only |
 | `ci:` | CI/CD changes |
-| `refactor:` | Code changes without feature/fix |
+| `refactor:` | Code changes without a feature or fix |
 | `test:` | Adding or fixing tests |
 | `chore:` | Maintenance |
 
 Examples:
-```
+
+```text
 feat(pykit-resilience): add bulkhead limiter
 fix(pykit-auth): handle expired JWT edge case
 docs: add per-package READMEs
 ```
 
----
+## Deprecation policy
 
-## Deprecation Policy
+pykit is still pre-1.0. While the repo is in `0.x`, maintainers may remove or reshape public APIs in a minor release when that leads to a better long-term design.
 
-Deprecated APIs:
-1. Get a `@deprecated` decorator (via `typing_extensions.deprecated` or `warnings.warn(..., DeprecationWarning)`)
-2. Remain functional for **at least 1 MINOR release** (target: 6 months)
-3. Are removed in the **next MAJOR release**
+Once a package reaches `1.0.0`, use the full deprecation process in [`docs/policy/DEPRECATION.md`](docs/policy/DEPRECATION.md), including PEP 702-style deprecation markers and release-note guidance.
 
-```python
-import warnings
+## Release process
 
-def old_function():
-    warnings.warn(
-        "old_function() is deprecated; use new_function() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return new_function()
-```
+Releases are maintainers-only work. For contributors, the main things to know are:
 
-See the full policy at [`docs/policy/DEPRECATION.md`](docs/policy/DEPRECATION.md).
+- package versions are currently aligned at `0.1.0`
+- releases and versioning rules are documented in [`docs/RELEASING.md`](docs/RELEASING.md) and [`docs/VERSIONING.md`](docs/VERSIONING.md)
+- breaking changes and notable user-facing changes should be documented in `CHANGELOG.md`
 
----
+## Related documents
 
-## Release Process
-
-- All packages currently share the same version: **0.1.0**.
-- Version bumps are coordinated across the workspace.
-- We follow [Keep a Changelog](https://keepachangelog.com/) format.
-- Releases are tagged as `v<version>` (e.g., `v0.1.0`).
-- Breaking changes must be documented in the changelog with a
-  `### Breaking Changes` section.
-
----
-
-## Related Documents
-
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Contributor Covenant v2.1
-- [SECURITY.md](SECURITY.md) — vulnerability disclosure & supply-chain
-- [GOVERNANCE.md](GOVERNANCE.md) — roles, decision making, sibling-parity contract
-- [MAINTAINERS.md](MAINTAINERS.md) — current maintainers & areas
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — community expectations
+- [SECURITY.md](SECURITY.md) — vulnerability reporting and supply-chain policy
+- [GOVERNANCE.md](GOVERNANCE.md) — roles and decision-making
+- [MAINTAINERS.md](MAINTAINERS.md) — current maintainers and ownership
 - [CHANGELOG.md](CHANGELOG.md) — release history
-- [docs/RELEASING.md](docs/RELEASING.md) — release process
-- [docs/VERSIONING.md](docs/VERSIONING.md) — versioning rules
-- [docs/policy/SEMVER.md](docs/policy/SEMVER.md) · [docs/policy/DEPRECATION.md](docs/policy/DEPRECATION.md)
-- [docs/adr/](docs/adr/) — Architecture Decision Records
+- [docs/RELEASING.md](docs/RELEASING.md) — release mechanics
+- [docs/VERSIONING.md](docs/VERSIONING.md) — versioning guide
+- [docs/policy/SEMVER.md](docs/policy/SEMVER.md) — semantic versioning policy
+- [docs/policy/DEPRECATION.md](docs/policy/DEPRECATION.md) — deprecation lifecycle
+- [docs/adr/](docs/adr/) — architecture decision records
 
-### Sibling-parity reminder
+## Sibling-parity reminder
 
-Public abstractions (`AppError`, `Component`, `Provider`, `Pipeline`, lifecycle
-hooks) are mirrored across [gokit](https://github.com/kbukum/gokit),
-[rskit](https://github.com/kbukum/rskit), and
-[pykit](https://github.com/kbukum/pykit). When you change one of these
-surfaces here, please open tracking issues in the sibling repos so the change
-can be evaluated for parity.
+Public abstractions such as `AppError`, `Component`, `Provider`, `Pipeline`, and lifecycle hooks are evaluated across [gokit](https://github.com/kbukum/gokit), [rskit](https://github.com/kbukum/rskit), and pykit. If you change one of those surfaces here, call out the parity impact in your PR.

@@ -1,6 +1,6 @@
 # pykit-testutil
 
-Test utilities for gRPC services: mock server, pytest fixtures, and channel helpers.
+Test gRPC services with reusable mock servers, fixtures, assertions, fakes, and strategies.
 
 ## Installation
 
@@ -10,44 +10,41 @@ pip install pykit-testutil
 uv add pykit-testutil
 ```
 
-## Quick Start
+## Quick start
 
 ```python
-from pykit_testutil import MockGrpcServer, grpc_server_fixture, grpc_channel_fixture
+from pykit_testutil import MockGrpcServer, grpc_channel_fixture, grpc_server_fixture
 
-# Using MockGrpcServer as an async context manager
 async with MockGrpcServer() as server:
     await server.start(add_MyServiceServicer_to_server, MyServiceImpl())
-    print(server.address)  # "localhost:50123"
-    print(server.port)     # 50123
 
-    # Create a channel to the mock server
     async for channel in grpc_channel_fixture(server.port):
         stub = MyServiceStub(channel)
         response = await stub.GetItem(GetItemRequest(id="abc"))
 
-# Using fixtures in pytest
-async def test_my_service():
-    async for server, port in grpc_server_fixture(
-        add_MyServiceServicer_to_server, MyServiceImpl()
-    ):
+async def test_my_service() -> None:
+    async for server, port in grpc_server_fixture(add_MyServiceServicer_to_server, MyServiceImpl()):
         async for channel in grpc_channel_fixture(port):
             stub = MyServiceStub(channel)
-            resp = await stub.GetItem(GetItemRequest(id="1"))
-            assert resp.name == "expected"
+            response = await stub.GetItem(GetItemRequest(id="1"))
+            assert response.name == "expected"
 ```
 
-## Key Components
+## What it includes
 
-- **MockGrpcServer** — Lightweight mock gRPC server with async context manager support, auto port selection, and `start()`/`stop()` lifecycle
-- **grpc_server_fixture()** — Async generator that starts a gRPC server with a given servicer and yields `(server, port)`
-- **grpc_channel_fixture()** — Async generator that provides an insecure gRPC channel to a given port
+- **`MockGrpcServer`** starts a lightweight async gRPC server with automatic port selection.
+- **`grpc_server_fixture()`** and **`grpc_channel_fixture()`** provide async pytest-friendly setup helpers.
+- **`assert_ok()`** and **`assert_err()`** make result and error assertions shorter.
+- **`FakeAsyncKeyValue`** is a small async fake for cache or key-value style tests.
+- **`error_codes()`**, **`non_empty_text()`**, and **`url_safe_text()`** provide Hypothesis strategies.
+- **`integration`**, **`requires_network`**, and **`slow`** expose reusable pytest markers.
 
 ## Dependencies
 
 - `grpcio`
+- `pytest>=8`
 
-## See Also
+## See also
 
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- [Main pykit README](../../../README.md)
+- [tests/](tests/)

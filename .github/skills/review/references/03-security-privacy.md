@@ -10,8 +10,9 @@ the standing baseline.
 > trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
 > excuses a baseline violation.
 
-**Scope note.** *Changes mode:* trace each new input path from its trust boundary to its use.
-*Project mode:* audit the toolkit's external-facing surfaces (HTTP, process, storage/database
+**Scope note.** *Changes mode:* trace each new input path from its trust boundary to its use, and
+audit the trust boundaries in the touched files' blast radius (close callers/callees). *Project
+mode:* audit the toolkit's external-facing surfaces (HTTP, process, storage/database
 adapters, auth, crypto) for the invariants below.
 
 ## Checks

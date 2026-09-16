@@ -1,6 +1,6 @@
 # pykit-stateful
 
-Stateful accumulator with configurable flush triggers, FIFO eviction, and pluggable storage backends.
+Buffer, flush, and manage stateful streams with configurable triggers and pluggable stores.
 
 ## Installation
 
@@ -10,20 +10,20 @@ pip install pykit-stateful
 uv add pykit-stateful
 ```
 
-## Quick Start
+## Quick start
 
 ```python
 from pykit_stateful import (
-    Accumulator, AccumulatorConfig,
-    SizeTrigger, ByteSizeTrigger, TimeTrigger,
+    Accumulator,
+    AccumulatorConfig,
     MemoryStore,
+    SizeTrigger,
+    TimeTrigger,
 )
 
-# Flush callback
 async def on_flush(items: list[dict]) -> None:
     print(f"Flushing {len(items)} items")
 
-# Accumulator with size and time triggers
 acc = Accumulator(
     config=AccumulatorConfig(max_size=1000, flush_size=100),
     on_flush=on_flush,
@@ -32,33 +32,25 @@ acc = Accumulator(
 
 await acc.push({"event": "click", "user": "alice"})
 await acc.push({"event": "view", "user": "bob"})
-print(acc.count)  # 2
+print(acc.count)
 
-# Manual flush
 await acc.flush()
 
-# Pluggable key-value store
 store = MemoryStore[str]()
 await store.set("key", "value")
-val = await store.get("key")  # "value"
+value = await store.get("key")
 ```
 
-## Key Components
+## Core APIs
 
-- **Accumulator[V]** — Push-based buffer with automatic flush triggers and FIFO eviction when max_size is reached
-- **AccumulatorConfig** — Configuration: `max_size`, `flush_size`, `ttl`, `flush_interval`
-- **FlushTrigger** — Protocol for custom flush conditions (`should_flush(items) → bool`)
-- **SizeTrigger** — Flush when item count reaches threshold
-- **ByteSizeTrigger** — Flush when total byte size reaches threshold (custom measurer support)
-- **TimeTrigger** — Flush after elapsed time interval since last flush
-- **Store[V]** — Async key-value storage protocol (`get`, `set`, `delete`, `keys`)
-- **MemoryStore[V]** — In-memory dict-based Store implementation
+- **`Accumulator[V]`** buffers items, flushes on demand or by trigger, and evicts in FIFO order when `max_size` is reached.
+- **`AccumulatorConfig`** configures `max_size`, `flush_size`, `ttl`, and `flush_interval`.
+- **`SizeTrigger`**, **`ByteSizeTrigger`**, and **`TimeTrigger`** cover common flush strategies.
+- **`Store[V]`** defines the async key-value store contract.
+- **`MemoryStore[V]`** is the default in-memory store.
+- **`Manager`** coordinates multiple accumulators by key and adds cleanup helpers.
 
-## Dependencies
+## See also
 
-- `pykit-errors`
-
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- [Main pykit README](../../../README.md)
+- [tests/](tests/)

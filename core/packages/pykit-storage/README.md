@@ -1,7 +1,6 @@
 # pykit-storage
 
-Async object-storage abstraction with local filesystem lean default and an optional S3 adapter.
-Backends are selected from an injected registry; importing core has no adapter side effects.
+Store and retrieve objects through an async registry-backed API with a local default and optional S3 adapter.
 
 ## Installation
 
@@ -13,7 +12,7 @@ uv add pykit-storage
 uv add pykit-storage-s3  # optional S3 adapter
 ```
 
-## Local Quick Start
+## Quick start
 
 ```python
 from pykit_storage import StorageComponent, StorageConfig
@@ -27,10 +26,9 @@ data = await storage.download("images/photo.jpg")
 files = await storage.list("images")
 ```
 
-Local paths are normalized relative paths; absolute paths, traversal (`..`), empty paths, and NUL
-bytes are rejected before filesystem access.
+Local paths are normalized relative paths. Absolute paths, traversal (`..`), empty paths, and NUL bytes are rejected before filesystem access.
 
-## Explicit S3 registration
+## Registering the S3 adapter
 
 ```python
 from pykit_storage import StorageComponent, StorageConfig, StorageRegistry, register_local
@@ -47,12 +45,17 @@ component = StorageComponent(
 await component.start()
 ```
 
-The S3 adapter uses `aioboto3`, validates object keys, supports upload/download/delete/list,
-`s3://` URLs, and bounded presigned GET URLs.
+The optional S3 adapter uses `aioboto3`, validates object keys, supports upload, download, delete, list, `s3://` URLs, and bounded presigned GET URLs.
 
-## Key Components
+## Core APIs
 
-- **Storage** — async protocol: `upload`, `download`, `delete`, `exists`, `list`, `url`.
-- **StorageRegistry** — injected backend registry; empty registries have no backends.
-- **LocalStorage** — local filesystem default using `aiofiles`.
-- **S3 adapter package** — install `pykit-storage-s3` and register it explicitly.
+- **`Storage`** defines the async storage contract: `upload`, `download`, `delete`, `exists`, `list`, and `url`.
+- **`StorageRegistry`** is an injected backend registry. Empty registries have no backends.
+- **`StorageComponent`** adds lifecycle management and health checks.
+- **`LocalStorage`** is the lean filesystem-backed default.
+- **`SignedURLProvider`** and **`FileInfo`** cover signed URLs and file listing metadata.
+
+## See also
+
+- [Main pykit README](../../../README.md)
+- [tests/](tests/)

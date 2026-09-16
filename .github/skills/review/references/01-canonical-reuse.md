@@ -11,7 +11,8 @@ otherwise. Treat findings here as a blocker class.
 > excuses a baseline violation.
 
 **Scope note.** *Changes mode:* for each new type/helper in the diff, name the concern and find
-its owner. *Project mode:* sweep the tree for the patterns below and reconcile each against the
+its owner, and check the touched files' blast radius (close callers/callees) for the same
+reinvented concern. *Project mode:* sweep the tree for the patterns below and reconcile each against the
 owning package — long-lived internal forks are exactly what this pass exists to surface.
 
 ## The rule

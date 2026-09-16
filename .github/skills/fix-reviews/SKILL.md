@@ -63,18 +63,24 @@ For every comment, decide before touching code:
   - a bare `except`/missing `raise ... from e` → *every error path in the change set*
 - **Scope of the sweep.** Default to the PR's change set (`git diff origin/main...HEAD`). Widen to
   neighbouring files only when the pattern clearly extends there and the fix stays coherent; note
-  the widening. Do not silently refactor unrelated code.
+  the widening. Do not silently refactor unrelated code. A comment often surfaces a **pre-existing**
+  defect in the blast radius (the touched file and its close callers/callees), not just the flagged
+  line — that is in scope too; prefer a root-cause redesign over patching the symptom (pre-stable —
+  no backward compatibility owed).
 
 ## 3. Apply the pattern across the change set
 
 Fix **all** instances of each validated pattern, not just the flagged line:
 
 ```bash
-git diff origin/main...HEAD --name-only     # the files in scope
+git diff origin/main...HEAD --name-only     # the change set — plus the blast radius from step 2
 ```
 
-- Search the whole change set for the pattern (grep/glob) and fix every occurrence.
+- Search the whole change set **and the blast-radius files identified in step 2** (the touched
+  files' close callers/callees) for the pattern (grep/glob) and fix every occurrence — an unchanged
+  neighbouring instance is in scope, not excused by sitting outside the diff.
 - Make the same class of fix consistently; prefer a root-cause change over repeating a patch.
+- Where a fix changes behavior, do it **test-first** (failing test → fix → green, failure paths included); keep the fix the simplest correct design on current idiomatic best practices, not a bolt-on shim.
 - Keep each pattern's fixes cohesive so the follow-up commit reads as one intent.
 
 ## 4. Validate — scoped to what changed

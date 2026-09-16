@@ -76,6 +76,7 @@ these load-bearing (not decorative):
 
 - **Test-first (TDD).** Each behavior gets a failing test first, then minimal code, then refactor
   while green — failure paths included. Never batch production code and bolt tests on later.
+- **Best-practices bar.** Prefer the *simplest* design that fully solves each step — flexible and extensible (small typed Protocol seams, no rigid or speculative abstraction), scalable (bounded resources, no accidental O(n²) or unbounded buffering), on current idiomatic Python best practices, not folklore. Complexity must earn its place.
 - **Structure & placement.** Correct package (`core/packages/pykit-<name>` vs `contrib/pykit-<name>`);
   acyclic layering (import-linter clean, lower layers never import higher); every package has a
   package docstring and is wired into the workspace + facade.
