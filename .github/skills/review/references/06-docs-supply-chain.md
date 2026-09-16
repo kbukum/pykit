@@ -9,8 +9,8 @@ surface honest and the dependency set clean.
 > trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
 > excuses a baseline violation.
 
-**Scope note.** *Changes mode:* check the docs and deps the diff touches or invalidates.
-*Project mode:* audit every package's docstrings, READMEs, `pyproject.toml`/`uv.lock`, and the CI/
+**Scope note.** *Changes mode:* check the docs and deps the diff touches or invalidates, including
+those in the touched files' blast radius (close callers/callees). *Project mode:* audit every package's docstrings, READMEs, `pyproject.toml`/`uv.lock`, and the CI/
 release wiring for the invariants below.
 
 ## Docs

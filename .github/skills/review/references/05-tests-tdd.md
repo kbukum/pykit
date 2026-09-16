@@ -9,7 +9,8 @@ is covered, deterministic, and clean under the configured pytest gates.
 > trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
 > excuses a baseline violation.
 
-**Scope note.** *Changes mode:* every behavioral change in the diff has a test in the same
+**Scope note.** *Changes mode:* every behavioral change in the diff — and any behavior its blast
+radius (close callers/callees) newly relies on — has a test in the same
 change; every bug fix has a regression test. *Project mode:* assess coverage against the gates
 and hunt for flaky/implementation-coupled tests across the suite.
 

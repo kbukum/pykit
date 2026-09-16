@@ -1,72 +1,57 @@
 # Governance
+This document explains how the pykit project makes decisions and assigns responsibility.
 
-This document describes how decisions are made in the pykit project.
+## Project status
 
-## Project Status
+pykit is **pre-stable** (`v0.x`). Backward compatibility is **not** guaranteed between `v0.x` releases. Breaking changes are acceptable when they lead to a cleaner long-term design. See [CHANGELOG.md](CHANGELOG.md) for the release history.
 
-pykit is **pre-stable** (`v0.x`). Backward compatibility is **not** guaranteed
-between `v0.x` releases; breaking changes are acceptable when they yield a
-cleaner long-term design. See [CHANGELOG.md](CHANGELOG.md) for the full
-breaking-change history.
+## Sibling-parity contract
 
-## Sibling-Parity Contract
-
-pykit is part of a sibling trio that intentionally mirrors module structure,
-naming, and patterns:
+pykit is part of a sibling trio that intentionally mirrors module structure, naming, and patterns:
 
 - [`kbukum/gokit`](https://github.com/kbukum/gokit) — Go
 - [`kbukum/rskit`](https://github.com/kbukum/rskit) — Rust
-- [`kbukum/pykit`](https://github.com/kbukum/pykit) — Python (this repo)
+- [`kbukum/pykit`](https://github.com/kbukum/pykit) — Python
 
-When a public abstraction (`AppError`, `Component`, `Provider`, `Pipeline`,
-lifecycle hooks, error codes, configuration semantics) is changed in one
-sibling, the same change should be evaluated for the other two. Drift is
-treated as a finding and tracked in cross-sibling issues.
+When a public abstraction such as `AppError`, `Component`, `Provider`, `Pipeline`, lifecycle hooks, error codes, or configuration semantics changes in one sibling, the same change should be evaluated for the other two. Drift is treated as a finding and tracked in cross-sibling issues.
 
 ## Roles
 
 ### Contributors
 
-Anyone who opens an issue or pull request is a contributor. Contributors are
-expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md) and the
-[Contribution Guide](CONTRIBUTING.md).
+Anyone who opens an issue or pull request is a contributor. Contributors are expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md) and the [Contribution Guide](CONTRIBUTING.md).
 
 ### Reviewers
 
-Reviewers are contributors who have shown sustained engagement and are
-empowered to approve pull requests in specific areas of the code. Reviewer
-assignments are recorded in [.github/CODEOWNERS](.github/CODEOWNERS).
+Reviewers are contributors who have shown sustained engagement and are trusted to approve pull requests in specific areas of the codebase. Reviewer ownership is recorded in [.github/CODEOWNERS](.github/CODEOWNERS).
 
 ### Maintainers
 
-Maintainers have merge rights and are responsible for the long-term direction
-of the project. The current list is in [MAINTAINERS.md](MAINTAINERS.md).
+Maintainers have merge rights and are responsible for the long-term direction of the project. The current list is in [MAINTAINERS.md](MAINTAINERS.md).
 
-## Decision Making
+## Decision-making
 
-For routine changes (bug fixes, small features), a single maintainer approval
-is sufficient. For changes that affect multiple packages or change a public
-API, the contributor is encouraged to open a discussion or RFC issue first.
+For routine changes such as bug fixes and small features, a single maintainer approval is sufficient.
 
-For significant architectural changes (e.g. introducing a new sub-package,
-removing a public package, changing the import-layer rules, changing the
-release process), at least two maintainers must approve. If maintainers
-disagree, the proposal is deferred until consensus is reached or a clear path
-forward is documented in an [ADR](docs/adr/).
+For changes that affect multiple packages or alter a public API, contributors are encouraged to open a discussion or RFC-style issue first.
 
-## Release Process
+For significant architectural changes, at least two maintainers must approve. This includes changes such as:
 
-Releases are cut by maintainers following [docs/RELEASING.md](docs/RELEASING.md).
-Each release MUST be accompanied by a CHANGELOG entry that follows the
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. The single
-`[Unreleased]` heading invariant is enforced in CI.
+- introducing a new sub-package
+- removing a public package
+- changing the import-layer rules
+- changing the release process
 
-## Security Issues
+If maintainers disagree, the proposal is deferred until consensus is reached or a clear path forward is documented in an [ADR](docs/adr/).
 
-Security issues follow the dedicated process in [SECURITY.md](SECURITY.md)
-and are not handled via the normal issue tracker.
+## Release process
+
+Releases are cut by maintainers following [docs/RELEASING.md](docs/RELEASING.md). Each release must include a `CHANGELOG.md` entry in [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format. CI enforces the single `[Unreleased]` heading invariant.
+
+## Security issues
+
+Security issues follow the dedicated process in [SECURITY.md](SECURITY.md). They are not handled through the normal public issue tracker.
 
 ## Amendments
 
-This document may be amended via pull request. Amendments require approval
-from a majority of current maintainers.
+This document may be amended by pull request. Amendments require approval from a majority of current maintainers.

@@ -1,37 +1,41 @@
 # pykit-transcription
 
-Chunked audio transcription orchestration with parallel processing.
+Plan chunks, run parallel transcription, and merge results through a backend-agnostic API.
 
-## Overview
+## Installation
 
-Provides types, protocols, and orchestration for splitting audio into chunks,
-transcribing them in parallel, and merging the results. Backend-agnostic —
-works with any transcription engine that implements the `TranscriptionBackend`
-protocol.
+```bash
+pip install pykit-transcription
+# or
+uv add pykit-transcription
+```
 
-## Key Components
-
-| Module | Responsibility |
-|--------|---------------|
-| `types` | Core types: `TranscriptSegment`, `TranscriptResult`, `TranscriptionConfig`, `Language` |
-| `protocol` | `TranscriptionBackend` protocol — interface for transcription engines |
-| `chunking` | Audio chunk planning and transcript segment merging |
-| `orchestrator` | `ChunkedTranscriber` — parallel transcription with progress reporting |
-
-## Usage
+## Quick start
 
 ```python
-from pykit_transcription import (
-    ChunkedTranscriber,
-    TranscriptionConfig,
-    Language,
-)
+from pykit_transcription import ChunkedTranscriber, Language, TranscriptionConfig
 
 config = TranscriptionConfig(language=Language.ENGLISH, chunk_duration_secs=600)
 transcriber = ChunkedTranscriber(backend=my_whisper_backend, config=config)
 result = await transcriber.transcribe("/path/to/audio.wav")
 ```
 
-## Layer
+## Core APIs
 
-Specialist layer — depends on `pykit-errors` (Foundation).
+| Module | Responsibility |
+| --- | --- |
+| `types` | Core types such as `TranscriptSegment`, `TranscriptResult`, `TranscriptionConfig`, and `Language` |
+| `protocol` | `TranscriptionBackend` protocol for pluggable engines |
+| `chunking` | `plan_chunks()` and `merge_segments()` helpers |
+| `orchestrator` | `ChunkedTranscriber` for parallel execution and progress reporting |
+
+## Notes
+
+- Works with any backend that implements `TranscriptionBackend`.
+- `ChunkedTranscriber.transcribe()` supports optional duration, silence-point, and progress-callback inputs.
+- `pykit-transcription` depends only on `pykit-errors`.
+
+## See also
+
+- [Main pykit README](../../../README.md)
+- [tests/](tests/)

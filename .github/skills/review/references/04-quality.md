@@ -10,8 +10,8 @@ few 300-line functions; this pass rejects that.
 > trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
 > excuses a baseline violation.
 
-**Scope note.** *Changes mode:* judge the readability of the touched files and functions.
-*Project mode:* sweep for oversized files, god-packages, and duplicated logic across the tree.
+**Scope note.** *Changes mode:* judge the readability of the touched files and functions and their
+blast radius (close callers/callees). *Project mode:* sweep for oversized files, god-packages, and duplicated logic across the tree.
 
 ## File & package organization (primary focus)
 
@@ -39,6 +39,11 @@ few 300-line functions; this pass rejects that.
 
 ## Maintainability
 
+- **Root-cause over patches.** pykit is pre-stable — **no compatibility shims, no backward
+  compatibility owed**. Prefer a clean redesign over a symptom patch; flag a shim/hedge/"leave the
+  old path too" as should-fix with a redesign suggestion. Pre-existing defects and design smells in
+  the change's blast radius (touched files and their close callers/callees) are in scope — report
+  them, don't wave them through because "the diff didn't add them."
 - **DRY within reason.** Copy-pasted blocks with small tweaks → one parameterized helper. (But do
   not over-abstract a single use.)
 - **No dead or speculative code.** No commented-out blocks (git history exists), no unused public

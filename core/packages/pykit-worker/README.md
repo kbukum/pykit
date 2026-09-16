@@ -1,6 +1,6 @@
 # pykit-worker
 
-Async task pool with typed events, concurrency control, timeout management, and structured task lifecycle tracking.
+Run background jobs with bounded concurrency, typed lifecycle events, queue policies, and graceful shutdown.
 
 ## Installation
 
@@ -10,54 +10,46 @@ pip install pykit-worker
 uv add pykit-worker
 ```
 
-## Quick Start
+## Quick start
 
 ```python
-from pykit_worker import WorkerPool, PoolConfig, TaskStatus, EventType
+from pykit_worker import PoolConfig, TaskStatus, WorkerPool
 
-# Create a pool with concurrency limit
 pool = WorkerPool(PoolConfig(max_workers=5, task_timeout=60.0))
 
-# Define an async task handler
 async def process_image(path: str) -> dict:
-    # ... processing logic ...
     return {"width": 1920, "height": 1080}
 
-# Submit and wait for result
 task = await pool.submit("resize-photo", process_image, "/uploads/photo.jpg")
 result = await pool.wait(task.id, timeout=30.0)
 
 if result.status == TaskStatus.COMPLETED:
-    print(f"Done in {result.duration:.2f}s: {result.result}")
+    print(result.result)
 else:
-    print(f"Failed: {result.error}")
+    print(result.error)
 
-# Check pool state
-print(pool.active_count)   # currently running tasks
-print(pool.pending_count)  # tasks waiting to start
+print(pool.active_count)
+print(pool.pending_count)
 
-# Cancel a task
 await pool.cancel(task.id)
-
-# Graceful shutdown
 await pool.shutdown(graceful=True)
 ```
 
-## Key Components
+## Core APIs
 
-- **WorkerPool** — Async task pool with semaphore-based concurrency limiting, event collection, and graceful shutdown
-- **PoolConfig** — Configuration: `max_workers` (default 10), `task_timeout`, `graceful_timeout` (default 30s)
-- **Task** — Lightweight handle with `name`, `id` (UUID), `status`, and `created_at`
-- **TaskResult** — Outcome with `task_id`, `status`, `result`, `error`, `events`, and `duration`
-- **TaskStatus** — Lifecycle enum: `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `CANCELLED`
-- **Event** — Typed event emitted during execution with `type`, `task_id`, `data`, `timestamp`, `message`
-- **EventType** — Event classification: `PROGRESS`, `PARTIAL`, `COMPLETE`, `ERROR`, `LOG`
+- **`WorkerPool`** limits concurrency, queues pending tasks, and collects typed events.
+- **`PoolConfig`** configures `max_workers`, `task_timeout`, `graceful_timeout`, `max_pending_tasks`, `overflow_policy`, and `dispatch_strategy`.
+- **`Task`**, **`TaskResult`**, and **`TaskStatus`** model task lifecycle state.
+- **`Event`** and **`EventType`** capture progress, partial output, completion, errors, and logs.
+- **`OverflowPolicy`** and **`DispatchStrategy`** let callers control queue behavior.
+- **`TickerWorker`** runs a named handler on a fixed interval with health reporting.
 
 ## Dependencies
 
 - `pykit-errors`
+- `pykit-component`
 
-## See Also
+## See also
 
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- [Main pykit README](../../../README.md)
+- [tests/](tests/)

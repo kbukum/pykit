@@ -1,6 +1,6 @@
 # pykit
 
-Convenience facade that re-exports the public API of every pykit sub-package with lazy loading.
+Install one facade package to get every core pykit dependency and a lazy import surface over the toolkit.
 
 ## Installation
 
@@ -10,50 +10,40 @@ pip install pykit
 uv add pykit
 ```
 
-## Quick Start
+## Quick start
 
 ```python
-# Lazy-loaded access — sub-packages are imported on first use
 import pykit
 
-# Access any sub-package as an attribute
-from pykit.errors import AppError, ErrorCode
-from pykit.config import load_config
-from pykit.logging import setup_logging, get_logger
+errors = pykit.errors
+util = pykit.util
+version = pykit.version
 
-# Or use the attribute-style access
-enc = pykit.encryption.new_encryptor("my-secret-key")
-ciphertext = enc.encrypt("hello world")
+slug = util.slug("Hello World!")
+print(slug)
+print(version.get_short_version("my-service"))
 
-# Direct sub-package imports also work
-import pykit_errors
-err = pykit_errors.AppError.not_found("User", "abc")
+# Direct package imports still work when you want them.
+from pykit_util import deep_merge
 ```
 
-## Key Components
+## How the facade works
 
-- **Lazy `__getattr__`** — Sub-packages are only imported on first access, keeping `import pykit` fast even with heavy transitive dependencies (OpenTelemetry, httpx, SQLAlchemy, etc.)
-- **`_SUBPACKAGES` mapping** — Maps short names (e.g., `errors`) to actual package names (e.g., `pykit_errors`); `pykit.kafka` maps to `pykit_messaging`
-- **Layered architecture** — 34 sub-packages organized in 10 layers from foundational (errors, config, logging) through infrastructure (database, cache) to AI/ML (llm, inference, dataset)
+- `import pykit` stays lightweight. Sub-packages are imported on first attribute access through lazy `__getattr__` loading.
+- The facade installs **45 package dependencies** and exposes **44 lazy import targets**.
+- Most attributes map one-to-one to a package, such as `pykit.errors -> pykit_errors` and `pykit.storage -> pykit_storage`.
+- A few names are aliases: `pykit.kafka -> pykit_messaging` and `pykit.prompt -> pykit_ai.prompt`.
 
-## Dependencies
+## Included package groups
 
-Installs all 34 pykit sub-packages:
+| Group | Examples |
+| --- | --- |
+| Foundation | `errors`, `config`, `logging`, `validation`, `encryption`, `util`, `version`, `media` |
+| Composition | `provider`, `component`, `resilience`, `di`, `bootstrap`, `observability`, `security` |
+| Service infrastructure | `database`, `cache`, `storage`, `httpclient`, `server`, `grpc`, `auth`, `authz` |
+| Runtime orchestration | `pipeline`, `dag`, `worker`, `sse`, `stateful`, `process`, `workload` |
+| AI and tooling | `llm`, `ai`, `inference`, `dataset`, `embedding`, `tool`, `agent`, `mcp`, `skill`, `schema`, `hook`, `bench`, `testutil`, `discovery` |
 
-| Layer | Packages |
-|-------|----------|
-| 0 — Core | pykit-errors, pykit-config, pykit-logging |
-| 1 — Foundational | pykit-validation, pykit-encryption, pykit-util, pykit-version, pykit-media |
-| 2 — Patterns | pykit-provider, pykit-component, pykit-resilience |
-| 3 — Frameworks | pykit-di, pykit-bootstrap, pykit-observability, pykit-security |
-| 4 — Infrastructure | pykit-database, pykit-cache, pykit-storage, pykit-messaging, pykit-httpclient |
-| 5 — Protocols | pykit-server, pykit-grpc |
-| 6 — Security | pykit-auth, pykit-authz |
-| 7 — Advanced | pykit-pipeline, pykit-dag, pykit-worker, pykit-sse, pykit-stateful, pykit-process, pykit-workload |
-| 8 — AI/ML | pykit-llm, pykit-inference, pykit-dataset |
-| 9 — Tools | pykit-bench, pykit-testutil, pykit-discovery |
+## See also
 
-## See Also
-
-- [Main pykit README](../../README.md)
-- [tests/](tests/) — additional usage examples
+- [Main pykit README](../../../README.md)

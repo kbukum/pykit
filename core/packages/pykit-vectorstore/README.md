@@ -1,7 +1,6 @@
 # pykit-vectorstore
 
-Vector similarity abstraction with an in-memory lean default, optional Qdrant adapter, explicit
-backend registries, canonical metrics (`cosine`, `dot`, `l2`), and tenant-aware filters.
+Store and search embeddings through a vector API with an in-memory default, tenant-aware filters, and optional Qdrant registration.
 
 ## Installation
 
@@ -13,7 +12,7 @@ uv add pykit-vectorstore
 uv add pykit-vectorstore-qdrant  # optional Qdrant adapter
 ```
 
-## In-memory Quick Start
+## Quick start
 
 ```python
 from pykit_vectorstore import InMemoryVectorStore, PointPayload, SearchFilter
@@ -23,19 +22,19 @@ await store.ensure_collection("docs", dimensions=384, metric="cosine")
 await store.upsert(
     "docs",
     id="doc-1",
-    vector=[0.1, 0.2, ...],
+    vector=[0.1, 0.2, 0.3],
     payload=PointPayload(fields={"tenant_id": "tenant-a", "lang": "en"}),
 )
 
 results = await store.search(
     "docs",
-    vector=[0.15, 0.25, ...],
+    vector=[0.15, 0.25, 0.35],
     limit=5,
     filter=SearchFilter().for_tenant("tenant-a").must_match("lang", "en"),
 )
 ```
 
-## Config-driven selection and Qdrant registration
+## Registering the Qdrant adapter
 
 ```python
 from pykit_vectorstore import VectorStoreConfig, VectorStoreRegistry, register_memory
@@ -48,13 +47,18 @@ register_qdrant(registry)
 store = registry.create(VectorStoreConfig(backend="qdrant", metric="cosine"))
 ```
 
-Importing `pykit_vectorstore` does not import Qdrant. The optional adapter fails only when
-constructed without `qdrant-client` installed.
+Importing `pykit_vectorstore` does not import Qdrant. The optional adapter fails only when it is constructed without `qdrant-client` installed.
 
-## Key Components
+## Core APIs
 
-- **VectorStore** — async protocol: `ensure_collection`, `upsert`, `search`, `delete`.
-- **VectorStoreRegistry** — injected backend registry; empty registries have no backends.
-- **SearchFilter** — normalized filter conditions plus tenant isolation via `for_tenant()`.
-- **InMemoryVectorStore** — deterministic linear-scan backend for tests/prototyping.
-- **Qdrant adapter package** — install `pykit-vectorstore-qdrant` and register it explicitly.
+- **`VectorStore`** defines `ensure_collection`, `upsert`, `search`, and `delete`.
+- **`VectorStoreRegistry`** is an injected backend registry. Empty registries have no backends.
+- **`SearchFilter`** normalizes filter conditions and supports tenant isolation with `for_tenant()`.
+- **`PointPayload`** and **`SearchResult`** carry stored metadata and search results.
+- **`InMemoryVectorStore`** is a deterministic linear-scan backend for tests and prototypes.
+- **`VectorStoreConfig`** captures backend and metric settings.
+
+## See also
+
+- [Main pykit README](../../../README.md)
+- [tests/](tests/)

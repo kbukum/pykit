@@ -10,7 +10,8 @@ prose truthful and useful.
 > trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
 > excuses a baseline violation.
 
-**Scope note.** *Changes mode:* read every comment and docstring line in the diff against the code
+**Scope note.** *Changes mode:* read every comment and docstring line in the diff, and those in the
+touched files' blast radius (close callers/callees), against the code
 beside it. *Project mode:* sample docstrings across packages, prioritizing public API docstrings
 that generated docs render.
 

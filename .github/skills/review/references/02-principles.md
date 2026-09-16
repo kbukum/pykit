@@ -9,7 +9,8 @@ where vibe coding drifts most — especially around resilience, async/concurrenc
 > trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
 > excuses a baseline violation.
 
-**Scope note.** *Changes mode:* grep the touched packages and reason about each runtime path.
+**Scope note.** *Changes mode:* grep the touched packages and their blast radius (close callers/
+callees) and reason about each runtime path.
 *Project mode:* the error/concurrency/composition invariants below hold across the whole library
 surface — sweep the tree.
 

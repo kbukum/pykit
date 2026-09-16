@@ -24,9 +24,17 @@ produced the change.
 
 ## Pass 0 — Scope and context
 
-- Get the actual diff: `git diff <base>...HEAD --stat`, then per file. Review only what changed
-  plus its blast radius; do not audit the whole repo (that is
-  [`review-project.md`](./review-project.md)).
+- Get the actual diff: `git diff <base>...HEAD --stat`, then per file. Review what changed
+  **plus its blast radius** — the rest of each touched file, the code the change calls and is
+  called by, and closely-related files in the same package. Do not audit the whole repo (that is
+  [`review-project.md`](./review-project.md)), but do not tunnel-vision on the diff lines either.
+- **Pre-existing problems in the blast radius are in scope.** A defect, dead code, duplicated
+  concern, or design smell you read while reviewing is reported like any other finding — the
+  change set is not a shield for the code around it. Because pykit is pre-stable with **no
+  backward compatibility owed**, prefer a root-cause **redesign** over patching the symptom
+  (decide Redesign / Align / Enhance / Drop; "leave it patched" is not an option). Flag when a
+  fix reaches beyond the touched files and keep it coherent; never silently refactor unrelated
+  code.
 - pykit is a Python infrastructure toolkit: a change to a core package's public surface fans out
   to every core package, every contrib adapter, the root `pykit` lazy-loading facade, and sibling
   kit parity (aligned per capability with whichever kit is strongest in that scope; see
@@ -58,7 +66,9 @@ Work the focused files top to bottom. **Stop and reject as soon as a change fail
 8. [`07-comments-docstrings.md`](./07-comments-docstrings.md) — comments and Google-style
    docstrings explain the code as it is; rewrite or delete plan/history/process prose.
 
-Each focused file carries a "Changes mode" scope note — follow that mode here. When you only
+Each focused file carries a "Changes mode" scope note — follow that mode here. Every mode's scope
+is the touched code **and its blast radius** (the close callers/callees and the rest of each
+touched file), never the diff lines alone. When you only
 need one lens (e.g. just security, just TDD), run that focused file directly instead of this
 orchestrator.
 
