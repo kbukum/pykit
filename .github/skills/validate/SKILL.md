@@ -1,10 +1,6 @@
 ---
 name: validate
-description: >-
-    Build, test, lint, format-check, type-check, and import-layer-check pykit changes through make
-    (ruff, mypy, pytest, import-linter, uv) — scoped to the packages that actually changed. Use
-    whenever you need to validate a pykit change, run tests for a package, reproduce CI locally, or
-    check the blast radius of an edit before committing.
+description: "pykit: Run the repository's build, test, lint, and documentation gates scoped to the change."
 user-invocable: true
 ---
 
@@ -35,7 +31,7 @@ make test-coverage P=<pkg>                # coverage for one package
 | Type-check | `make typecheck P=<pkg>` | mypy strict |
 | Format (write) | `make fmt` | ruff format + `ruff check --fix` |
 | Format (check) | `make fmt-check` | fast, ruff format --check |
-| Coverage | `make test-coverage P=<pkg>` | pytest --cov (min 60%) |
+| Coverage | `make test-coverage P=<pkg>` | Check package and overall policy thresholds, not only the configured floor |
 
 ## Scoping selectors
 
@@ -63,12 +59,15 @@ pykit's layer direction (lower layers never import higher) is enforced by **impo
 and catches what the type checker won't. Run it on any structural change:
 
 ```bash
-uv run import-linter                       # from the workspace root (or `uv run lint-imports`)
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
 make check-<domain>                        # per-domain gate via scripts/check-domain.sh
 ```
 
 Per-domain gates aggregate fmt/lint/typecheck/test for a slice of the tree:
 `make check-core|check-patterns|check-crosscutting|check-composition|check-transport|check-auth|check-data|check-ai|check-media|check-infra`.
+
+Coverage policy is >=80% per package and >=85% overall/security-load-bearing code. Check current `core/pyproject.toml` and `contrib/pyproject.toml`; their configured floors may differ. A green weaker gate alone does not meet policy. Run dependency audits from each applicable workspace, not a nonexistent root Python project.
 
 ## Before you hand work off
 
@@ -79,7 +78,8 @@ release:
 
 ```bash
 make check                     # full canonical gate — fmt-check + lint + typecheck + test
-uv run pip-audit               # dependency vulnerability scan
+uv run --project core pip-audit
+uv run --project contrib pip-audit
 ```
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded concurrency,

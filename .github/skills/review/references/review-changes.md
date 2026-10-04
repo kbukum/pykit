@@ -5,22 +5,9 @@ or `HEAD~1`. Use it after every change set, especially fast/"vibe-coded" work. I
 eight focused passes in [`references/`](./) over a diff and adds scope handling; the actual checks
 live in the focused files.
 
-## Run this in a separate, clean-context agent
+## Execution
 
-**Always dispatch this review to a fresh reviewer agent with no shared session context.** A
-reviewer that "remembers" writing the code rationalizes it; an independent agent re-derives
-every judgment from the diff and the principles. Do not run it inline in the same session that
-produced the change.
-
-- Hand the reviewer agent: the diff (or base ref), this file, and the [`references/`](./) folder.
-  Nothing else from the authoring session.
-- The reviewer reads the code as-is; it does not trust prior reasoning about why the code
-  "should" be correct.
-- **Optional plan check.** If a plan/spec exists (for example, an issue or a design doc), pass it
-  in *as a scope checklist only* — "here is what this change set claimed to do; verify the diff
-  actually did it, with tests." The plan defines intended scope; it never excuses a principle
-  violation. If the diff diverges from the plan, report the divergence; the baseline in
-  [`.github/copilot-instructions.md`](../../../copilot-instructions.md) wins over any plan.
+Follow [the review skill](../SKILL.md): direct review by default; independent agents only on request. Read current source and relevant contracts. A plan is a scope checklist, not a justification for a baseline violation.
 
 ## Pass 0 — Scope and context
 
@@ -44,33 +31,9 @@ produced the change.
   adapter** (`contrib/pykit-<name>/`), the root facade package (`core/packages/pykit/`), or a
   different package entirely.
 
-## Passes — run in order, stop early on a structural failure
+## Passes
 
-Work the focused files top to bottom. **Stop and reject as soon as a change fails pass `00` or
-`01`** — misplaced or duplicated code makes every later pass moot.
-
-1. [`00-structure-placement.md`](./00-structure-placement.md) — package placement, acyclic
-   layering, `pyproject.toml`, package docstrings, and workspace/domain wiring.
-2. [`01-canonical-reuse.md`](./01-canonical-reuse.md) — reuse vs. reimplementation of a
-   package/stdlib-owned concern. *(blocker class)*
-3. [`02-principles.md`](./02-principles.md) — typed/minimal APIs, errors & resilience,
-   async/concurrency, composition, currency, AI features.
-4. [`03-security-privacy.md`](./03-security-privacy.md) — trust-boundary validation, injection
-   safety, token hygiene, crypto, data minimization.
-5. [`04-quality.md`](./04-quality.md) — root-cause over patches, dead code, file/package
-   organization, style gates.
-6. [`05-tests-tdd.md`](./05-tests-tdd.md) — TDD, deterministic async/parallel tests, clock/env/cwd
-   discipline, fixtures.
-7. [`06-docs-supply-chain.md`](./06-docs-supply-chain.md) — docstrings/README, Conventional
-   Commits, `uv.lock`, `pip-audit`, SHA-pinned actions, SBOM.
-8. [`07-comments-docstrings.md`](./07-comments-docstrings.md) — comments and Google-style
-   docstrings explain the code as it is; rewrite or delete plan/history/process prose.
-
-Each focused file carries a "Changes mode" scope note — follow that mode here. Every mode's scope
-is the touched code **and its blast radius** (the close callers/callees and the rest of each
-touched file), never the diff lines alone. When you only
-need one lens (e.g. just security, just TDD), run that focused file directly instead of this
-orchestrator.
+Follow the trigger table and order in [the review skill](../SKILL.md). Use each checklist's changes scope. Load applicable files only; report incomplete checks and stop acceptance on structural/reuse blockers.
 
 ## Findings
 
@@ -99,7 +62,7 @@ make check-<domain>                     # scripts/check-domain.sh for a domain i
 ```
 
 Use raw scoped commands when needed, for example `cd core && uv run pytest packages/pykit-di/tests/
--k cycle`, `cd core && uv run mypy packages/pykit-di/src/`, or `uv run import-linter` for layer
+-k cycle`, `cd core && uv run mypy packages/pykit-di/src/`, or `uv run --project <workspace> lint-imports --config <workspace>/pyproject.toml` for layer
 checks. Prefer `make test-affected` over unscoped targets — it runs only packages impacted by the
 current changes. Step up to a per-domain `make check-<domain>` when the change spans a domain. Run
 the full `make check` only when the change is genuinely tree-wide, or leave it to CI for sign-off.

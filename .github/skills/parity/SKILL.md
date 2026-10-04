@@ -1,11 +1,6 @@
 ---
 name: parity
-description: >-
-    Align pykit with its sibling kits (rskit, gokit) by capability, not blindly — mirror the
-    strongest existing implementation for a given scope, keep pykit idiomatic Python, and keep
-    docs/parity-matrix.md accurate. Use when porting or aligning a package with a sibling
-    counterpart, deciding whether something should be shared or stay kit-only, or when touching
-    anything that has a cross-kit parity row.
+description: "pykit: Align a capability with sibling kits while preserving idiomatic APIs and tracking deliberate gaps."
 user-invocable: true
 ---
 

@@ -1,11 +1,6 @@
 ---
 name: fix-reviews
-description: >-
-    Evaluate a pull request's review comments as signals of an underlying pattern, not one-off
-    spot fixes — judge each comment against pykit's engineering baseline, then apply the pattern
-    across the whole change set (e.g. one typo comment → sweep every changed file for typos),
-    validate, commit the fixes, and resolve the threads. Use when asked to go over, address, or
-    act on PR reviews.
+description: "pykit: Evaluate PR review comments and fix valid patterns across the affected change; only when asked."
 user-invocable: true
 ---
 
@@ -96,6 +91,8 @@ Docs/prose-only sweeps need no build/test gates. Never resolve a thread whose fi
 validated.
 
 ## 5. Commit, push, and resolve
+
+This phase requires explicit authorization for Git mutations. A request to fix reviews alone does not authorize commit/amend/push. Resolve a thread only after the remote contains its validated fix; never post replies on the maintainer's behalf.
 
 Commit the pattern fixes using the [`commit`](../commit/SKILL.md) skill — a single compact,
 developer-friendly Conventional-Commit message that states the change as it stands, **no

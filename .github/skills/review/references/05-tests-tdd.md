@@ -4,10 +4,7 @@ Behavior is only real if a test proves it. Vibe-coded changes routinely ship wit
 with tests that assert implementation detail instead of behavior. This pass verifies the change
 is covered, deterministic, and clean under the configured pytest gates.
 
-> **Run in a separate, clean-context agent** — never inline in the session that wrote the code.
-> An independent reviewer re-derives every judgment from the code and the principles instead of
-> trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
-> excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* every behavioral change in the diff — and any behavior its blast
 radius (close callers/callees) newly relies on — has a test in the same
@@ -27,8 +24,7 @@ and hunt for flaky/implementation-coupled tests across the suite.
 - **Parallel/random-order clean.** Suite passes under configured pytest parallel/random-order
   tooling (`pytest -n auto` via xdist and `pytest-randomly` if configured). Tests are independent:
   no shared mutable module state, cwd dependence, or environment leakage.
-- **Coverage gate.** pykit's minimum is **60%** via `uv run pytest --cov` / `make test-coverage`.
-  A change that drops a package below the configured floor is a blocker.
+- **Coverage.** Require >=80% per package, >=85% overall and for security-load-bearing packages. `make test-coverage P=<package>` measures the selected package. Check the selected workspace configuration too: a weaker configured floor is an acceptance gap, not permission to weaken this policy.
 - **Property/fuzz where it matters.** Parsers, validators, auth/JWT, codecs, and schema have
   property-based or fuzz-style tests where appropriate. A new parser/validator with no adversarial
   coverage is a should-fix.
