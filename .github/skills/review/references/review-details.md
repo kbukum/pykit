@@ -1,22 +1,8 @@
-# Python Review — Plan, Clarify, Apply
+# Review, clarify, and fix
 
-An alternative orchestrator to [`review-changes.md`](./review-changes.md) /
-[`review-project.md`](./review-project.md): instead of sequencing the 00–07 lenses, it fans the
-review out into **parallel subagent passes by Python concern**, then plans and applies fixes. Use
-it when you want one driver to take a change from review through to merged fixes.
+Use only when fixes are requested. Follow [the review skill](../SKILL.md) for scope, severity, and execution. Review directly; an independent agent requires the user's request, not one agent per pass. Preserve the current worktree and index.
 
-Run each pass as a **separate subagent with clean context**. The orchestrator (this file)
-sequences them and collects findings. Do not concatenate passes into one prompt.
-
-Mode is either **changes** (a diff: branch, commit range, `HEAD~1`) or **project** (whole tree,
-no diff). State the mode up front.
-
-> The focused 00–07 files hold the canonical, pykit-specific checks (placement, canonical-owner
-> reuse, security/privacy, supply chain, comments/docstrings). This file is the *driver*; when a
-> pass below needs the full rule for a lens, defer to the matching focused file rather than
-> duplicating it.
-
----
+Select changes or project mode. Read only the triggered pass sections below; the numbered checklists own detailed rules. Confirm the proposed fix scope before edits.
 
 ## Phase 1 — Scope
 
@@ -37,13 +23,7 @@ messages, or plan/ADR docs are scope hints only — never justifications.
 
 ## Phase 2 — Passes
 
-Run **A first** (cheap, gates the rest). Then **B–F in parallel** where independent. Then **G
-last** (cross-references everything).
-
-Each subagent receives: its scope — the touched code **and its blast radius** (close callers/
-callees, not the diff lines alone) — the pass spec below, and nothing else. Scope `uv`/`make` to
-the touched package(s) with `P=<package>` or to the touched domain with `make check-<domain>`;
-the unscoped workspace gates are slow across every package and belong to sign-off/CI.
+Run the applicable mechanical checks first, then triggered concern passes, then tests/docs synthesis. Batch independent commands, not agents. Use the validate skill for current selectors; reuse fresh evidence and report gaps.
 
 ### Pass A — Mechanical (always runs)
 
@@ -55,8 +35,10 @@ make lint P=<package>                   # ruff check, scoped
 make typecheck P=<package>              # mypy strict, scoped
 make test P=<package> T=<pattern>       # pytest, optionally narrowed by -k pattern
 make check-<domain>                     # fmt/lint/typecheck/test for the touched domain
-uv run import-linter                    # layer architecture, if imports/domain changed
-uv run pip-audit                        # if deps/public security surface changed
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
+uv run --project core pip-audit
+uv run --project contrib pip-audit
 ```
 
 Report pass/fail per command with the first failure block verbatim.
@@ -146,7 +128,7 @@ mode: anywhere in the tree); bug fixes have a regression test that fails without
 paths asserted, not just happy paths; tests are deterministic under configured pytest parallel/
 random-order tooling (`pytest -n auto` and `pytest-randomly` if present) and depend on no wall
 clock, network, or working directory unless intentional (time uses an **injected clock**; env-var
-tests use `monkeypatch`; filesystem tests use `tmp_path`); coverage meets pykit's 60% minimum via
+tests use `monkeypatch`; filesystem tests use `tmp_path`); coverage meets the required package/overall thresholds via
 `make test-coverage`; parsers/validators/auth/JWT/codecs/schema have fuzz/property tests where
 appropriate; fixtures over large inline config; an operation does what its name implies; every
 public item has a Google-style docstring that **matches implemented behavior**, each package has a
@@ -181,8 +163,7 @@ vs deprecation, doc-only vs behavior-aligning) with a proposed default and the a
 
 After confirmation:
 
-1. Apply fixes in plan order, one pass per commit where reasonable (Conventional Commits:
-   `feat`/`fix`/`docs`/`refactor`/`test`/`chore`).
+1. Apply authorized fixes in plan order, test-first for behavior. Commit/amend/push only when separately authorized; no implicit commit per pass.
 2. Re-run the matching pass's validation after each fix, scoped to the touched package(s). Stop
    and report if anything fails.
 3. Final step: re-run Pass A across the in-scope packages.

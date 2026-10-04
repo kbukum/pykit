@@ -4,10 +4,7 @@ Confirm every touched (or, in project mode, every existing) item lives in the ri
 workspace, and layer, and that the dependency direction stays acyclic. This is the first gate:
 misplaced code makes every later pass moot, so reject on failure here before going further.
 
-> **Run in a separate, clean-context agent** — never inline in the session that wrote the code.
-> An independent reviewer re-derives every judgment from the code and the principles instead of
-> trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
-> excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* check the packages the diff touches plus the blast radius — a
 change to a core package's public surface fans out to the root `pykit` facade, contrib adapters,
@@ -57,7 +54,7 @@ workspace roots and locks; dependency changes update the relevant `uv.lock`.
   into a core package, or foundation behavior buried in contrib, is a structure violation
   (blocker).
 - **Acyclic, downward-only edges.** No lower-layer package imports a higher one; no cycle. This is
-  gated by `uv run import-linter` and `make check-<domain>`. An upward import is a blocker.
+  gated by `uv run --project <workspace> lint-imports --config <workspace>/pyproject.toml` and `make check-<domain>`. An upward import is a blocker.
 - **New package wiring.** Own `pyproject.toml`, added to the relevant uv workspace, `domains.toml`,
   import-linter contracts, and the matching `make check-<domain>` path. Missing any is a
   should-fix.
@@ -76,7 +73,8 @@ These flag candidates, not verdicts — read each hit to judge intent.
 # package and workspace inventory
 find core/packages contrib -maxdepth 2 -name pyproject.toml | sort
 # architecture/layering
-uv run import-linter
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
 cat domains.toml
 # package __init__ files and package docstrings to inspect
 find core/packages contrib -path '*/src/*/__init__.py' | sort
@@ -84,4 +82,4 @@ find core/packages contrib -path '*/src/*/__init__.py' | sort
 rg -n '^(REGISTRY|registry|_registry)\s*=|asyncio\.create_task\(|os\.environ\[|load_dotenv\(|requests\.|httpx\.' core contrib -g '*.py'
 ```
 
-Then run `uv run import-linter` and `make check-<domain>` for the touched domain.
+Then run `uv run --project <workspace> lint-imports --config <workspace>/pyproject.toml` and `make check-<domain>` for the touched domain.

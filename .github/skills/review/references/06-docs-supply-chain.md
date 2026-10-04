@@ -4,10 +4,7 @@ Docs drift and dependency risk are the quiet failures — the code works, so nob
 stale docstring or the unvetted new dependency until much later. This pass keeps the published
 surface honest and the dependency set clean.
 
-> **Run in a separate, clean-context agent** — never inline in the session that wrote the code.
-> An independent reviewer re-derives every judgment from the code and the principles instead of
-> trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
-> excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* check the docs and deps the diff touches or invalidates, including
 those in the touched files' blast radius (close callers/callees). *Project mode:* audit every package's docstrings, READMEs, `pyproject.toml`/`uv.lock`, and the CI/
@@ -62,7 +59,8 @@ git diff --name-only | grep -E 'domains.toml|MODULE-INDEX|parity-matrix|pyprojec
 make fmt-check P=<package>
 make lint P=<package>
 make typecheck P=<package>
-uv run pip-audit                         # dependency vulnerability scan, when deps changed
+uv run --project core pip-audit
+uv run --project contrib pip-audit
 ```
 
 Docs updated alongside behavior, locked workspaces, and a clean vulnerability scan pass this gate.

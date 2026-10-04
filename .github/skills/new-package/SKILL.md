@@ -1,11 +1,6 @@
 ---
 name: new-package
-description: >-
-    Scaffold a new package in the pykit uv-workspace monorepo the canonical way — decide
-    core vs contrib, add the pyproject.toml, wire the workspace members/dev group and the facade,
-    add a package docstring, register the layer in import-linter/domains.toml, and update the
-    parity matrix. Use when adding a new capability, foundation package, or adapter to pykit, or
-    when unsure whether new code belongs in core or contrib.
+description: "pykit: Add a package with the repository's generator/layout, dependency boundaries, and validation."
 user-invocable: true
 ---
 
@@ -29,12 +24,12 @@ contrib; stdlib + pykit packages only → core.
 
 ## Step 2 — Pick the layer and confirm dependency direction
 
-pykit layers depend **downward only** (enforced by import-linter; `uv run import-linter`). Consult
+pykit layers depend **downward only** (enforced by import-linter; `uv run --project <workspace> lint-imports --config <workspace>/pyproject.toml`). Consult
 `domains.toml` for the domain→package map and each domain's `depends_on`:
 
 - core → patterns → crosscutting → composition → transport → auth → {data, ai} → media → infra
 
-Your new package may only import lower or same-layer packages. A lower layer importing a higher one
+Your new package imports lower layers; a same-layer exception needs explicit justification and an architecture-rule entry. A lower layer importing a higher one
 is a **blocker**. Transport (server/grpc/sse) specifically must not import auth/authz — depend on a
 lower-layer Protocol and inject the implementation instead.
 
@@ -97,7 +92,8 @@ make build     P=pykit-<name>
 make lint      P=pykit-<name>
 make typecheck P=pykit-<name>
 make test      P=pykit-<name>
-uv run import-linter
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
 ```
 
 ## Checklist

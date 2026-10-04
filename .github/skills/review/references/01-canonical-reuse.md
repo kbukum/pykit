@@ -5,10 +5,7 @@ reimplement something an existing package (or the standard library) already owns
 code reaches for a fresh local helper instead of the owner — assume duplication until proven
 otherwise. Treat findings here as a blocker class.
 
-> **Run in a separate, clean-context agent** — never inline in the session that wrote the code.
-> An independent reviewer re-derives every judgment from the code and the principles instead of
-> trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
-> excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* for each new type/helper in the diff, name the concern and find
 its owner, and check the touched files' blast radius (close callers/callees) for the same
@@ -33,7 +30,8 @@ Work it as a method, in order:
 
 ```bash
 find core/packages contrib -maxdepth 2 -name pyproject.toml | sort    # candidate owner set
-uv run import-linter                                                   # allowed dependency edges
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
 cat domains.toml                                                       # domain ownership
 ```
 

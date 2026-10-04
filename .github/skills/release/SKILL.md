@@ -1,10 +1,6 @@
 ---
 name: release
-description: >-
-    Cut a release of the pykit uv-workspace monorepo — decide the semver bump, update the
-    CHANGELOG, apply the lock-step version bump across every package, run the full pre-release
-    gates and supply-chain sweep, tag, and publish to PyPI via Trusted Publishing. Use when
-    preparing or publishing a pykit release or checking release readiness.
+description: "pykit: Prepare or publish a release through the repository's version, validation, and supply-chain gates."
 user-invocable: true
 ---
 
@@ -29,12 +25,14 @@ A release is the one time to run the **complete** gates rather than the affected
 
 ```bash
 make check                  # fmt-check + lint + typecheck + test (whole workspace)
-make test-coverage          # coverage gate (minimum 60%)
-uv run import-linter        # layer architecture compliance
-uv run pip-audit            # dependency vulnerability scan
+make test-coverage          # measure package and overall policy thresholds
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
+uv run --project core pip-audit
+uv run --project contrib pip-audit
 ```
 
-Also run the `review` project audit in a fresh agent before a release. Treat green gates as
+Also run the `review` project audit directly (use an independent agent only when requested) before a release. Treat green gates as
 necessary but not sufficient.
 
 ## Step 2 — Decide the version
@@ -58,15 +56,7 @@ breaking change in the `[Unreleased]` CHANGELOG section bumps **MINOR**; otherwi
 
 ## Step 4 — Bump versions (lock-step) and refresh the lock
 
-All packages bump together. Use the helper, never hand-edit each manifest:
-
-```bash
-uv run scripts/bump-version.py vX.Y.Z        # root + every core/contrib pyproject.toml
-uv lock                                       # refresh the lockfile
-```
-
-If the helper is unavailable, set `[project] version` to `X.Y.Z` in the root `pyproject.toml` and
-every `core/packages/pykit-*/pyproject.toml` and `contrib/pykit-*/pyproject.toml`, then `uv lock`.
+All published packages bump together. Discover the current package manifests and existing release tooling before editing; do not assume a root `pyproject.toml` or version-bump helper exists. Use a supported helper if present; otherwise update the declared package versions consistently. Refresh and check both `core/uv.lock` and `contrib/uv.lock` from their owning workspaces. Verify tag/PEP 440 mapping against the actual release workflow before publication.
 
 ## Step 5 — Tag and publish
 

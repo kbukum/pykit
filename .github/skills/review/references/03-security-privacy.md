@@ -5,10 +5,7 @@ and pykit is shared infrastructure — a gap here propagates to every consumer. 
 sweep on security-sensitive changes, pair this with a dedicated security review; this pass is
 the standing baseline.
 
-> **Run in a separate, clean-context agent** — never inline in the session that wrote the code.
-> An independent reviewer re-derives every judgment from the code and the principles instead of
-> trusting prior reasoning. A plan/spec may be passed in as a scope checklist only; it never
-> excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* trace each new input path from its trust boundary to its use, and
 audit the trust boundaries in the touched files' blast radius (close callers/callees). *Project

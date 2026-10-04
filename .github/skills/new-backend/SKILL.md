@@ -1,11 +1,6 @@
 ---
 name: new-backend
-description: >-
-    Add a pluggable backend/adapter (storage, cache, messaging, inference, llm, vectorstore) to
-    pykit the canonical way — a contrib package under contrib/pykit-<domain>-<name> implementing
-    the core Protocol, selected via config through an explicit typed registration, no import-time
-    side effects, with the in-memory/local default kept in core. Use when integrating a provider
-    like S3, Kafka, Redis, Qdrant, or an LLM/inference provider.
+description: "pykit: Add an opt-in, config-selected backend implementing the owning module's typed contract."
 user-invocable: true
 ---
 
@@ -77,7 +72,8 @@ make build     P=pykit-<domain>-<name>
 make lint      P=pykit-<domain>-<name>
 make typecheck P=pykit-<domain>-<name>
 make test      P=pykit-<domain>-<name>
-uv run import-linter
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
 ```
 
 ## Checklist
