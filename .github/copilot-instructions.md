@@ -15,7 +15,7 @@ Async Python infrastructure kit using a uv workspace: `core/packages/` foundatio
 
 ## Work and validation
 
-Use only the matching [skill](skills/README.md) and needed reference sections. Preserve user edits/index. Commit, amend, push, publish, or open draft PRs only when authorized. Reviews remain read-only unless fixing was requested. Keep multi-step recovery in `tmp/plans/<task>/handoff.md`; load current work and needed dependency contracts, not all historical steps.
+Use only the matching [skill](skills/README.md) and needed reference sections. Preserve user edits/index. Commit, amend, push, publish, or open draft PRs only when authorized. Reviews remain read-only unless fixing was requested. Keep plans in `tmp/<plan>/`, reusing existing folders. Apply each selected step fully; record progress in the step, not routine handoffs.
 
 Use the [validate skill](skills/validate/SKILL.md) for scoped `make`/`uv` commands. The project uses pytest, Ruff, strict mypy, and import-linter. Run required full gates at acceptance, not after every edit. Prose-only edits need link/metadata checks.
 
