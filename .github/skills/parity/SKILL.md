@@ -4,86 +4,26 @@ description: "pykit: Align a capability with sibling kits while preserving idiom
 user-invocable: true
 ---
 
-# Cross-kit parity for pykit
+# Cross-kit parity
 
-pykit is a sibling kit to rskit (Rust) and gokit (Go): the same capabilities and the same
-engineering baseline, each expressed idiomatically per language. The goal of parity is **intuition
-transfer** — a user fluent in one kit should adapt to another quickly because the concepts, shapes,
-and behavior line up. rskit lives in the sibling repo `../rskit` and gokit in `../gokit`.
+Match capability and behavior, not symbols or layouts. Follow the [baseline](../../copilot-instructions.md); Python idioms take priority over transliteration.
 
-**No kit is the canonical reference.** Parity is judged per capability, and for each scope the kit
-with the *better, more complete, more correct* implementation is the one the others mirror. Parity
-levels the kits **up, never down** — never weaken or simplify a stronger pykit implementation just to
-match a weaker sibling, and when a sibling is stronger in some scope, bring pykit up to it rather
-than settle. If pykit is ahead in a scope, the parity direction flows outward from pykit; flag it for
-the siblings.
+## Choose the scope
 
-## Parity is scoped and capability-first, not symbol-for-symbol
+Compare public APIs, invariants, and failures in `../rskit` and `../gokit`. The strongest implementation sets the direction for each capability; never weaken a better implementation for parity.
 
-Parity is judged **by capability**, weighing where each language is strongest — not by copying
-every sibling symbol. Decide per capability:
+| Level | Use |
+|---|---|
+| Full | Shared infrastructure Python can support well: errors, config, providers, resilience, transport, and data |
+| Light | Common Python use cases with heavy processing owned elsewhere; media retains detection, metadata, cheap image operations, time/spatial types, and subtitles |
+| Kit-only | Language/framework-specific capabilities; heavy media stays rskit-only, Axum maps to Python server behavior, and ConnectRPC has no required Python peer |
 
-- **Fully mirror** when Python is equally capable and the concept is shared infrastructure (errors,
-  config, di, provider shapes, resilience, transport, data adapters). Whichever kit currently has the
-  best version of that capability sets the shape the others match.
-- **Light version** when Python can cover the common case but the heavy work belongs in another
-  language. **Media is the canonical example:** pykit `media` is a light standalone package —
-  detection, metadata, cheap image ops, time/spatial types, subtitles (SRT/VTT). Heavy
-  audio/video/matrix transcoding and codec/filter/pipeline vocabulary are Rust-strongest and stay
-  **rskit-only** by design.
-- **Intentionally kit-only** when a concept is framework- or language-specific (e.g. rskit `http` is
-  Axum-specific and folds into pykit `server`; gokit `connect` is ConnectRPC-specific with no rskit or
-  pykit peer). Record these as deliberate `➖` rows with a note, not gaps to close.
+## Apply
 
-When in doubt about a heavy capability, prefer the light-pykit / strong-elsewhere split.
+1. Identify the strongest counterpart and choose full, light, or kit-only alignment.
+2. Implement test-first with typed errors, Protocols, generics, async behavior, and enforced value invariants. Preserve bounded resources and failure semantics.
+3. Update `docs/parity-matrix.md`, including deliberate renames and gaps. Keep its shared module-presence table consistent with rskit's matrix.
+4. Record remaining gaps for the weaker kit; do not introduce cross-kit runtime dependencies or consumer-specific infrastructure.
+5. Use `validate` for affected packages and `review` for parity claims.
 
-## Idiom beats structural mimicry
-
-Parity is about **capability and behavior**, not identical names or directory layouts. Where a
-language's current idioms, conventions, or best practices differ, follow Python's convention rather
-than force structural sameness — naming conventions, package/module organization, error/option
-ergonomics, and layout should read as native Python. Match the *concept and behavior* so users get
-intuition transfer; do not transliterate Rust or Go. Call out any deliberate rename or reshaping in
-the parity matrix so the mapping stays discoverable.
-
-## Workflow
-
-1. **Find the strongest existing implementation.** Locate the counterpart in the sibling kits (rskit
-   crate in `../rskit` / gokit module in `../gokit`) and study the public API, invariants, and error
-   model — not just the surface — then decide which side currently has the better implementation for
-   this scope.
-2. **Decide the mirroring level** (full / light / kit-only) and the direction (bring pykit up to a
-   stronger sibling, or lift pykit's stronger version outward) using the rules above.
-3. **Implement idiomatically in Python** — PEP 695 generics, Protocols (not ABCs), typed errors
-   (`AppError`), pydantic v2 for data, async-first, no `Any` in public APIs. Do not transliterate
-   Rust; match behavior and invariants, express them the Python way. Enforce documented value
-   invariants in code (saturate/clamp, NaN guards, half-open ranges) as pykit `media` does.
-4. **Update `docs/parity-matrix.md`.** Adjust the module-presence row (✅ / ➖ / ⏳) and the
-   pykit-specific capability tables. The module-presence table is a shared cross-kit source
-   (kept identical in `rskit/docs/parity-matrix.md`) — keep both sides consistent and note any
-   intentional divergence.
-5. **Propagate to whichever kit is behind.** If aligning exposes a gap, weakness, or redesign
-   opportunity in a sibling — including pykit itself — note it for that kit so the weaker side is
-   brought up. Keep each kit generic and multi-purpose; never make one kit specific to another.
-
-## Naming and cross-references
-
-- Module/package names align across kits **where the idiom allows** (pykit `logging` matches rskit
-  `logging`, etc.). Preserve shared naming when it is natural in Python; call out any deliberate,
-  idiom-driven rename in the parity matrix.
-- In PR/issue text, reference items in rskit (or any other repo) with **full URLs**, never bare
-  `#123` — a bare number resolves to the current repo.
-- Do not name branches/commits/PRs after internal plan or batch numbers; name by the actual
-  capability change. Each PR must read standalone.
-
-## Validate
-
-Run the affected pykit packages through the `validate` skill and, for a real audit of the parity
-claim, the `review` skill:
-
-```bash
-make test P=<pkg>
-make typecheck P=<pkg>
-```
-
-Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.
+Use full URLs for cross-repository references. Name branches and publication text after the capability, not plan numbers. Commit, push, and open PRs only with authorization.

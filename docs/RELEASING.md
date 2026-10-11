@@ -1,137 +1,51 @@
 # Releasing
 
-The mechanical steps to cut a release of `pykit`. For *what* counts as a
-breaking change vs a feature vs a fix, see [`policy/SEMVER.md`](policy/SEMVER.md)
-and [`policy/DEPRECATION.md`](policy/DEPRECATION.md).
+Prepare and verify a release using the [versioning](VERSIONING.md), [SemVer](policy/SEMVER.md), and [deprecation](policy/DEPRECATION.md) policies. Publication requires maintainer authorization, signed tags, and configured PyPI Trusted Publishing.
 
-## Prerequisites
+## Prepare
 
-- You are listed in `MAINTAINERS.md` and have push access to `kbukum/pykit`.
-- Your local clone is on `main` with no uncommitted changes.
-- `git`, `gh`, and `uv` are on your `$PATH`.
-- Your commits are GPG-signed (`git config commit.gpgsign true`) — release
-  tags must be signed.
-- Trusted Publishing to PyPI is configured for the repository (no API tokens
-  in CI).
+Start from a clean release branch. Verify current tags, package versions, and changes since the intended baseline; use a minor bump for pre-1.0 breaking changes and a patch otherwise.
 
-## 1. Decide the version
+Run the full acceptance gates and a project review:
 
 ```sh
-# What's the latest tag?
-git tag --sort=-v:refname | head -1
-
-# What changed since then?
-git log --oneline $(git describe --tags --abbrev=0)..HEAD
+make check
+make test-coverage
+uv run --project core lint-imports --config core/pyproject.toml
+uv run --project contrib lint-imports --config contrib/pyproject.toml
+uv run --project core pip-audit
+uv run --project contrib pip-audit
 ```
 
-Use the [SEMVER policy](./policy/SEMVER.md) to pick the next version. While
-in `0.x`, every release with a breaking change in the `[Unreleased]`
-CHANGELOG section bumps MINOR; otherwise PATCH.
+Confirm measured coverage meets package and overall policy; a report alone does not prove the thresholds.
 
-## 2. Update the CHANGELOG
-
-1. Open `CHANGELOG.md`.
-2. Replace `## [Unreleased]` with `## [vX.Y.Z] - YYYY-MM-DD`.
-3. Add a fresh empty `## [Unreleased]` section above it.
-4. If `[Unreleased]` is empty, refuse to release — there is nothing to ship.
-5. Update the link reference at the bottom of the file (if present).
-
-CI refuses to tag if `[Unreleased]` is the only populated section, or if
-`[vX.Y.Z]` for the version you're cutting doesn't exist in the file.
-
-## 3. Bump versions across the workspace
-
-All packages in pykit currently share a single version (lock-step). Update
-the version in:
-
-- Root `pyproject.toml` (`[project] version`)
-- Every `core/packages/pykit-*/pyproject.toml` and `contrib/pykit-*/pyproject.toml` (`[project] version`)
-
-A helper is provided:
+Update the affected package manifests under `core/packages/` and `contrib/`. There is no root Python project or version-bump helper. For a lock-step train, update all published packages consistently.
 
 ```sh
-uv run scripts/bump-version.py vX.Y.Z
+uv lock --project core
+uv lock --project contrib
+uv lock --project core --check
+uv lock --project contrib --check
 ```
 
-Then refresh the lockfile:
+Move the populated changelog body into a dated version section and retain a fresh `[Unreleased]`. Keep notes high-level and identify breaking changes. Do not release an empty change set.
+
+## Publish
+
+Review and commit only the prepared manifests, owning lockfiles, and changelog. Tag the approved commit with a signed workspace tag (`vX.Y.Z`) or package tag (`pykit-<name>/vX.Y.Z`), then push only the authorized refs.
+
+The [release workflow](../.github/workflows/release.yml) builds core/contrib distributions selected by the tag, publishes through PyPI Trusted Publishing, attests distribution provenance, and creates a GitHub Release with distributions and a CycloneDX SBOM.
+
+The workflow does **not** run the full acceptance suite or enforce changelog completeness. Finish those checks before publication. Its workspace build loops cover `core/packages/` and `contrib/pykit-*`; verify the intended artifact set in the build job before approving a train.
+
+## Verify
+
+Check the workflow for the exact tag and commit. Confirm every expected distribution, registry version, GitHub asset, SBOM, and attestation. Install the released packages in a fresh environment:
 
 ```sh
-uv lock
-git add pyproject.toml core/packages/*/pyproject.toml contrib/pykit-*/pyproject.toml uv.lock CHANGELOG.md
-git commit -S -m "chore: prepare vX.Y.Z release"
+uv pip install --refresh "pykit==X.Y.Z" "pykit-errors==X.Y.Z"
 ```
 
-## 4. Tag the release
+For prereleases, ensure the manifest's PEP 440 version matches the tag's intended release. Build/upload tools normalize Python versions; the workflow does not bump manifests from a tag.
 
-```sh
-git tag -s -a vX.Y.Z -m "vX.Y.Z"
-git push origin main vX.Y.Z
-```
-
-The release workflow (`.github/workflows/release.yml`) is triggered by the
-tag push and will:
-
-- Build wheels and sdists for every `core/packages/pykit-*`, every `contrib/pykit-*`, and the facade.
-- Run the full test suite + lint + type-check + `pip-audit`.
-- Verify `uv lock --check` passes.
-- Publish to PyPI via Trusted Publishing.
-- Sign artifacts with [Sigstore](https://www.sigstore.dev/).
-- Generate and attach a CycloneDX SBOM (`cyclonedx-py`).
-
-## 5. Cut the GitHub Release
-
-Once the workflow completes successfully, generate release notes from the
-CHANGELOG and create the GitHub Release via `gh`:
-
-```sh
-./scripts/release-notes.sh vX.Y.Z > /tmp/notes.md
-gh release create vX.Y.Z --title "vX.Y.Z" --notes-file /tmp/notes.md \
-  --verify-tag
-```
-
-Attach the Sigstore signature bundle and SBOM to the Release as assets if
-the workflow did not already.
-
-## 6. Verify on PyPI
-
-```sh
-uv pip install --refresh "pykit==X.Y.Z"
-uv pip install --refresh "pykit-errors==X.Y.Z"
-```
-
-If a package fails to install, the release was not successful — investigate
-the workflow logs.
-
-## 7. Announce
-
-- Post in the project's discussion / README "Latest" section.
-- Open a "post-release smoke test" issue against the next sprint milestone.
-- Notify sibling repos ([`gokit`](https://github.com/kbukum/gokit),
-  [`rskit`](https://github.com/kbukum/rskit)) if any cross-sibling APIs
-  changed.
-
-## Hotfix releases
-
-Hotfixes follow the same flow but skip the `[Unreleased]` rotation if the
-fix is targeted at an older line:
-
-```sh
-git checkout v0.2.0
-git checkout -b hotfix/v0.2.1
-# … apply fix …
-# add a `## [0.2.1] - YYYY-MM-DD` section to CHANGELOG.md
-git tag -s -a v0.2.1 -m "v0.2.1"
-git push origin v0.2.1
-```
-
-## Pre-releases
-
-```sh
-git tag -s -a v0.3.0-rc.1 -m "v0.3.0-rc.1"
-git push origin v0.3.0-rc.1
-gh release create v0.3.0-rc.1 --prerelease --title "v0.3.0-rc.1" \
-  --notes-file /tmp/notes.md
-```
-
-Pre-releases bypass the CHANGELOG check (the `-rc.N` / `-beta.N` suffix is
-detected by the release workflow).
+For hotfixes, create a branch from the intended historical release and use the same gates. Never move published tags or replace immutable registry versions; recover with a forward-fix release.

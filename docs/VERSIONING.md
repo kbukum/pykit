@@ -1,14 +1,9 @@
 # Versioning
 
-All packages in this monorepo start at `0.1.0`. Version bumps follow SemVer.
+Packages declare versions independently in their own `pyproject.toml`; releases currently use a lock-step train. Consumers should pin each package they install.
 
-## Compatibility guarantees
+Before 1.0, breaking changes require a minor bump. Patches may include fixes, internal improvements, and non-breaking additions. Stable packages follow normal SemVer and the [deprecation policy](policy/DEPRECATION.md).
 
-- **Patch** (0.1.x): bug fixes only; no breaking changes
-- **Minor** (0.x.0): new APIs; old APIs may be deprecated but not removed
-- **Major** (x.0.0): breaking changes allowed; deprecations are removed
+Tags use `pykit-<name>/vX.Y.Z` for a package or `vX.Y.Z` for the workspace train. Manifests use Python-compatible versions; verify prerelease normalization before tagging.
 
-## Version management
-
-Versions are managed in each package's `pyproject.toml`. There is intentionally
-no "workspace-wide version" — packages evolve independently.
+See [SemVer policy](policy/SEMVER.md) for the compatibility contract and [releasing](RELEASING.md) for preparation, publication, and verification.

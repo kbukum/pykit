@@ -12,6 +12,7 @@ Async Python infrastructure kit using a uv workspace: `core/packages/` foundatio
 - Bound remote calls, idempotent jittered retries, queues, and task concurrency. Every coroutine/resource has ownership, cancellation, and teardown.
 - Test-first, deterministic behavior and failures; reuse shared helpers, inject clocks, seed RNG. Unit doubles do not prove real integrations. Coverage: >=80% per package, >=85% overall and for errors/auth/authz/security/resilience/encryption. Never lower gates.
 - Follow Ruff, strict mypy, and Google-style docstrings. Markdown prose has no hard column wrapping; document current behavior.
+- Docs and agent instructions are concise, task-first, and organized for the reader. Explain capabilities at a high level; retain detail for correct use, contracts, safety, and verification. Changelogs summarize outcomes; skills link canonical procedures instead of repeating them.
 
 ## Work and validation
 
