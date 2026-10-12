@@ -274,8 +274,8 @@ class JWKSCache:
         self._http_timeout = http_timeout
         self._min_refresh_interval_seconds = min_refresh_interval_seconds
         self._keys: dict[str, dict[str, object]] = {}
-        self._fetched_at = 0.0
-        self._last_forced_refresh_at = 0.0
+        self._fetched_at: float | None = None
+        self._last_forced_refresh_at: float | None = None
         self._lock = asyncio.Lock()
 
     async def get_key(self, kid: str) -> VerificationKey:
@@ -293,7 +293,7 @@ class JWKSCache:
     async def get_keys(self) -> dict[str, dict[str, object]]:
         """Return cached JWKS entries keyed by ``kid``."""
 
-        if monotonic() - self._fetched_at > self._ttl_seconds:
+        if not self._is_fresh(monotonic()):
             await self._refresh()
         return dict(self._keys)
 
@@ -301,14 +301,22 @@ class JWKSCache:
         """Expire the cache immediately."""
 
         async with self._lock:
-            self._fetched_at = 0.0
+            self._fetched_at = None
+
+    def _is_fresh(self, now: float) -> bool:
+        # monotonic() has an arbitrary origin (boot time on Linux), so "never fetched" must not be a timestamp.
+        return self._fetched_at is not None and now - self._fetched_at <= self._ttl_seconds
 
     async def _refresh(self, *, force: bool = False) -> None:
         async with self._lock:
             now = monotonic()
-            if not force and now - self._fetched_at <= self._ttl_seconds:
+            if not force and self._is_fresh(now):
                 return
-            if force and now - self._last_forced_refresh_at < self._min_refresh_interval_seconds:
+            if (
+                force
+                and self._last_forced_refresh_at is not None
+                and now - self._last_forced_refresh_at < self._min_refresh_interval_seconds
+            ):
                 return
             if force:
                 self._last_forced_refresh_at = now

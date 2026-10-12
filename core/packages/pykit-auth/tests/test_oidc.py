@@ -379,3 +379,42 @@ async def test_jwks_cache_throttles_forced_refresh_on_repeated_kid_miss(
     with pytest.raises(OIDCError, match="unknown signing key"):
         await cache.get_key("missing")
     assert client.get_calls == 2
+
+
+@pytest.mark.asyncio
+async def test_jwks_cache_fetches_and_throttles_on_freshly_booted_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Linux monotonic() starts near zero at boot; an empty cache must still fetch.
+    now = [5.0]
+    monkeypatch.setattr("pykit_auth.oidc.monotonic", lambda: now[0])
+    response = httpx.Response(
+        200,
+        json={"keys": []},
+        request=httpx.Request("GET", "https://issuer.example.com/jwks"),
+    )
+    client = FakeAsyncClient(response)
+    monkeypatch.setattr("pykit_auth.oidc.httpx.AsyncClient", lambda timeout: client)
+    cache = JWKSCache(
+        "https://issuer.example.com/jwks",
+        ttl_seconds=60,
+        min_refresh_interval_seconds=30,
+    )
+
+    with pytest.raises(OIDCError, match="unknown signing key"):
+        await cache.get_key("missing")
+    assert client.get_calls == 2
+
+    now[0] = 20.0
+    with pytest.raises(OIDCError, match="unknown signing key"):
+        await cache.get_key("missing")
+    assert client.get_calls == 2
+
+    now[0] = 36.0
+    with pytest.raises(OIDCError, match="unknown signing key"):
+        await cache.get_key("missing")
+    assert client.get_calls == 3
+
+    await cache.invalidate()
+    await cache.get_keys()
+    assert client.get_calls == 4
