@@ -154,10 +154,10 @@ At a high level, the stack moves from foundations upward:
 | Transport and AI | `pykit-server`, `pykit-grpc`, `pykit-llm`, `pykit-embedding`, `pykit-vectorstore`, `pykit-mcp`, `pykit-ai`, `pykit-inference`, `pykit-bench`, `pykit-dataset`, `pykit-transcription` |
 | Top-level tooling and apps | `pykit-skill`, `pykit-agent`, `pykit-workload`, `pykit-process`, `pykit-git`, `pykit-testutil`, `pykit-integration`, plus contrib adapters |
 
-The main layer contract lives in `core/pyproject.toml`. If your change affects imports, package boundaries, or domain ownership, also run:
+The main layer contract lives in `core/pyproject.toml`; contrib adapter-independence contracts live in `contrib/pyproject.toml`. If your change affects imports, package boundaries, or domain ownership, also run:
 
 ```sh
-cd core && uv run import-linter
+(cd core && uv run lint-imports) && (cd contrib && uv run lint-imports)
 ```
 
 If you add or move packages, update `domains.toml` so the `make check-<domain>` gates stay accurate.

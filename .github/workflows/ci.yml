@@ -69,6 +69,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
+          python-version: "3.13"
           enable-cache: true
           cache-dependency-glob: |
             core/uv.lock
@@ -99,6 +100,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
+          python-version: "3.13"
           enable-cache: true
           cache-dependency-glob: |
             core/uv.lock
@@ -129,6 +131,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
+          python-version: "3.13"
           enable-cache: true
           cache-dependency-glob: |
             core/uv.lock
@@ -210,6 +213,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
+          python-version: "3.13"
           enable-cache: true
           cache-dependency-glob: |
             core/uv.lock
@@ -221,10 +225,10 @@ jobs:
         run: uv sync --all-packages --no-progress
         working-directory: contrib
       - name: Architecture check core
-        run: uv run import-linter
+        run: uv run lint-imports
         working-directory: core
       - name: Architecture check contrib
-        run: uv run import-linter
+        run: uv run lint-imports
         working-directory: contrib
 
   # ---------------------------------------------------------------------------

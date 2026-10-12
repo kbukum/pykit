@@ -44,6 +44,7 @@ dev = [
     "aiokafka>=0.14.0",
     "cramjam>=2.11.0",
     "pytest-benchmark",
+    "import-linter>=2.15",
 ]
 
 [tool.uv.sources]
@@ -326,6 +327,32 @@ root_packages = [
     "pykit_llm_anthropic",
     "pykit_llm_gemini",
     "pykit_vectorstore_qdrant",
+]
+
+[[tool.importlinter.contracts]]
+name = "Contrib adapters are independent"
+type = "independence"
+modules = [
+    "pykit_cache_redis",
+    "pykit_storage_s3",
+    "pykit_messaging_kafka",
+    "pykit_messaging_nats",
+    "pykit_messaging_rabbitmq",
+    "pykit_inference_tgi",
+    "pykit_inference_triton",
+    "pykit_inference_vllm",
+    "pykit_vectorstore_qdrant",
+    "pykit_llm_openai",
+    "pykit_llm_anthropic",
+    "pykit_llm_gemini",
+]
+
+[[tool.importlinter.contracts]]
+name = "LLM providers build on llm-common"
+type = "layers"
+layers = [
+    "pykit_llm_openai | pykit_llm_anthropic | pykit_llm_gemini",
+    "pykit_llm_common",
 ]
 
 [tool.bandit]
