@@ -35,6 +35,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
+        with:
+          python-version: "3.13"
       - name: Export core requirements
         run: uv export --only-group dev --format requirements-txt --no-emit-workspace | grep -v '^-e ' > requirements-dev.txt
         working-directory: core
@@ -52,18 +54,14 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
-      - name: Sync core dev dependencies
-        run: uv sync --only-group dev
-        working-directory: core
-      - name: Sync contrib dev dependencies
-        run: uv sync --only-group dev
-        working-directory: contrib
+        with:
+          python-version: "3.13"
       - name: Run bandit on core
-        run: uv run bandit -lll -iii -r packages/ -f json -o ../bandit-core-report.json
+        run: uvx --from 'bandit[toml]' bandit -c pyproject.toml -lll -iii -r packages/ -f json -o ../bandit-core-report.json
         working-directory: core
         continue-on-error: true
       - name: Run bandit on contrib
-        run: uv run bandit -lll -iii -r . -f json -o ../bandit-contrib-report.json
+        run: uvx --from 'bandit[toml]' bandit -c pyproject.toml -lll -iii -r . -x '**/.venv/**' -f json -o ../bandit-contrib-report.json
         working-directory: contrib
         continue-on-error: true
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

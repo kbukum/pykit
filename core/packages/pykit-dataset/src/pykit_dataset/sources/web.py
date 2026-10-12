@@ -69,7 +69,7 @@ class WebSource:
                     if count >= self._max_per_query:
                         break
 
-                    url_hash = hashlib.md5(url.encode()).hexdigest()
+                    url_hash = hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()
                     if url_hash in seen:
                         continue
                     seen.add(url_hash)
