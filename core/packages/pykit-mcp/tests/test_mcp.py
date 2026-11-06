@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from mcp.shared.memory import create_connected_server_and_client_session
+from mcp import Client
 from mcp.types import CallToolResult, TextContent, Tool
 
 from pykit_authz import Decision, DecisionRequest
@@ -40,9 +40,9 @@ class DenyDecider:
 def test_convert_roundtrip_derives_envelope() -> None:
     mcp_tool = definition_to_mcp_tool(greet.definition)
     assert mcp_tool.annotations is not None
-    assert mcp_tool.annotations.readOnlyHint is True
-    assert mcp_tool.annotations.destructiveHint is False
-    assert mcp_tool.annotations.openWorldHint is False
+    assert mcp_tool.annotations.read_only_hint is True
+    assert mcp_tool.annotations.destructive_hint is False
+    assert mcp_tool.annotations.open_world_hint is False
 
     definition = mcp_tool_to_definition(mcp_tool)
     assert definition.name == "greet"
@@ -61,14 +61,14 @@ def test_mcp_annotations_are_synthesized_from_envelope() -> None:
 
     mcp_tool = definition_to_mcp_tool(delete_data.definition)
     assert mcp_tool.annotations is not None
-    assert mcp_tool.annotations.readOnlyHint is False
-    assert mcp_tool.annotations.destructiveHint is True
-    assert mcp_tool.annotations.openWorldHint is True
+    assert mcp_tool.annotations.read_only_hint is False
+    assert mcp_tool.annotations.destructive_hint is True
+    assert mcp_tool.annotations.open_world_hint is True
 
 
 def test_mcp_tool_without_annotations_defaults_to_read_only() -> None:
     definition = mcp_tool_to_definition(
-        Tool(name="list_tools", description="List available tools", inputSchema={"type": "object"})
+        Tool(name="list_tools", description="List available tools", input_schema={"type": "object"})
     )
     assert definition.envelope.safety is Safety.READ_ONLY
 
@@ -83,7 +83,8 @@ def test_result_conversion() -> None:
 @pytest.mark.asyncio
 async def test_server_roundtrip() -> None:
     server = create_server("test", "0.1.0", registry())
-    async with create_connected_server_and_client_session(server) as session:
+    async with Client(server) as client:
+        session = client.session
         tools = await session.list_tools()
         assert [tool.name for tool in tools.tools] == ["greet"]
         result = await session.call_tool("greet", {"name": "MCP"})
@@ -93,16 +94,18 @@ async def test_server_roundtrip() -> None:
 @pytest.mark.asyncio
 async def test_decider_denies_tool_invocation() -> None:
     server = create_server("test", "0.1.0", registry(), decider=DenyDecider())
-    async with create_connected_server_and_client_session(server) as session:
+    async with Client(server) as client:
+        session = client.session
         result = await session.call_tool("greet", {"name": "MCP"})
-        assert result.isError
+        assert result.is_error
         assert result.content[0].text == "tool call denied: denied"
 
 
 @pytest.mark.asyncio
 async def test_remote_tools_register_locally() -> None:
     server = create_server("test", "0.1.0", registry())
-    async with create_connected_server_and_client_session(server) as session:
+    async with Client(server) as client:
+        session = client.session
         callables = await connect(session)
         local = Registry()
         for callable_tool in callables:

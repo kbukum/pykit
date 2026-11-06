@@ -6,23 +6,25 @@ import inspect
 import json
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
+from typing import Any
 
-import mcp.types as mcp_types
-from mcp.server import Server
+from mcp.server import Server, ServerRequestContext
 from mcp.types import (
+    CallToolRequestParams,
     CallToolResult,
     GetPromptRequestParams,
     GetPromptResult,
     ListPromptsResult,
     ListResourcesResult,
     ListResourceTemplatesResult,
+    ListToolsResult,
+    PaginatedRequestParams,
     Prompt,
     ReadResourceRequestParams,
     ReadResourceResult,
     Resource,
     ResourceTemplate,
     TextContent,
-    Tool,
 )
 from opentelemetry import trace
 from opentelemetry.trace import Tracer
@@ -34,8 +36,9 @@ from pykit_mcp.convert import definition_to_mcp_tool, result_to_mcp_result
 from pykit_schema import ValidationResult, validate
 from pykit_tool.context import Context
 from pykit_tool.definition import Definition
-from pykit_tool.registry import Registry
+from pykit_tool.registry import HumanApprovalDeniedError, Registry, SensitivityDeniedError
 from pykit_tool.result import Result
+from pykit_tool.tool import ToolExecutionError
 
 JsonObject = dict[str, JsonValue]
 
@@ -121,7 +124,7 @@ def create_server(
     resources: Iterable[ResourceEntry] | None = None,
     resource_templates: Iterable[ResourceTemplateEntry] | None = None,
     tracer: Tracer | None = None,
-) -> Server:
+) -> Server[Any]:
     """Create an MCP Server backed by a pykit tool registry.
 
     Each tool in the registry is exposed as an MCP tool. Calls are delegated
@@ -157,74 +160,55 @@ def create_server(
     prompt_map = {entry.prompt.name: entry for entry in prompt_entries}
     resource_map = {str(entry.resource.uri): entry for entry in resource_entries}
 
-    async def _list_prompts(_ctx: object, _params: object) -> ListPromptsResult:
-        return ListPromptsResult(prompts=[entry.prompt for entry in prompt_entries])
-
-    async def _get_prompt(_ctx: object, params: GetPromptRequestParams) -> GetPromptResult:
-        entry = prompt_map.get(params.name)
-        if entry is None:
-            raise ValueError(f"prompt not found: {params.name}")
-        return await _await_if_needed(entry.handler(dict(params.arguments or {})))
-
-    async def _list_resources(_ctx: object, _params: object) -> ListResourcesResult:
-        return ListResourcesResult(resources=[entry.resource for entry in resource_entries])
-
-    async def _list_resource_templates(_ctx: object, _params: object) -> ListResourceTemplatesResult:
-        return ListResourceTemplatesResult(
-            resourceTemplates=[entry.resource_template for entry in resource_template_entries]
-        )
-
-    async def _read_resource(_ctx: object, params: ReadResourceRequestParams) -> ReadResourceResult:
-        uri = str(params.uri)
-        if uri in resource_map:
-            return await _await_if_needed(resource_map[uri].handler(uri))
-        for entry in resource_template_entries:
-            if _resource_template_matches(entry.resource_template.uriTemplate, uri):
-                return await _await_if_needed(entry.handler(uri))
-        raise ValueError(f"resource not found: {uri}")
-
-    server = Server(name)
-    if prompt_entries:
-
-        async def _handle_list_prompts(_request: mcp_types.ListPromptsRequest) -> mcp_types.ServerResult:
-            return mcp_types.ServerResult(await _list_prompts(None, None))
-
-        async def _handle_get_prompt(request: mcp_types.GetPromptRequest) -> mcp_types.ServerResult:
-            return mcp_types.ServerResult(await _get_prompt(None, request.params))
-
-        server.request_handlers[mcp_types.ListPromptsRequest] = _handle_list_prompts
-        server.request_handlers[mcp_types.GetPromptRequest] = _handle_get_prompt
-    if resource_entries:
-
-        async def _handle_list_resources(_request: mcp_types.ListResourcesRequest) -> mcp_types.ServerResult:
-            return mcp_types.ServerResult(await _list_resources(None, None))
-
-        server.request_handlers[mcp_types.ListResourcesRequest] = _handle_list_resources
-    if resource_template_entries:
-
-        async def _handle_list_resource_templates(
-            _request: mcp_types.ListResourceTemplatesRequest,
-        ) -> mcp_types.ServerResult:
-            return mcp_types.ServerResult(await _list_resource_templates(None, None))
-
-        server.request_handlers[mcp_types.ListResourceTemplatesRequest] = _handle_list_resource_templates
-    if resource_entries or resource_template_entries:
-
-        async def _handle_read_resource(request: mcp_types.ReadResourceRequest) -> mcp_types.ServerResult:
-            return mcp_types.ServerResult(await _read_resource(None, request.params))
-
-        server.request_handlers[mcp_types.ReadResourceRequest] = _handle_read_resource
     allowed = set(allowed_tools or ())
 
     def is_allowed(tool_name: str) -> bool:
         return not allowed or tool_name in allowed
 
-    @server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]  # untyped decorator from mcp library
-    async def _list_tools() -> list[Tool]:
-        return [definition_to_mcp_tool(d, prefix) for d in registry.list() if is_allowed(d.name)]
+    async def _list_prompts(
+        _ctx: ServerRequestContext[Any], _params: PaginatedRequestParams | None
+    ) -> ListPromptsResult:
+        return ListPromptsResult(prompts=[entry.prompt for entry in prompt_entries])
 
-    @server.call_tool()  # type: ignore[untyped-decorator]  # untyped decorator from mcp library
-    async def _call_tool(name: str, arguments: JsonObject | None) -> CallToolResult:
+    async def _get_prompt(_ctx: ServerRequestContext[Any], params: GetPromptRequestParams) -> GetPromptResult:
+        entry = prompt_map.get(params.name)
+        if entry is None:
+            raise ValueError(f"prompt not found: {params.name}")
+        return await _await_if_needed(entry.handler(dict(params.arguments or {})))
+
+    async def _list_resources(
+        _ctx: ServerRequestContext[Any], _params: PaginatedRequestParams | None
+    ) -> ListResourcesResult:
+        return ListResourcesResult(resources=[entry.resource for entry in resource_entries])
+
+    async def _list_resource_templates(
+        _ctx: ServerRequestContext[Any], _params: PaginatedRequestParams | None
+    ) -> ListResourceTemplatesResult:
+        return ListResourceTemplatesResult(
+            resource_templates=[entry.resource_template for entry in resource_template_entries]
+        )
+
+    async def _read_resource(
+        _ctx: ServerRequestContext[Any], params: ReadResourceRequestParams
+    ) -> ReadResourceResult:
+        uri = str(params.uri)
+        if uri in resource_map:
+            return await _await_if_needed(resource_map[uri].handler(uri))
+        for entry in resource_template_entries:
+            if _resource_template_matches(entry.resource_template.uri_template, uri):
+                return await _await_if_needed(entry.handler(uri))
+        raise ValueError(f"resource not found: {uri}")
+
+    async def _list_tools(
+        _ctx: ServerRequestContext[Any], _params: PaginatedRequestParams | None
+    ) -> ListToolsResult:
+        return ListToolsResult(
+            tools=[definition_to_mcp_tool(d, prefix) for d in registry.list() if is_allowed(d.name)]
+        )
+
+    async def _call_tool(_ctx: ServerRequestContext[Any], params: CallToolRequestParams) -> CallToolResult:
+        name = params.name
+        arguments: JsonObject | None = params.arguments
         with otel_tracer.start_as_current_span("mcp.request") as span:
             # Strip prefix to get the registry tool name.
             tool_name = name
@@ -245,7 +229,7 @@ def create_server(
                     reason = "not in allow-list"
                     return CallToolResult(
                         content=[TextContent(type="text", text=f"tool not allowed: {tool_name!r}")],
-                        isError=True,
+                        is_error=True,
                     )
 
                 tool = registry.get(tool_name)
@@ -254,7 +238,7 @@ def create_server(
                     error = f"tool not found: {tool_name!r}"
                     return CallToolResult(
                         content=[TextContent(type="text", text=error)],
-                        isError=True,
+                        is_error=True,
                     )
 
                 decision = await _authorize_tool_call(
@@ -277,7 +261,7 @@ def create_server(
                     outcome = "denied"
                     return CallToolResult(
                         content=[TextContent(type="text", text=_denied_message(decision.reason))],
-                        isError=True,
+                        is_error=True,
                     )
 
                 if max_input_bytes > 0 and _json_size_bytes(input_data) > max_input_bytes:
@@ -290,7 +274,7 @@ def create_server(
                                 text=f"input too large: exceeds {max_input_bytes} bytes",
                             )
                         ],
-                        isError=True,
+                        is_error=True,
                     )
 
                 # Validate input.
@@ -301,14 +285,27 @@ def create_server(
                     error = error_text
                     return CallToolResult(
                         content=[TextContent(type="text", text=f"validation error: {error_text}")],
-                        isError=True,
+                        is_error=True,
                     )
 
                 ctx = Context()
                 limit = max_result_bytes
                 if limit > 0:
                     ctx.max_result_size = limit
-                result = await registry.call(tool_name, ctx, input_data)
+                try:
+                    result = await registry.call(tool_name, ctx, input_data)
+                except (SensitivityDeniedError, HumanApprovalDeniedError) as exc:
+                    outcome = "denied"
+                    reason = str(exc)
+                    return CallToolResult(
+                        content=[TextContent(type="text", text=_denied_message(reason))],
+                        is_error=True,
+                    )
+                except ToolExecutionError as exc:
+                    # MCP reports tool execution failures in the result so the model can react.
+                    outcome = "tool_error"
+                    error = str(exc)
+                    return CallToolResult(content=[TextContent(type="text", text=error)], is_error=True)
                 if result.is_error:
                     outcome = "tool_error"
                     error = result.text()
@@ -320,7 +317,7 @@ def create_server(
                             content=[
                                 TextContent(type="text", text=f"result too large: exceeds {limit} bytes")
                             ],
-                            isError=True,
+                            is_error=True,
                         )
                     output_validation = _validate_tool_output(tool.definition, result)
                     if not output_validation.valid:
@@ -334,7 +331,7 @@ def create_server(
                                     text=f"output validation error: {output_error}",
                                 )
                             ],
-                            isError=True,
+                            is_error=True,
                         )
                 return result_to_mcp_result(result)
             except Exception as exc:
@@ -353,7 +350,18 @@ def create_server(
                     ),
                 )
 
-    return server
+    has_resources = bool(resource_entries or resource_template_entries)
+    return Server(
+        name,
+        version=version,
+        on_list_tools=_list_tools,
+        on_call_tool=_call_tool,
+        on_list_prompts=_list_prompts if prompt_entries else None,
+        on_get_prompt=_get_prompt if prompt_entries else None,
+        on_list_resources=_list_resources if resource_entries else None,
+        on_list_resource_templates=_list_resource_templates if resource_template_entries else None,
+        on_read_resource=_read_resource if has_resources else None,
+    )
 
 
 async def _authorize_tool_call(
