@@ -21,7 +21,7 @@ def definition_to_mcp_tool(defn: Definition, prefix: str = "") -> mcp_types.Tool
     return mcp_types.Tool(
         name=name,
         description=defn.description or None,
-        inputSchema=input_schema,
+        input_schema=input_schema,
         annotations=annotations,
     )
 
@@ -36,10 +36,10 @@ def _to_mcp_annotations(defn: Definition) -> mcp_types.ToolAnnotations:
         open_world = defn.annotations.open_world_hint
     return mcp_types.ToolAnnotations(
         title=defn.annotations.title or None,
-        readOnlyHint=read_only,
-        destructiveHint=destructive,
-        idempotentHint=defn.annotations.idempotent_hint,
-        openWorldHint=open_world,
+        read_only_hint=read_only,
+        destructive_hint=destructive,
+        idempotent_hint=defn.annotations.idempotent_hint,
+        open_world_hint=open_world,
     )
 
 
@@ -53,24 +53,24 @@ def mcp_tool_to_definition(tool: mcp_types.Tool, prefix: str = "") -> Definition
     if tool.annotations is not None:
         annotations = Annotations(
             title=tool.annotations.title or "",
-            idempotent_hint=tool.annotations.idempotentHint,
+            idempotent_hint=tool.annotations.idempotent_hint,
         )
 
     input_schema: dict[str, Any] = {}
-    if tool.inputSchema:
-        input_schema = dict(tool.inputSchema)
+    if tool.input_schema:
+        input_schema = dict(tool.input_schema)
 
     safety = Safety.READ_ONLY
     open_world_hint: bool | None = None
     if tool.annotations is not None:
-        if tool.annotations.readOnlyHint:
+        if tool.annotations.read_only_hint:
             safety = Safety.READ_ONLY
-        elif tool.annotations.destructiveHint:
+        elif tool.annotations.destructive_hint:
             safety = Safety.DESTRUCTIVE
         else:
             safety = Safety.MUTATING
-        open_world_hint = tool.annotations.openWorldHint
-        if tool.annotations.openWorldHint is not None:
+        open_world_hint = tool.annotations.open_world_hint
+        if tool.annotations.open_world_hint is not None:
             annotations = Annotations(
                 title=annotations.title,
                 idempotent_hint=annotations.idempotent_hint,
@@ -96,7 +96,7 @@ def result_to_mcp_result(result: Result) -> mcp_types.CallToolResult:
     elif not content:
         content.append(mcp_types.TextContent(type="text", text=""))
 
-    return mcp_types.CallToolResult(content=content, isError=result.is_error)  # type: ignore[arg-type]  # content list type is compatible at runtime
+    return mcp_types.CallToolResult(content=content, is_error=result.is_error)  # type: ignore[arg-type]  # content list type is compatible at runtime
 
 
 def mcp_result_to_result(mcp_result: mcp_types.CallToolResult) -> Result:
@@ -117,5 +117,5 @@ def mcp_result_to_result(mcp_result: mcp_types.CallToolResult) -> Result:
     return Result(
         output=output,
         content=text,
-        is_error=mcp_result.isError or False,
+        is_error=mcp_result.is_error or False,
     )

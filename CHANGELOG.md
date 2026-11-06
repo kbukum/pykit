@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **README.md**: Added badges, contributing section, code of conduct, updated package descriptions
 
 ### Breaking Changes
+- **pykit-mcp requires `mcp>=2.2.0`** to pick up MCP security fixes. `create_server` returns an mcp 2.x `Server` that reports the configured version; tool failures and sensitivity/approval denials still come back as `is_error` tool results.
 - **pykit-kafka → pykit-messaging**: The `pykit-kafka` package has been replaced by `pykit-messaging`
   - Abstract protocols (`MessageProducer`, `MessageConsumer`, `Message`, `Event`) in `pykit_messaging`
   - Kafka implementation in `pykit_messaging.kafka` sub-package
